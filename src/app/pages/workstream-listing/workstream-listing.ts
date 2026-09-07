@@ -1,4 +1,5 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   UiButton, UiColumnHeader, UiIcon, UiIconButton, UiPageHeader, UiPagination,
   UiSearchInput, UiSelect, UiStatusTag, UiSummaryCard, UiTable, UiTableCard,
@@ -7,6 +8,23 @@ import {
 import { LOCATIONS, PLATFORMS, TECH_UNITS, WORK_STATUSES } from '../../data/lookups';
 import { workstreams } from '../../data/workstreams';
 import type { Workstream } from '../../data/models';
+import type { UiTagVariant } from 'ai-dls-kit';
+
+/**
+ * The kit's status-tag keyword table covers approval-style statuses, not the
+ * workstream lifecycle, so every one of ours would fall through to neutral.
+ * Mapped explicitly instead. The kit ships five variants for our seven
+ * statuses, so two pairs deliberately share a colour (see MIGRATION notes).
+ */
+const STATUS_VARIANT: Record<string, UiTagVariant> = {
+  'Not Started': 'neutral',
+  'Business Case Preparation': 'purple',
+  'In Progress': 'neutral',
+  'Completed / Pending Closure': 'green',
+  'Operate': 'green',
+  'On-Hold': 'amber',
+  'Cancelled': 'red'
+};
 
 const ALL_STATUS = 'All Statuses';
 const PAGE_SIZE = 20;
@@ -21,6 +39,8 @@ const PAGE_SIZE = 20;
   styleUrl: './workstream-listing.scss'
 })
 export class WorkstreamListing {
+  private readonly router = inject(Router);
+
   protected readonly allStatus = ALL_STATUS;
   protected readonly statusOptions = [ALL_STATUS, ...WORK_STATUSES];
   protected readonly locationOptions = LOCATIONS;
@@ -56,6 +76,14 @@ export class WorkstreamListing {
   });
 
   /** Location and work-status counts for the summary card, from the filtered set. */
+  protected variantFor(status: string): UiTagVariant {
+    return STATUS_VARIANT[status] ?? 'neutral';
+  }
+
+  protected open(id: string) {
+    this.router.navigate(['/workstreams', id]);
+  }
+
   protected readonly locationItems = computed(() => {
     const rows = this.filtered();
     const sg = rows.filter((w) => w.singapore).length;

@@ -1,0 +1,31 @@
+@use 'ai-dls-kit/tokens/layout' as layout;
+@use 'ai-dls-kit/tokens/type' as type;
+
+:host { display: block; }
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 40px;
+  background: var(--color-bg-level1);
+}
+.meta-code { @include type.body(sm); color: var(--color-text-subtle); }
+.meta-sub  { @include type.body(sm); color: var(--color-text-subtle); }
+
+.page-content {
+  @include layout.content-padding;
+  display: grid;
+  gap: 16px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 40px;
+  margin: 0;
+
+  dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
+  dd { @include type.label(sm); color: var(--color-text-strong); margin: 0; }
+}

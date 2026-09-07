@@ -22,7 +22,7 @@
       <ui-search-input [(value)]="search" placeholder="Search by Workstream Name" />
     </ui-table-header>
 
-    <table ui-table>
+    <table ui-table size="sm">
       <thead>
         <tr>
           <th style="width: 20%"><ui-column-header label="Workstream Name" [first]="true" /></th>
@@ -43,7 +43,7 @@
       </thead>
       <tbody>
         @for (row of rows(); track row.id) {
-          <tr ui-table-row interactive>
+          <tr ui-table-row interactive (activate)="open(row.id)">
             <td>
               <div class="cell-name">{{ row.name }}</div>
               <div class="cell-code">{{ row.code }}</div>
@@ -58,7 +58,7 @@
             <td>{{ row.workstreamRef }}</td>
             <td>{{ row.startDate }}</td>
             <td>{{ row.goLiveDate }}</td>
-            <td class="ui-cell-status"><ui-status-tag [status]="row.workStatus" /></td>
+            <td class="ui-cell-status"><ui-status-tag [status]="row.workStatus" [variant]="variantFor(row.workStatus)" /></td>
             <td class="ui-cell-actions">
               <button ui-icon-button size="tiny" type="button" aria-label="Open workstream">
                 <ui-icon name="chevron-right" />
