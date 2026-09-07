@@ -3,20 +3,35 @@
 
 :host { display: block; }
 
+.global-bar {
+  display: flex;
+  gap: 12px;
+  padding: 10px 40px;
+  background: var(--color-bg-level1);
+  border-bottom: 1px solid var(--color-border-decorative);
+}
+.global-bar ui-select { width: 200px; }
+
 .page-content {
   @include layout.content-padding;
-  padding-top: 0;                 // ui-page-header owns the 24px gap below its rule (RULES.md #5)
+  padding-top: 0;                 // ui-page-header owns the 24px below its rule (RULES.md #5)
   display: grid;
   gap: 16px;
 }
 
-.filters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 240px));
-  gap: 12px;
-}
-// Work Status carries six items to Locations' two, so it gets the wider track
-.summaries { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.6fr); gap: 16px; }
+.filter-row { display: grid; grid-template-columns: repeat(3, minmax(0, 200px)); gap: 12px; }
 
-.cell-name { @include type.label(sm); color: var(--color-text-strong); }
-.cell-code { @include type.body(sm); color: var(--color-text-subtle); }
+.summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  margin-top: 16px;
+}
+.status-filter-label { @include type.label(sm); color: var(--color-text-subtle); margin-bottom: 8px; }
+
+.result-count { @include type.body(sm); color: var(--color-text-subtle); }
+
+// The workstream name is the row's subject; everything beside it is metadata.
+.cell-name { @include type.label(md); color: var(--color-text-strong); }
+.cell-meta { @include type.body(sm); color: var(--color-text-subtle); }

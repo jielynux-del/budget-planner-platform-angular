@@ -1,41 +1,71 @@
+<div class="global-bar">
+  <ui-select [options]="locationOptions" [(value)]="location" [emptyValue]="locationOptions[0]" />
+  <ui-select [options]="techUnitOptions" [(value)]="techUnit" [emptyValue]="techUnitOptions[0]" />
+  <ui-select [options]="platformOptions" [(value)]="platform" [emptyValue]="platformOptions[0]" [searchable]="true" />
+</div>
+
 <ui-page-header title="Workstream Listing">
-  <button uiPageHeaderActions ui-button variant="secondary" size="small" type="button">
-    <ui-icon name="download" />
-    Export
+  <button uiPageHeaderActions ui-icon-button size="small" type="button" aria-label="Expand view">
+    <ui-icon name="maximize" />
   </button>
 </ui-page-header>
 
 <div class="page-content">
-  <div class="filters">
-    <ui-select [options]="locationOptions" [(value)]="location" [emptyValue]="locationOptions[0]" />
-    <ui-select [options]="techUnitOptions" [(value)]="techUnit" [emptyValue]="techUnitOptions[0]" />
-    <ui-select [options]="platformOptions" [(value)]="platform" [emptyValue]="platformOptions[0]" [searchable]="true" />
+  @if (noticeOpen()) {
+    <ui-info-banner
+      tone="warning"
+      title="Take Note"
+      message="Please update Aug26 forecast by 27/8/2026, 7pm local time. Subsequent adjustments will not be included for the current month reporting."
+      (closed)="noticeOpen.set(false)" />
+  }
+
+  <div class="filter-row">
+    <ui-select [options]="yearOptions" [(value)]="year" [emptyValue]="'2026'" />
+    <ui-select [options]="scenarioOptions" [(value)]="scenario" [emptyValue]="'Forecast'" />
+    <ui-select [options]="flagOptions" [(value)]="reportingFlag" [emptyValue]="flagOptions[0]" />
   </div>
 
-  <div class="summaries">
-    <ui-summary-card title="Locations" [items]="locationItems()" />
-    <ui-summary-card title="Work Status" [items]="statusItems()" />
-  </div>
+  <ui-card>
+    <ui-section-header
+      [title]="scope().length + ' Workstreams'"
+      subtitle="Below count is only applicable to user access role set-up for user. It does not apply to Work Manager/Team Lead access, which will be covered in subsequent release"
+      size="md" />
+
+    <div class="summary-row">
+      <ui-summary-card title="Locations" [items]="locationItems()" />
+      <div class="status-filter">
+        <div class="status-filter-label">Work Status</div>
+        <ui-filter-tabs [tabs]="statusTabs()" [(active)]="statusTile" />
+      </div>
+    </div>
+  </ui-card>
 
   <ui-table-card>
-    <ui-table-header [title]="filtered().length + ' Workstreams'">
+    <ui-table-header>
       <ui-search-input [(value)]="search" placeholder="Search by Workstream Name" />
+      <span uiTableActions class="result-count">
+        Displaying {{ rangeStart() }} - {{ rangeEnd() }} of {{ filtered().length }} items
+      </span>
     </ui-table-header>
 
     <table ui-table size="sm">
       <thead>
         <tr>
-          <th style="width: 20%"><ui-column-header label="Workstream Name" [first]="true" /></th>
-          <th style="width: 14%"><ui-column-header label="Portfolio Name" /></th>
-          <th style="width: 14%"><ui-column-header label="Platform" /></th>
+          <th style="width: 19%"><ui-column-header label="Workstream Name" [first]="true" /></th>
+          <th style="width: 13%"><ui-column-header label="Portfolio Name" /></th>
+          <th style="width: 13%"><ui-column-header label="Platform" /></th>
           <th style="width: 10%"><ui-column-header label="Sub Platform" /></th>
           <th style="width: 10%"><ui-column-header label="Reporting Location" /></th>
           <th style="width: 12%"><ui-column-header label="Workstream Ref" /></th>
           <th style="width: 8%"><ui-column-header label="Start Date" /></th>
           <th style="width: 8%"><ui-column-header label="Go Live Date" /></th>
-          <th style="width: 14%">
+          <th style="width: 15%">
             <ui-column-header label="Work Status">
-              <ui-select [options]="statusOptions" [(value)]="status" [emptyValue]="allStatus" />
+              <ui-multi-select
+                [items]="statusOptions"
+                [(selected)]="statusPicks"
+                placeholder="All Statuses"
+                display="count" />
             </ui-column-header>
           </th>
           <th style="width: 56px"><ui-column-header variant="blank" [last]="true" /></th>
@@ -46,18 +76,18 @@
           <tr ui-table-row interactive (activate)="open(row.id)">
             <td>
               <div class="cell-name">{{ row.name }}</div>
-              <div class="cell-code">{{ row.code }}</div>
+              <div class="cell-meta">{{ row.code }}</div>
             </td>
             <td>
               <div class="cell-name">{{ row.portfolioName }}</div>
-              <div class="cell-code">{{ row.portfolioCode }}</div>
+              <div class="cell-meta">{{ row.portfolioCode }}</div>
             </td>
-            <td>{{ row.platform }}</td>
-            <td>{{ row.subPlatform }}</td>
-            <td>{{ row.reportingLocation }}</td>
-            <td>{{ row.workstreamRef }}</td>
-            <td>{{ row.startDate }}</td>
-            <td>{{ row.goLiveDate }}</td>
+            <td class="cell-meta">{{ row.platform }}</td>
+            <td class="cell-meta">{{ row.subPlatform }}</td>
+            <td class="cell-meta">{{ row.reportingLocation }}</td>
+            <td class="cell-meta">{{ row.workstreamRef }}</td>
+            <td class="cell-meta">{{ row.startDate }}</td>
+            <td class="cell-meta">{{ row.goLiveDate }}</td>
             <td class="ui-cell-status"><ui-status-tag [status]="row.workStatus" [variant]="variantFor(row.workStatus)" /></td>
             <td class="ui-cell-actions">
               <button ui-icon-button size="tiny" type="button" aria-label="Open workstream">
