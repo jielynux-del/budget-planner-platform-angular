@@ -8,6 +8,8 @@ import {
 } from 'ai-dls-kit';
 import { workstreamById } from '../../data/workstreams';
 import { hierarchy } from '../../data/tree';
+import { defaultBenefits } from '../../data/benefitsData';
+import { ValueBenefits } from '../value-benefits/value-benefits';
 import type { NodeStatus } from '../../data/models';
 
 const STATUS_VARIANT: Record<string, UiTagVariant> = {
@@ -38,7 +40,7 @@ const NAV_STATUS: Record<NodeStatus, UiNavStatus> = {
   imports: [
     UiNavPanel, UiNavPanelHeader, UiNavGroup, UiNavSubItem, UiCard,
     UiButton, UiIcon, UiIconButton, UiTabs, UiStatusTag, UiSectionHeader,
-    UiTable, UiTableRow, UiColumnHeader
+    UiTable, UiTableRow, UiColumnHeader, ValueBenefits
   ],
   templateUrl: './workstream-detail.html',
   styleUrl: './workstream-detail.scss'
@@ -71,6 +73,12 @@ export class WorkstreamDetail {
   protected navStatus(status: NodeStatus): UiNavStatus {
     return NAV_STATUS[status];
   }
+
+  /** Seeded per workstream, mirroring the React prototype's session store. */
+  protected readonly benefits = computed(() => {
+    const w = this.ws();
+    return w ? defaultBenefits(w) : [];
+  });
 
   protected readonly financialYears = [2024, 2025, 2026, 2027];
 

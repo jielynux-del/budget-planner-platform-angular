@@ -273,12 +273,7 @@
           </ui-card>
 
         } @else {
-          <ui-card>
-            <ui-section-header
-              title="Value/Benefits — porting next"
-              subtitle="The benefits lifecycle is the largest tab and is being ported as its own piece of work."
-              size="sm" />
-          </ui-card>
+          <app-value-benefits [benefits]="benefits()" />
         }
       </div>
     </div>

@@ -1,0 +1,154 @@
+<ui-card>
+  <div class="vb-filters">
+    <div class="vb-field">
+      <span class="vb-label">Benefit Owner</span>
+      <ui-select [options]="ownerOptions" [(value)]="owner" [emptyValue]="all" [searchable]="true" />
+    </div>
+    <div class="vb-field">
+      <span class="vb-label">Expected Realisation Date From</span>
+      <ui-date-input [(value)]="realisationFrom" />
+    </div>
+    <div class="vb-field">
+      <span class="vb-label">Expected Realisation Date To</span>
+      <ui-date-input [(value)]="realisationTo" />
+    </div>
+    <div class="vb-field">
+      <span class="vb-label">Benefit Status</span>
+      <ui-select [options]="statusOptions" [(value)]="status" [emptyValue]="all" />
+    </div>
+    <button ui-button variant="secondary" size="small" type="button" [disabled]="!filtersActive()" (click)="clearFilters()">
+      Clear Filters
+    </button>
+  </div>
+</ui-card>
+
+<div class="vb-subtabs">
+  <ui-filter-tabs [tabs]="subTabs" [(active)]="subTab" />
+</div>
+
+<ui-table-card>
+  <ui-table-header [title]="subTab() === 'tracking' ? 'Benefits Tracking' : 'Baseline Management'">
+    <span class="vb-count">{{ filtered().length }} of {{ benefits().length }} benefits</span>
+    <button uiTableActions ui-button variant="primary" size="small" type="button">
+      <ui-icon name="plus" />
+      Add New Benefit
+    </button>
+  </ui-table-header>
+
+  <div class="vb-scroll">
+    @if (subTab() === 'tracking') {
+      <table ui-table size="sm" class="vb-table">
+        <thead>
+          <tr>
+            <th style="width: 230px">
+              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [first]="true" [filtered]="colName() !== all">
+                <ui-select [options]="nameOptions()" [(value)]="colName" [emptyValue]="all" [searchable]="true" />
+              </ui-column-header>
+            </th>
+            <th style="width: 130px">
+              <ui-column-header label="Benefit Type" size="sm" [sortable]="true" [filtered]="colType() !== all">
+                <ui-select [options]="typeOptions" [(value)]="colType" [emptyValue]="all" />
+              </ui-column-header>
+            </th>
+            <th style="width: 190px">
+              <ui-column-header label="Benefit Owner" size="sm" [sortable]="true" [filtered]="colOwner() !== all">
+                <ui-select [options]="ownerOptions" [(value)]="colOwner" [emptyValue]="all" [searchable]="true" />
+              </ui-column-header>
+            </th>
+            <th style="width: 170px"><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+            <th style="width: 240px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
+            <th style="width: 180px">
+              <ui-column-header label="Benefit Status" size="sm" [sortable]="true" [filtered]="colStatus() !== all">
+                <ui-select [options]="statusOptions" [(value)]="colStatus" [emptyValue]="all" />
+              </ui-column-header>
+            </th>
+            <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
+            <th style="width: 160px"><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
+            <th style="width: 130px"><ui-column-header label="Last Updated" size="sm" [sortable]="true" /></th>
+            <th style="width: 72px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (b of filtered(); track b.id) {
+            <tr ui-table-row>
+              <td>
+                <div class="cell-name">{{ b.name }}</div>
+                <div class="cell-meta">{{ b.benefitRef }} · {{ b.category }}</div>
+              </td>
+              <td>{{ b.type }}</td>
+              <td>{{ b.owner }}</td>
+              <td class="ui-cell-number">{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : '-' }}</td>
+              <td>
+                @if (latest(b); as u) {
+                  @if (b.type === 'Financial') {
+                    <span class="cell-name">{{ money(u.actualValue) }}</span>
+                    <span class="cell-variance" [class.is-neg]="(u.variancePct ?? 0) < 0">{{ variance(u.variancePct) }}</span>
+                  } @else {
+                    {{ u.progressUpdate }}
+                  }
+                } @else {
+                  <span class="cell-meta">Not yet reported</span>
+                }
+              </td>
+              <td class="ui-cell-status"><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></td>
+              <td>{{ b.effectiveDate }}</td>
+              <td>{{ b.targetRealisationDate }}</td>
+              <td>{{ latest(b)?.updateDate ?? '-' }}</td>
+              <td class="ui-cell-actions ui-td-sticky">
+                <ui-kebab-menu [items]="rowActions" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <table ui-table size="sm" class="vb-table">
+        <thead>
+          <tr>
+            <th style="width: 120px"><ui-column-header label="Baseline ID" size="sm" [sortable]="true" [first]="true" /></th>
+            <th style="width: 230px">
+              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [filtered]="colName() !== all">
+                <ui-select [options]="nameOptions()" [(value)]="colName" [emptyValue]="all" [searchable]="true" />
+              </ui-column-header>
+            </th>
+            <th style="width: 170px"><ui-column-header label="Original Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+            <th style="width: 170px"><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+            <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
+            <th style="width: 160px"><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
+            <th style="width: 170px">
+              <ui-column-header label="Approval Status" size="sm" [sortable]="true" [filtered]="colApproval() !== all">
+                <ui-select [options]="approvalOptions" [(value)]="colApproval" [emptyValue]="all" />
+              </ui-column-header>
+            </th>
+            <th style="width: 150px"><ui-column-header label="Approved By" size="sm" [sortable]="true" /></th>
+            <th style="width: 130px"><ui-column-header label="Approval Date" size="sm" [sortable]="true" /></th>
+            <th style="width: 72px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (b of filtered(); track b.id) {
+            <tr ui-table-row>
+              <td class="cell-name">{{ b.baselineId }}</td>
+              <td>
+                <div class="cell-name">{{ b.name }}</div>
+                <div class="cell-meta">{{ b.benefitRef }} · {{ b.type }}</div>
+              </td>
+              <td class="ui-cell-number">{{ b.type === 'Financial' ? money(b.originalApprovedBaseline) : '-' }}</td>
+              <td class="ui-cell-number">{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : '-' }}</td>
+              <td>{{ b.effectiveDate }}</td>
+              <td>{{ b.targetRealisationDate }}</td>
+              <td class="ui-cell-status"><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></td>
+              <td>{{ b.approvedBy }}</td>
+              <td>{{ b.approvalDate }}</td>
+              <td class="ui-cell-actions ui-td-sticky">
+                <ui-kebab-menu [items]="baselineActions" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <ui-pagination type="basic" [total]="filtered().length" [(page)]="page" />
+</ui-table-card>
