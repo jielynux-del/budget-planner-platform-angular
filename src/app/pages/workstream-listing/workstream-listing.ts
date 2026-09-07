@@ -1,10 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  UiButton, UiCard, UiColumnHeader, UiFilterTabs, UiIcon, UiIconButton, UiInfoBanner,
+  UiButton, UiCard, UiColumnHeader, UiIcon, UiIconButton, UiInfoBanner,
   UiMultiSelect, UiPageHeader, UiPagination, UiSearchInput, UiSectionHeader, UiSelect,
   UiStatusTag, UiSummaryCard, UiTable, UiTableCard, UiTableHeader, UiTableRow,
-  type UiFilterTab, type UiTagVariant
+  type UiTagVariant
 } from 'ai-dls-kit';
 import {
   LOCATIONS, PLATFORMS, REPORTING_FLAGS, SCENARIOS, TECH_UNITS, WORK_STATUSES, YEARS
@@ -35,7 +35,7 @@ const PAGE_SIZE = 20;
   selector: 'app-workstream-listing',
   imports: [
     UiPageHeader, UiButton, UiIcon, UiIconButton, UiInfoBanner, UiSelect, UiMultiSelect,
-    UiCard, UiSectionHeader, UiSummaryCard, UiFilterTabs, UiSearchInput, UiTableCard,
+    UiCard, UiSectionHeader, UiSummaryCard, UiSearchInput, UiTableCard,
     UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPagination
   ],
   templateUrl: './workstream-listing.html',
@@ -105,12 +105,11 @@ export class WorkstreamListing {
     ];
   });
 
-  /** Status tiles double as the filter, so they are ui-filter-tabs with counts. */
-  protected readonly statusTabs = computed<UiFilterTab[]>(() => {
+  /** The Work Status figures — a summary card whose numbers filter the table. */
+  protected readonly statusStats = computed(() => {
     const rows = this.scope();
     const n = (s: string) => rows.filter((w) => w.workStatus === s).length;
     return [
-      { key: ALL_STATUSES, label: 'All', count: rows.length },
       { key: 'Not Started', label: 'Not Started', count: n('Not Started') },
       { key: 'Business Case Preparation', label: 'Business Case Preparation', count: n('Business Case Preparation') },
       { key: 'In Progress', label: 'In Progress', count: n('In Progress') },
@@ -119,6 +118,12 @@ export class WorkstreamListing {
       { key: 'On-Hold / Cancelled', label: 'On-Hold / Cancelled', count: n('On-Hold') + n('Cancelled') }
     ];
   });
+
+  /** Clicking the active figure clears the filter rather than re-applying it. */
+  protected toggleStatus(key: string) {
+    this.statusTile.set(this.statusTile() === key ? ALL_STATUSES : key);
+    this.page.set(1);
+  }
 
   protected variantFor(status: string): UiTagVariant {
     return STATUS_VARIANT[status] ?? 'neutral';

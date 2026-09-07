@@ -24,14 +24,53 @@
 .summary-row {
   display: grid;
   grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
+  gap: 16px;
+  align-items: stretch;
   margin-top: 16px;
 }
-.status-filter-label { @include type.label(sm); color: var(--color-text-subtle); margin-bottom: 8px; }
+// Matches ui-summary-card's own chrome — heading 14/600, figure 24/600,
+// caption 13/500 subtle — because these figures ARE that card, plus a click.
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--color-border-decorative);
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: var(--color-bg-level1);
+}
+.stat-card-heading { @include type.heading(2xs); color: var(--color-text-strong); }
+
+.stat-row { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.stat:hover { background: var(--color-bg-hover); }
+.stat--active {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+}
+.stat-count { @include type.heading(md); color: var(--color-text-strong); }
+.stat-label { @include type.label(sm); color: var(--color-text-subtle); }
 
 .result-count { @include type.body(sm); color: var(--color-text-subtle); }
 
 // The workstream name is the row's subject; everything beside it is metadata.
 .cell-name { @include type.label(md); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
+
+// ui-table-header's control row shares its width between projected children,
+// so the search takes the slack and the status filter keeps a fixed column.
+.toolbar-search { flex: 1 1 auto; min-width: 260px; }
+.toolbar-filter { flex: 0 0 220px; }

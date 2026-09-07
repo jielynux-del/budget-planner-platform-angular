@@ -33,16 +33,33 @@
 
     <div class="summary-row">
       <ui-summary-card title="Locations" [items]="locationItems()" />
-      <div class="status-filter">
-        <div class="status-filter-label">Work Status</div>
-        <ui-filter-tabs [tabs]="statusTabs()" [(active)]="statusTile" />
+
+      <!-- Work Status reads as a summary card but each figure filters the table.
+           ui-summary-card is display-only, so the stats are buttons here.
+           Stat filter needed because the kit is missing a clickable summary card. -->
+      <div class="stat-card">
+        <span class="stat-card-heading">Work Status</span>
+        <div class="stat-row">
+          @for (s of statusStats(); track s.key) {
+            <button type="button" class="stat" [class.stat--active]="statusTile() === s.key" [attr.aria-pressed]="statusTile() === s.key" (click)="toggleStatus(s.key)"> <!-- boundary-allow: clickable summary figure — ui-summary-card is display-only -->
+              <span class="stat-count">{{ s.count }}</span>
+              <span class="stat-label">{{ s.label }}</span>
+            </button>
+          }
+        </div>
       </div>
     </div>
   </ui-card>
 
   <ui-table-card>
     <ui-table-header>
-      <ui-search-input [(value)]="search" placeholder="Search by Workstream Name" />
+      <ui-search-input class="toolbar-search" [(value)]="search" placeholder="Search by Workstream Name" />
+      <ui-multi-select
+        class="toolbar-filter"
+        [items]="statusOptions"
+        [(selected)]="statusPicks"
+        placeholder="All Statuses"
+        display="count" />
       <span uiTableActions class="result-count">
         Displaying {{ rangeStart() }} - {{ rangeEnd() }} of {{ filtered().length }} items
       </span>
@@ -60,13 +77,7 @@
           <th style="width: 8%"><ui-column-header label="Start Date" /></th>
           <th style="width: 8%"><ui-column-header label="Go Live Date" /></th>
           <th style="width: 15%">
-            <ui-column-header label="Work Status">
-              <ui-multi-select
-                [items]="statusOptions"
-                [(selected)]="statusPicks"
-                placeholder="All Statuses"
-                display="count" />
-            </ui-column-header>
+            <ui-column-header label="Work Status" />
           </th>
           <th style="width: 56px"><ui-column-header variant="blank" [last]="true" /></th>
         </tr>
