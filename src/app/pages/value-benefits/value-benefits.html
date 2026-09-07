@@ -70,7 +70,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (b of filtered(); track b.id) {
+          @for (b of rows(); track b.id) {
             <tr ui-table-row interactive>
               <td>
                 <div class="cell-name">{{ b.name }}</div>
@@ -83,7 +83,7 @@
                 @if (latest(b); as u) {
                   @if (b.type === 'Financial') {
                     <span class="cell-name">{{ money(u.actualValue) }}</span>
-                    <ui-status-tag [label]="variance(u.variancePct)" [variant]="varianceVariant(u.variancePct)" />
+                    <ui-pill class="cell-delta" [label]="variance(u.variancePct)" [color]="varianceColour(u.variancePct)" [dot]="false" />
                   } @else {
                     {{ u.progressUpdate }}
                   }
@@ -127,7 +127,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (b of filtered(); track b.id) {
+          @for (b of rows(); track b.id) {
             <tr ui-table-row>
               <td class="cell-name">{{ b.baselineId }}</td>
               <td>
@@ -151,5 +151,5 @@
     }
   </div>
 
-  <ui-pagination type="basic" [total]="filtered().length" [(page)]="page" />
+  <ui-pagination [total]="filtered().length" [(page)]="page" [(pageSize)]="pageSize" />
 </ui-table-card>

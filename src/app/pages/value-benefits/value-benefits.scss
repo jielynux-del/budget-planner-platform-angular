@@ -7,7 +7,7 @@
 
 .vb-filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));   // all four controls on one row
   gap: 20px 24px;
   padding: 4px 0 0;
 }
@@ -21,6 +21,7 @@
 .vb-table { min-width: 1400px; }
 
 .cell-name { @include type.label(md); color: var(--color-text-strong); }
+.cell-delta { margin-left: 6px; vertical-align: middle; }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
 // RULES.md #15 — the frozen edge is painted inside the sticky cell, never as a
 // border-left on the first scrolling column, or it scrolls away with the content.

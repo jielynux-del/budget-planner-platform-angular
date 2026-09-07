@@ -1,8 +1,8 @@
 import { Component, computed, input, signal } from '@angular/core';
 import {
   UiButton, UiCard, UiColumnHeader, UiDateInput, UiFilterTabs, UiIcon, UiKebabMenu,
-  UiPagination, UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow,
-  type UiFilterTab, type UiMenuItem, type UiTagVariant
+  UiPagination, UiPill, UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow,
+  type UiFilterTab, type UiMenuItem, type UiPillColor, type UiTagVariant
 } from 'ai-dls-kit';
 import { BENEFIT_STATUSES, latestUpdate } from '../../data/benefitsData';
 import { BENEFIT_OWNERS } from '../../data/lookups';
@@ -26,7 +26,7 @@ const APPROVAL_VARIANT: Record<string, UiTagVariant> = {
   selector: 'app-value-benefits',
   imports: [
     UiCard, UiSelect, UiDateInput, UiButton, UiFilterTabs, UiTableCard, UiTableHeader,
-    UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiKebabMenu, UiIcon, UiPagination
+    UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill, UiKebabMenu, UiIcon, UiPagination
   ],
   templateUrl: './value-benefits.html',
   styleUrl: './value-benefits.scss'
@@ -59,6 +59,7 @@ export class ValueBenefits {
   protected readonly colStatus = signal(ALL);
   protected readonly colApproval = signal(ALL);
   protected readonly page = signal(1);
+  protected readonly pageSize = signal(10);
 
   // Viewing a benefit is the row itself, so it is not repeated in the menu.
   protected readonly rowActions: UiMenuItem[] = [
@@ -87,6 +88,12 @@ export class ValueBenefits {
     )
   );
 
+  /** The page the footer is showing. */
+  protected readonly rows = computed(() => {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.filtered().slice(start, start + this.pageSize());
+  });
+
   protected readonly filtersActive = computed(() =>
     this.owner() !== ALL || this.status() !== ALL || !!this.realisationFrom() || !!this.realisationTo());
 
@@ -102,8 +109,8 @@ export class ValueBenefits {
     return n === null ? '' : (n > 0 ? '+' : '') + n.toFixed(1) + '%';
   }
 
-  protected varianceVariant(n: number | null): UiTagVariant {
-    return n === null ? 'neutral' : n < 0 ? 'red' : 'green';
+  protected varianceColour(n: number | null): UiPillColor {
+    return n === null ? 'grey' : n < 0 ? 'red' : 'green';
   }
 
   protected lifecycleVariant(status: string): UiTagVariant {
