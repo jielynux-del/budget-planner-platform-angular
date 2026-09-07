@@ -7,15 +7,14 @@
 
 .vb-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  gap: 12px 16px;
-  align-items: end;
-  padding: 16px 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 24px;
+  padding: 4px 0 0;
 }
+.vb-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
 .vb-field { display: grid; gap: 6px; }
 .vb-label { @include type.body(sm); color: var(--color-text-subtle); }
 
-.vb-count { @include type.body(sm); color: var(--color-text-subtle); }
 
 // The middle columns scroll; the actions column is frozen by .ui-td-sticky.
 .vb-scroll { overflow-x: auto; }
@@ -23,5 +22,14 @@
 
 .cell-name { @include type.label(md); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
-.cell-variance { @include type.label(sm); color: var(--color-text-success); margin-left: 6px; }
-.cell-variance.is-neg { color: var(--color-text-danger); }
+// RULES.md #15 — the frozen edge is painted inside the sticky cell, never as a
+// border-left on the first scrolling column, or it scrolls away with the content.
+.vb-table .ui-td-sticky::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 1px;
+  background: var(--color-border-decorative);
+}
+.vb-table .ui-td-sticky { position: sticky; }

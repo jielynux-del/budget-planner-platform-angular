@@ -60,8 +60,8 @@ export class ValueBenefits {
   protected readonly colApproval = signal(ALL);
   protected readonly page = signal(1);
 
+  // Viewing a benefit is the row itself, so it is not repeated in the menu.
   protected readonly rowActions: UiMenuItem[] = [
-    { key: 'view', label: 'View Benefit' },
     { key: 'update', label: 'Update Benefit' },
     { key: 'closure', label: 'Request Closure' }
   ];
@@ -100,6 +100,10 @@ export class ValueBenefits {
 
   protected variance(n: number | null) {
     return n === null ? '' : (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+  }
+
+  protected varianceVariant(n: number | null): UiTagVariant {
+    return n === null ? 'neutral' : n < 0 ? 'red' : 'green';
   }
 
   protected lifecycleVariant(status: string): UiTagVariant {

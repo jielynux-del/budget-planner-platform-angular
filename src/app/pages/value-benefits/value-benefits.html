@@ -1,4 +1,8 @@
-<ui-card>
+<div class="vb-subtabs">
+  <ui-filter-tabs [tabs]="subTabs" [(active)]="subTab" />
+</div>
+
+<ui-card title="Parameters">
   <div class="vb-filters">
     <div class="vb-field">
       <span class="vb-label">Benefit Owner</span>
@@ -16,19 +20,16 @@
       <span class="vb-label">Benefit Status</span>
       <ui-select [options]="statusOptions" [(value)]="status" [emptyValue]="all" />
     </div>
-    <button ui-button variant="secondary" size="small" type="button" [disabled]="!filtersActive()" (click)="clearFilters()">
-      Clear Filters
-    </button>
+    <div class="vb-actions">
+      <button ui-button variant="secondary" size="small" type="button" [disabled]="!filtersActive()" (click)="clearFilters()">
+        Reset
+      </button>
+    </div>
   </div>
 </ui-card>
 
-<div class="vb-subtabs">
-  <ui-filter-tabs [tabs]="subTabs" [(active)]="subTab" />
-</div>
-
 <ui-table-card>
   <ui-table-header [title]="subTab() === 'tracking' ? 'Benefits Tracking' : 'Baseline Management'">
-    <span class="vb-count">{{ filtered().length }} of {{ benefits().length }} benefits</span>
     <button uiTableActions ui-button variant="primary" size="small" type="button">
       <ui-icon name="plus" />
       Add New Benefit
@@ -70,7 +71,7 @@
         </thead>
         <tbody>
           @for (b of filtered(); track b.id) {
-            <tr ui-table-row>
+            <tr ui-table-row interactive>
               <td>
                 <div class="cell-name">{{ b.name }}</div>
                 <div class="cell-meta">{{ b.benefitRef }} · {{ b.category }}</div>
@@ -82,7 +83,7 @@
                 @if (latest(b); as u) {
                   @if (b.type === 'Financial') {
                     <span class="cell-name">{{ money(u.actualValue) }}</span>
-                    <span class="cell-variance" [class.is-neg]="(u.variancePct ?? 0) < 0">{{ variance(u.variancePct) }}</span>
+                    <ui-status-tag [label]="variance(u.variancePct)" [variant]="varianceVariant(u.variancePct)" />
                   } @else {
                     {{ u.progressUpdate }}
                   }
