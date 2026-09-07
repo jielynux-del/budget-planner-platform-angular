@@ -1,61 +1,109 @@
 @if (ws(); as w) {
-  <ui-page-header [title]="w.name" contentGap="none">
-    <button uiPageHeaderActions ui-button variant="secondary" size="small" type="button" (click)="back()">
-      <ui-icon name="chevron-left" />
-      Back to listing
-    </button>
-    <button uiPageHeaderActions ui-button variant="primary" size="small" type="button">Edit Workstream</button>
-  </ui-page-header>
+  <div class="detail-shell">
+    <ui-nav-panel>
+      <ui-nav-panel-header
+        [title]="w.portfolioName"
+        previousPage="Workstream Listing"
+        (previous)="backToListing()" />
 
-  <div class="detail-meta">
-    <span class="meta-code">{{ w.code }}</span>
-    <ui-status-tag [status]="w.workStatus" [variant]="variantFor(w.workStatus)" />
-    <span class="meta-sub">Created by {{ w.createdBy }} on {{ w.createdOn }}</span>
-    <span class="meta-sub">Last edited by {{ w.lastEditedBy }} on {{ w.lastEditedOn }}</span>
-  </div>
+      @for (group of tree; track group.id) {
+        <ui-nav-group [label]="group.label" [defaultExpanded]="true" [status]="navStatus(group.status)">
+          @for (node of group.children ?? []; track node.id) {
+            <button
+              ui-nav-sub-item
+              type="button"
+              [label]="node.label"
+              [status]="navStatus(node.status)"
+              [active]="node.id === w.id"
+              (click)="openWorkstream(node.id)"></button>
+          }
+        </ui-nav-group>
+      }
+    </ui-nav-panel>
 
-  <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
+    <div class="detail-main">
+      <header class="detail-header">
+        <div class="ws-avatar"><ui-icon name="table" [size]="24" /></div>
 
-  <div class="page-content">
-    @if (activeTab() === 'work-profile') {
-      <ui-section-header title="Key Information" size="md" />
-      <dl class="field-grid">
-        <div><dt>Workstream Name</dt><dd>{{ w.name }}</dd></div>
-        <div><dt>Workstream Description</dt><dd>{{ w.description }}</dd></div>
-        <div><dt>Reporting Location</dt><dd>{{ w.reportingLocation }}</dd></div>
-        <div><dt>Sub-Platform Name</dt><dd>{{ w.subPlatform }}</dd></div>
-        <div><dt>Work Category</dt><dd>{{ w.workCategory }}</dd></div>
-        <div><dt>Overall Risk Level</dt><dd>{{ w.overallRiskLevel }}</dd></div>
-        <div><dt>Workstream Reference</dt><dd>{{ w.workstreamRef }}</dd></div>
-        <div><dt>Value/Benefit</dt><dd>{{ w.valueBenefit }}</dd></div>
-        <div><dt>In Scope for Data Governance</dt><dd>{{ w.dataScope }}</dd></div>
-        <div><dt>Delivery Stage</dt><dd>{{ w.deliveryStage }}</dd></div>
-        <div><dt>Platform</dt><dd>{{ w.platform }}</dd></div>
-      </dl>
+        <div class="ws-identity">
+          <h1 class="ws-title">{{ w.name }}</h1>
+          <div class="ws-code">{{ w.code }}</div>
+          <div class="ws-meta">
+            <ui-status-tag [status]="w.workStatus" [variant]="variantFor(w.workStatus)" />
+            <span>Created by {{ w.createdBy }} on {{ w.createdOn }}</span>
+            <span class="ws-meta-sep">|</span>
+            <span>Last edited by {{ w.lastEditedBy }} on {{ w.lastEditedOn }}</span>
+          </div>
+        </div>
 
-      <ui-section-header title="Delivery Management" size="md" />
-      <dl class="field-grid">
-        <div><dt>Delivery Team Name</dt><dd>{{ w.deliveryTeamName }}</dd></div>
-        <div><dt>Delivery Team Location</dt><dd>{{ w.deliveryTeamLocation }}</dd></div>
-        <div><dt>Programme Element</dt><dd>{{ w.programmeElement }}</dd></div>
-        <div><dt>Tech Unit</dt><dd>{{ w.techUnit }}</dd></div>
-      </dl>
+        <div class="ws-actions">
+          <button ui-button variant="primary" size="small" type="button">Edit Workstream</button>
+          <button ui-icon-button size="small" type="button" aria-label="Add sub-workstream"><ui-icon name="plus" /></button>
+          <button ui-icon-button size="small" type="button" aria-label="More actions"><ui-icon name="more-horizontal" /></button>
+          <button ui-icon-button size="small" type="button" aria-label="Help"><ui-icon name="circle-question" /></button>
+          <button ui-icon-button size="small" type="button" aria-label="Expand view"><ui-icon name="maximize" /></button>
+        </div>
+      </header>
 
-      <ui-section-header title="Delivery Dates" size="md" />
-      <dl class="field-grid">
-        <div><dt>Start Date</dt><dd>{{ w.startDate }}</dd></div>
-        <div><dt>Go Live Date</dt><dd>{{ w.goLiveDate }}</dd></div>
-        <div><dt>Reporting Flag</dt><dd>{{ w.reportingFlag }}</dd></div>
-      </dl>
-    } @else {
-      <ui-section-header
-        [title]="activeTab() + ' — not yet ported'"
-        subtitle="This tab still lives in the React prototype. Porting in progress."
-        size="md" />
-    }
+      <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
+
+      <div class="detail-body">
+        @if (activeTab() === 'work-profile') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Key Information" size="sm" /></div>
+              <dl class="field-grid">
+                <div class="span-2"><dt>Workstream Name</dt><dd>{{ w.name }}</dd></div>
+                <div class="span-2"><dt>Workstream Description</dt><dd>{{ w.description }}</dd></div>
+                <div><dt>Reporting Location</dt><dd>{{ w.reportingLocation }}</dd></div>
+                <div><dt>Sub-Platform Name</dt><dd>{{ w.subPlatform }}</dd></div>
+                <div><dt>Work Category</dt><dd>{{ w.workCategory }}</dd></div>
+                <div><dt>Overall Risk Level</dt><dd>{{ w.overallRiskLevel }}</dd></div>
+                <div><dt>WS_Work Status</dt><dd>{{ w.workStatus }}</dd></div>
+                <div><dt>Workstream Reference</dt><dd>{{ w.workstreamRef }}</dd></div>
+                <div><dt>Value/Benefit</dt><dd>{{ w.valueBenefit }}</dd></div>
+                <div><dt>In Scope for Data Governance</dt><dd>{{ w.dataScope }}</dd></div>
+                <div><dt>Delivery Stage</dt><dd>{{ w.deliveryStage }}</dd></div>
+                <div><dt>Platform</dt><dd>{{ w.platform }}</dd></div>
+              </dl>
+            </div>
+          </ui-card>
+
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Delivery Management" size="sm" /></div>
+              <dl class="field-grid">
+                <div><dt>Delivery Team Name</dt><dd>{{ w.deliveryTeamName }}</dd></div>
+                <div><dt>Delivery Team Location</dt><dd>{{ w.deliveryTeamLocation }}</dd></div>
+                <div><dt>Programme Element</dt><dd>{{ w.programmeElement }}</dd></div>
+                <div><dt>Tech Unit</dt><dd>{{ w.techUnit }}</dd></div>
+              </dl>
+            </div>
+          </ui-card>
+
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Delivery Dates" size="sm" /></div>
+              <dl class="field-grid">
+                <div><dt>Start Date</dt><dd>{{ w.startDate }}</dd></div>
+                <div><dt>Go Live Date</dt><dd>{{ w.goLiveDate }}</dd></div>
+                <div><dt>Reporting Flag</dt><dd>{{ w.reportingFlag }}</dd></div>
+              </dl>
+            </div>
+          </ui-card>
+        } @else {
+          <ui-card>
+            <ui-section-header
+              [title]="activeTab() + ' — not yet ported'"
+              subtitle="This tab still lives in the React prototype."
+              size="sm" />
+          </ui-card>
+        }
+      </div>
+    </div>
   </div>
 } @else {
-  <div class="page-content">
-    <ui-section-header title="Workstream not found" size="md" />
+  <div class="detail-body">
+    <ui-card><ui-section-header title="Workstream not found" size="sm" /></ui-card>
   </div>
 }

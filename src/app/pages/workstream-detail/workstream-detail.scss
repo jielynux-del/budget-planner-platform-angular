@@ -1,24 +1,66 @@
 @use 'ai-dls-kit/tokens/layout' as layout;
 @use 'ai-dls-kit/tokens/type' as type;
 
-:host { display: block; }
+:host { display: block; height: 100%; }
 
-.detail-meta {
+// ui-nav-panel is an absolutely positioned frame, so the shell is its
+// containing block and the main column reserves the panel's own width token.
+.detail-shell { position: relative; height: 100%; min-height: 0; }
+
+.detail-main {
+  margin-left: var(--nav-secondary-w);
+  height: 100%;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 12px 40px;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 40px 16px;
   background: var(--color-bg-level1);
 }
-.meta-code { @include type.body(sm); color: var(--color-text-subtle); }
-.meta-sub  { @include type.body(sm); color: var(--color-text-subtle); }
 
-.page-content {
+.ws-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  flex: none;
+}
+
+.ws-identity { min-width: 0; }
+.ws-title { @include type.heading(sm); color: var(--color-text-strong); margin: 0; }
+.ws-code  { @include type.body(sm); color: var(--color-text-subtle); margin-top: 2px; }
+.ws-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+}
+.ws-meta-sep { color: var(--color-border-decorative); }
+
+.ws-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+
+.detail-body {
   @include layout.content-padding;
   display: grid;
   gap: 16px;
+  align-content: start;
 }
+
+// The detail tabs put the section title in a left column beside its fields.
+.section { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 24px; }
+.section-title { padding-top: 2px; }
 
 .field-grid {
   display: grid;
@@ -26,6 +68,7 @@
   gap: 16px 40px;
   margin: 0;
 
+  .span-2 { grid-column: 1 / -1; }
   dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
-  dd { @include type.label(sm); color: var(--color-text-strong); margin: 0; }
+  dd { @include type.label(md); color: var(--color-text-strong); margin: 0; }
 }

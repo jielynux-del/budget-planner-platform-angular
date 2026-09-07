@@ -2,9 +2,13 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  UiButton, UiIcon, UiPageHeader, UiSectionHeader, UiStatusTag, UiTabs, type UiTab, type UiTagVariant
+  UiButton, UiCard, UiIcon, UiIconButton, UiNavGroup, UiNavPanel, UiNavPanelHeader,
+  UiNavSubItem, UiSectionHeader, UiStatusTag, UiTabs,
+  type UiNavStatus, type UiTab, type UiTagVariant
 } from 'ai-dls-kit';
 import { workstreamById } from '../../data/workstreams';
+import { hierarchy } from '../../data/tree';
+import type { NodeStatus } from '../../data/models';
 
 const STATUS_VARIANT: Record<string, UiTagVariant> = {
   'Not Started': 'neutral',
@@ -16,9 +20,25 @@ const STATUS_VARIANT: Record<string, UiTagVariant> = {
   'Cancelled': 'red'
 };
 
+/**
+ * The tree's five dot colours don't survive: UiNavStatus is completed | error
+ * | undefined, so amber and blue both fall to no dot.
+ * (Kit is missing the amber / in-progress nav status.)
+ */
+const NAV_STATUS: Record<NodeStatus, UiNavStatus> = {
+  green: 'completed',
+  red: 'error',
+  blue: undefined,
+  amber: undefined,
+  grey: undefined
+};
+
 @Component({
   selector: 'app-workstream-detail',
-  imports: [UiPageHeader, UiButton, UiIcon, UiTabs, UiStatusTag, UiSectionHeader],
+  imports: [
+    UiNavPanel, UiNavPanelHeader, UiNavGroup, UiNavSubItem, UiCard,
+    UiButton, UiIcon, UiIconButton, UiTabs, UiStatusTag, UiSectionHeader
+  ],
   templateUrl: './workstream-detail.html',
   styleUrl: './workstream-detail.scss'
 })
@@ -27,6 +47,7 @@ export class WorkstreamDetail {
   private readonly router = inject(Router);
   private readonly params = toSignal(this.route.paramMap);
 
+  protected readonly tree = hierarchy;
   protected readonly ws = computed(() => workstreamById(this.params()?.get('id') ?? ''));
   protected readonly activeTab = signal('work-profile');
 
@@ -46,7 +67,15 @@ export class WorkstreamDetail {
     return STATUS_VARIANT[status] ?? 'neutral';
   }
 
-  protected back() {
+  protected navStatus(status: NodeStatus): UiNavStatus {
+    return NAV_STATUS[status];
+  }
+
+  protected openWorkstream(id: string) {
+    this.router.navigate(['/workstreams', id]);
+  }
+
+  protected backToListing() {
     this.router.navigate(['/workstreams']);
   }
 }
