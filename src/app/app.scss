@@ -1,0 +1,9 @@
+@use 'ai-dls-kit/tokens/layout' as layout;
+
+.page {
+  @include layout.content-padding($scroll: true);
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.row { display: flex; gap: 12px; align-items: center; }

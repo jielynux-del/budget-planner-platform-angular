@@ -1,0 +1,14 @@
+<ui-page-header title="Workstream Listing">
+  <button uiPageHeaderActions ui-button variant="secondary" size="tiny" type="button">
+    <ui-icon name="download" [size]="16" />
+    Export
+  </button>
+</ui-page-header>
+
+<div class="page">
+  <ui-search-input placeholder="Search by Workstream Name" [(value)]="query" />
+  <div class="row">
+    <ui-status-tag label="In Progress" />
+    <button ui-button variant="primary" type="button">Add New Benefit</button>
+  </div>
+</div>
