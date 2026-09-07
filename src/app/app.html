@@ -1,14 +1,23 @@
-<ui-page-header title="Workstream Listing">
-  <button uiPageHeaderActions ui-button variant="secondary" size="tiny" type="button">
-    <ui-icon name="download" [size]="16" />
-    Export
-  </button>
-</ui-page-header>
+<div class="shell">
+  <nav ui-nav-rail>
+    @for (item of primary; track item.label) {
+      <button ui-nav-rail-item type="button" [label]="item.label" [active]="active() === item.label">
+        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+      </button>
+    }
+    @for (item of listings; track item.label) {
+      <button ui-nav-rail-item type="button" [label]="item.label" [active]="active() === item.label">
+        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+      </button>
+    }
+    @for (item of utility; track item.label) {
+      <button ui-nav-rail-item type="button" [label]="item.label" [active]="active() === item.label">
+        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+      </button>
+    }
+  </nav>
 
-<div class="page">
-  <ui-search-input placeholder="Search by Workstream Name" [(value)]="query" />
-  <div class="row">
-    <ui-status-tag label="In Progress" />
-    <button ui-button variant="primary" type="button">Add New Benefit</button>
-  </div>
+  <main class="shell-main">
+    <router-outlet />
+  </main>
 </div>

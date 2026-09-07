@@ -1,0 +1,22 @@
+@use 'ai-dls-kit/tokens/layout' as layout;
+@use 'ai-dls-kit/tokens/type' as type;
+
+:host { display: block; }
+
+.page-content {
+  @include layout.content-padding;
+  padding-top: 0;                 // ui-page-header owns the 24px gap below its rule (RULES.md #5)
+  display: grid;
+  gap: 16px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 240px));
+  gap: 12px;
+}
+// Work Status carries six items to Locations' two, so it gets the wider track
+.summaries { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.6fr); gap: 16px; }
+
+.cell-name { @include type.label(sm); color: var(--color-text-strong); }
+.cell-code { @include type.body(sm); color: var(--color-text-subtle); }
