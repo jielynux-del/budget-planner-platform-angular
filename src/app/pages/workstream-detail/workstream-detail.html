@@ -45,7 +45,9 @@
         </div>
       </header>
 
-      <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
+      <div class="detail-tabs">
+        <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
+      </div>
 
       <div class="detail-body">
         @if (activeTab() === 'work-profile') {
@@ -91,11 +93,190 @@
               </dl>
             </div>
           </ui-card>
+        } @else if (activeTab() === 'work-managers') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Work Managers" size="sm" /></div>
+              <table ui-table size="sm">
+                <thead><tr>
+                  <th><ui-column-header label="Role" [first]="true" /></th>
+                  <th><ui-column-header label="Name" /></th>
+                  <th><ui-column-header label="Staff ID" /></th>
+                  <th><ui-column-header label="Email" /></th>
+                  <th><ui-column-header label="Location" [last]="true" /></th>
+                </tr></thead>
+                <tbody>
+                  @for (m of w.workManagers; track m.role + m.staffId) {
+                    <tr ui-table-row>
+                      <td>{{ m.role }}</td><td>{{ m.name }}</td><td>{{ m.staffId }}</td>
+                      <td>{{ m.email }}</td><td>{{ m.location }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-card>
+
+        } @else if (activeTab() === 'key-dates') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Key Dates" size="sm" /></div>
+              <table ui-table size="sm">
+                <thead><tr>
+                  <th><ui-column-header label="Milestone" [first]="true" /></th>
+                  <th><ui-column-header label="Baseline" /></th>
+                  <th><ui-column-header label="Forecast" /></th>
+                  <th><ui-column-header label="Actual" /></th>
+                  <th><ui-column-header label="Status" [last]="true" /></th>
+                </tr></thead>
+                <tbody>
+                  @for (d of w.keyDates; track d.milestone) {
+                    <tr ui-table-row>
+                      <td>{{ d.milestone }}</td><td>{{ d.baseline }}</td>
+                      <td>{{ d.forecast }}</td><td>{{ d.actual }}</td>
+                      <td class="ui-cell-status"><ui-status-tag [status]="d.status" [variant]="dateVariant(d.status)" /></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-card>
+
+        } @else if (activeTab() === 'funding-source') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Funding Source" size="sm" /></div>
+              <table ui-table size="sm">
+                <thead><tr>
+                  <th><ui-column-header label="Source Code" [first]="true" /></th>
+                  <th><ui-column-header label="Source Name" /></th>
+                  <th><ui-column-header label="Cost Centre" /></th>
+                  <th><ui-column-header label="Funding Split %" align="end" /></th>
+                  <th><ui-column-header label="Currency" [last]="true" /></th>
+                </tr></thead>
+                <tbody>
+                  @for (f of w.fundingSources; track f.sourceCode) {
+                    <tr ui-table-row>
+                      <td>{{ f.sourceCode }}</td><td>{{ f.sourceName }}</td><td>{{ f.costCentre }}</td>
+                      <td class="ui-cell-number">{{ f.fundingSplit }}%</td><td>{{ f.currency }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-card>
+
+        } @else if (activeTab() === 'approvers') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Approvers" size="sm" /></div>
+              <table ui-table size="sm">
+                <thead><tr>
+                  <th><ui-column-header label="Approval Level" [first]="true" /></th>
+                  <th><ui-column-header label="Name" /></th>
+                  <th><ui-column-header label="Designation" /></th>
+                  <th><ui-column-header label="Status" /></th>
+                  <th><ui-column-header label="Actioned On" [last]="true" /></th>
+                </tr></thead>
+                <tbody>
+                  @for (a of w.approvers; track a.level) {
+                    <tr ui-table-row>
+                      <td>{{ a.level }}</td><td>{{ a.name }}</td><td>{{ a.designation }}</td>
+                      <td class="ui-cell-status"><ui-status-tag [status]="a.status" [variant]="approverVariant(a.status)" /></td>
+                      <td>{{ a.actionedOn }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-card>
+
+        } @else if (activeTab() === 'financials') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Financials" size="sm" /></div>
+              <table ui-table size="sm">
+                <thead><tr>
+                  <th><ui-column-header label="Category" [first]="true" /></th>
+                  <th><ui-column-header label="Line Item" /></th>
+                  @for (y of financialYears; track y) {
+                    <th><ui-column-header [label]="y.toString()" align="end" /></th>
+                  }
+                  <th><ui-column-header label="Total" align="end" [last]="true" /></th>
+                </tr></thead>
+                <tbody>
+                  @for (f of w.financials; track f.category + f.lineItem) {
+                    <tr ui-table-row>
+                      <td>{{ f.category }}</td><td>{{ f.lineItem }}</td>
+                      @for (y of financialYears; track y) {
+                        <td class="ui-cell-number">{{ money(f.values[y] ?? 0) }}</td>
+                      }
+                      <td class="ui-cell-number cell-total">{{ money(lineTotal(f.values)) }}</td>
+                    </tr>
+                  }
+                  @for (cat of ['Capex', 'Opex']; track cat) {
+                    <tr ui-table-row>
+                      <td class="cell-total" colspan="2">{{ cat }} Total</td>
+                      @for (y of financialYears; track y) {
+                        <td class="ui-cell-number cell-total">{{ money(categoryTotal($any(cat), y)) }}</td>
+                      }
+                      <td class="ui-cell-number cell-total">{{ money(categoryGrandTotal($any(cat))) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-card>
+
+        } @else if (activeTab() === 'work-allocation') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Work Allocation" size="sm" /></div>
+              <table ui-table size="sm">
+                <thead><tr>
+                  <th><ui-column-header label="Resource Pool" [first]="true" /></th>
+                  <th><ui-column-header label="Vendor" /></th>
+                  <th><ui-column-header label="Role" /></th>
+                  <th><ui-column-header label="FTE" align="end" /></th>
+                  <th><ui-column-header label="Location" [last]="true" /></th>
+                </tr></thead>
+                <tbody>
+                  @for (a of w.allocations; track a.resource) {
+                    <tr ui-table-row>
+                      <td>{{ a.resource }}</td><td>{{ a.vendor }}</td><td>{{ a.role }}</td>
+                      <td class="ui-cell-number">{{ a.fte.toFixed(1) }}</td><td>{{ a.location }}</td>
+                    </tr>
+                  }
+                  <tr ui-table-row>
+                    <td class="cell-total" colspan="3">Total</td>
+                    <td class="ui-cell-number cell-total">{{ totalFte().toFixed(1) }}</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ui-card>
+
+        } @else if (activeTab() === 'others') {
+          <ui-card>
+            <div class="section">
+              <div class="section-title"><ui-section-header title="Others" size="sm" /></div>
+              <dl class="field-grid">
+                <div><dt>Created By</dt><dd>{{ w.createdBy }} on {{ w.createdOn }}</dd></div>
+                <div><dt>Last Edited By</dt><dd>{{ w.lastEditedBy }} on {{ w.lastEditedOn }}</dd></div>
+                <div><dt>Reporting Year</dt><dd>{{ w.year }}</dd></div>
+                <div><dt>Scenario</dt><dd>{{ w.scenario }}</dd></div>
+                <div><dt>Portfolio Code</dt><dd>{{ w.portfolioCode }}</dd></div>
+                <div><dt>Workstream Code</dt><dd>{{ w.code }}</dd></div>
+              </dl>
+            </div>
+          </ui-card>
+
         } @else {
           <ui-card>
             <ui-section-header
-              [title]="activeTab() + ' — not yet ported'"
-              subtitle="This tab still lives in the React prototype."
+              title="Value/Benefits — porting next"
+              subtitle="The benefits lifecycle is the largest tab and is being ported as its own piece of work."
               size="sm" />
           </ui-card>
         }

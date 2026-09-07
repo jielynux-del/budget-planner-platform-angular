@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   UiButton, UiCard, UiIcon, UiIconButton, UiNavGroup, UiNavPanel, UiNavPanelHeader,
-  UiNavSubItem, UiSectionHeader, UiStatusTag, UiTabs,
+  UiNavSubItem, UiSectionHeader, UiStatusTag, UiTable, UiTableRow, UiColumnHeader, UiTabs,
   type UiNavStatus, type UiTab, type UiTagVariant
 } from 'ai-dls-kit';
 import { workstreamById } from '../../data/workstreams';
@@ -37,7 +37,8 @@ const NAV_STATUS: Record<NodeStatus, UiNavStatus> = {
   selector: 'app-workstream-detail',
   imports: [
     UiNavPanel, UiNavPanelHeader, UiNavGroup, UiNavSubItem, UiCard,
-    UiButton, UiIcon, UiIconButton, UiTabs, UiStatusTag, UiSectionHeader
+    UiButton, UiIcon, UiIconButton, UiTabs, UiStatusTag, UiSectionHeader,
+    UiTable, UiTableRow, UiColumnHeader
   ],
   templateUrl: './workstream-detail.html',
   styleUrl: './workstream-detail.scss'
@@ -69,6 +70,41 @@ export class WorkstreamDetail {
 
   protected navStatus(status: NodeStatus): UiNavStatus {
     return NAV_STATUS[status];
+  }
+
+  protected readonly financialYears = [2024, 2025, 2026, 2027];
+
+  protected money(n: number) {
+    return 'S$' + Math.round(n).toLocaleString();
+  }
+
+  protected lineTotal(values: Record<number, number>) {
+    return this.financialYears.reduce((s, y) => s + (values[y] ?? 0), 0);
+  }
+
+  protected categoryTotal(category: 'Capex' | 'Opex', year: number) {
+    return (this.ws()?.financials ?? [])
+      .filter((f) => f.category === category)
+      .reduce((s, f) => s + (f.values[year] ?? 0), 0);
+  }
+
+  protected categoryGrandTotal(category: 'Capex' | 'Opex') {
+    return this.financialYears.reduce((s, y) => s + this.categoryTotal(category, y), 0);
+  }
+
+  protected readonly totalFte = computed(() =>
+    (this.ws()?.allocations ?? []).reduce((s, a) => s + a.fte, 0));
+
+  /** Key-date and approver statuses use the kit's own keyword vocabulary. */
+  protected dateVariant(status: string): UiTagVariant {
+    return status === 'Completed' ? 'green'
+      : status === 'On Track' ? 'neutral'
+      : status === 'At Risk' ? 'amber'
+      : 'red';
+  }
+
+  protected approverVariant(status: string): UiTagVariant {
+    return status === 'Approved' ? 'green' : status === 'Pending' ? 'amber' : 'red';
   }
 
   protected openWorkstream(id: string) {

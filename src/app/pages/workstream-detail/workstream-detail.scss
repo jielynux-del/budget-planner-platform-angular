@@ -51,6 +51,13 @@
 
 .ws-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
 
+// The tab strip belongs to the white header block and aligns with its 40px gutter.
+.detail-tabs {
+  background: var(--color-bg-level1);
+  padding: 0 40px;
+  border-bottom: 1px solid var(--color-border-decorative);
+}
+
 .detail-body {
   @include layout.content-padding;
   display: grid;
@@ -72,3 +79,5 @@
   dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
   dd { @include type.label(md); color: var(--color-text-strong); margin: 0; }
 }
+
+.cell-total { @include type.label(sm); color: var(--color-text-strong); }
