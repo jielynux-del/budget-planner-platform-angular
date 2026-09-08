@@ -1,3 +1,5 @@
+@use 'ai-dls-kit/tokens/type' as type;
+
 .shell {
   display: flex;
   height: 100vh;
@@ -9,4 +11,29 @@
   flex: 1;
   min-width: 0;
   overflow: auto;
+}
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px 12px;
+  color: var(--color-text-on-dim);
+  white-space: nowrap;
+}
+.brand-mark { color: var(--color-icon-inverse); display: grid; place-items: center; flex: none; }
+.brand-name { @include type.heading(2xs); }
+
+.rail-group { position: relative; }
+.rail-children { display: flex; flex-direction: column; background: var(--color-bg-dim-hover); }
+.rail-footer { display: flex; flex-direction: column; gap: 2px; }
+
+// The switcher's panel hangs off the footer row rather than the page.
+.persona { position: relative; }
+.persona-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 8px;
+  z-index: 60;
+  min-width: 260px;
 }

@@ -1,20 +1,104 @@
 <div class="shell">
-  <nav ui-nav-rail>
-    @for (item of primary; track item.label) {
-      <button ui-nav-rail-item type="button" [label]="item.label" [active]="active() === item.label">
-        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
-      </button>
+  <nav ui-nav-rail [expanded]="navExpanded()">
+    <div uiNavRailHeader class="rail-brand">
+      <span class="brand-mark"><ui-icon name="grid-layout" [size]="24" /></span>
+      @if (navExpanded()) { <span class="brand-name">Budget Planner</span> }
+    </div>
+
+    @for (item of items; track item.label) {
+      @if (item.children) {
+        <div class="rail-group">
+          <button
+            ui-nav-rail-item
+            type="button"
+            [label]="item.label"
+            [expanded]="navExpanded()"
+            [group]="true"
+            [active]="openGroup() === item.label"
+            (click)="toggleGroup(item.label)">
+            <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+          </button>
+          <!-- Expanded, the children sit inline under their parent; collapsed,
+               the rail has no room for them so they hang off it as a flyout. -->
+          @if (navExpanded()) {
+            @if (openGroup() === item.label) {
+              <div class="rail-children">
+                @for (child of item.children; track child.label) {
+                  <button
+                    ui-nav-rail-sub-item
+                    type="button"
+                    [label]="child.label"
+                    [active]="active() === child.label"
+                    (click)="go(child)"></button>
+                }
+              </div>
+            }
+          } @else {
+            <ui-nav-rail-flyout [open]="openGroup() === item.label">
+              @for (child of item.children; track child.label) {
+                <button
+                  ui-nav-rail-sub-item
+                  type="button"
+                  [label]="child.label"
+                  [active]="active() === child.label"
+                  (click)="go(child)"></button>
+              }
+            </ui-nav-rail-flyout>
+          }
+        </div>
+      } @else {
+        <button
+          ui-nav-rail-item
+          type="button"
+          [label]="item.label"
+          [expanded]="navExpanded()"
+          [active]="active() === item.label"
+          (click)="go(item)">
+          <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+        </button>
+      }
     }
-    @for (item of listings; track item.label) {
-      <button ui-nav-rail-item type="button" [label]="item.label" [active]="active() === item.label">
-        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+
+    <div uiNavRailFooter class="rail-footer">
+      @for (item of utility; track item.label) {
+        <button ui-nav-rail-item type="button" [label]="item.label" [expanded]="navExpanded()" (click)="go(item)">
+          <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+        </button>
+      }
+
+      <!-- Persona switcher: who you are decides what the approval flow offers -->
+      <div class="persona">
+        <button
+          ui-nav-rail-item
+          type="button"
+          kind="profile"
+          [label]="persona().name"
+          [expanded]="navExpanded()"
+          [avatarColour]="persona().avatarColour"
+          [abbreviation]="initials()"
+          [active]="personaMenuOpen()"
+          (click)="personaMenuOpen.set(!personaMenuOpen())"></button>
+
+        @if (personaMenuOpen()) {
+          <ui-dropdown-menu class="persona-menu" role="menu">
+            @for (p of personas; track p.id) {
+              <button
+                ui-dropdown-account-item
+                type="button"
+                [name]="p.name"
+                [meta]="p.role"
+                [avatarColour]="p.avatarColour"
+                [selected]="p.id === persona().id"
+                (click)="pickPersona(p)"></button>
+            }
+          </ui-dropdown-menu>
+        }
+      </div>
+
+      <button ui-nav-rail-item type="button" label="Collapse view" [expanded]="navExpanded()" (click)="navExpanded.set(!navExpanded())">
+        <ui-icon uiNavRailIcon [name]="navExpanded() ? 'chevron-left' : 'chevron-right'" [size]="24" />
       </button>
-    }
-    @for (item of utility; track item.label) {
-      <button ui-nav-rail-item type="button" [label]="item.label" [active]="active() === item.label">
-        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
-      </button>
-    }
+    </div>
   </nav>
 
   <main class="shell-main">
