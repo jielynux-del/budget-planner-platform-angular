@@ -1,6 +1,6 @@
 @if (ws(); as w) {
   <div class="detail-shell">
-    <ui-nav-panel>
+    <ui-nav-panel [(expanded)]="panelExpanded">
       <ui-nav-panel-header
         [title]="w.portfolioName"
         previousPage="Workstream Listing"
@@ -21,7 +21,7 @@
       }
     </ui-nav-panel>
 
-    <div class="detail-main">
+    <div class="detail-main" [class.panel-collapsed]="!panelExpanded()">
       <header class="detail-header">
         <div class="ws-avatar"><ui-icon name="table" [size]="24" /></div>
 

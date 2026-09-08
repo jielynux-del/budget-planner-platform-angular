@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import {
   UiDropdownAccountItem, UiDropdownMenu, UiIcon, UiNavRail, UiNavRailFlyout, UiNavRailFooter,
-  UiNavRailHeader, UiNavRailItem, UiNavRailSubItem, type UiIconName
+  UiNavRailHeader, UiNavRailItem, UiNavRailRule, UiNavRailSubItem, type UiIconName
 } from 'ai-dls-kit';
 import { PERSONAS, currentPersona, type Persona } from './data/personas';
 
@@ -17,7 +17,7 @@ interface RailItem {
 @Component({
   selector: 'app-root',
   imports: [
-    RouterOutlet, UiNavRail, UiNavRailItem, UiNavRailSubItem, UiNavRailFlyout,
+    RouterOutlet, UiNavRail, UiNavRailItem, UiNavRailSubItem, UiNavRailFlyout, UiNavRailRule,
     UiNavRailHeader, UiNavRailFooter, UiIcon, UiDropdownMenu, UiDropdownAccountItem
   ],
   templateUrl: './app.html',

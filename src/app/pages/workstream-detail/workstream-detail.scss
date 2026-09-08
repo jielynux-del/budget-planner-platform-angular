@@ -7,8 +7,11 @@
 // containing block and the main column reserves the panel's own width token.
 .detail-shell { position: relative; height: 100%; min-height: 0; }
 
+.detail-main.panel-collapsed { margin-left: var(--nav-secondary-w-collapsed); }
+
 .detail-main {
   margin-left: var(--nav-secondary-w);
+  transition: margin-left 160ms ease;
   height: 100%;
   min-width: 0;
   display: flex;

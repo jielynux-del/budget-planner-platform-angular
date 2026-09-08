@@ -53,6 +53,8 @@ export class WorkstreamDetail {
   protected readonly tree = hierarchy;
   protected readonly ws = computed(() => workstreamById(this.params()?.get('id') ?? ''));
   protected readonly activeTab = signal('work-profile');
+  /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
+  protected readonly panelExpanded = signal(true);
 
   protected readonly tabs: UiTab[] = [
     { key: 'work-profile', label: 'Work Profile' },

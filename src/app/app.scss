@@ -2,9 +2,22 @@
 
 .shell {
   display: flex;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   background: var(--color-bg-app);
+}
+
+// The rail sizes itself to the window; inside a shell that is exactly the
+// viewport, that overflows and pushes the footer — and the persona switcher —
+// below the fold. Constrain it so its own body scrolls instead.
+[ui-nav-rail] {
+  height: 100%;
+  max-height: 100%;
+  // The kit sets min-height: 100vh on the rail. Inside a shell that is already
+  // exactly the viewport that overflows, pushing the footer — and with it the
+  // persona switcher — below the fold.
+  min-height: 0;
+  flex: none;
 }
 
 .shell-main {

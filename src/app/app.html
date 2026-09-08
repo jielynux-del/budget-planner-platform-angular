@@ -59,13 +59,15 @@
       }
     }
 
-    <div uiNavRailFooter class="rail-footer">
-      @for (item of utility; track item.label) {
-        <button ui-nav-rail-item type="button" [label]="item.label" [expanded]="navExpanded()" (click)="go(item)">
-          <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
-        </button>
-      }
+    <div ui-nav-rail-rule [expanded]="navExpanded()"></div>
 
+    @for (item of utility; track item.label) {
+      <button ui-nav-rail-item type="button" [label]="item.label" [expanded]="navExpanded()" (click)="go(item)">
+        <ui-icon uiNavRailIcon [name]="item.icon" [size]="24" />
+      </button>
+    }
+
+    <div uiNavRailFooter class="rail-footer">
       <!-- Persona switcher: who you are decides what the approval flow offers -->
       <div class="persona">
         <button

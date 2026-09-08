@@ -1,1 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* The shell fills the viewport exactly, so the nav rail's footer is never
+   pushed below the fold and its item list scrolls instead. */
+html, body { height: 100%; margin: 0; }
+app-root { display: block; height: 100%; }

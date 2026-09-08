@@ -13,8 +13,9 @@
   gap: 8px;
   padding: 8px 4px;
 }
+// Every tile is the same width, Total included, so the row reads as one object.
 .summary-total {
-  width: 120px;
+  width: 172px;
   flex: none;
   padding: 8px 12px;
   position: relative;
@@ -36,7 +37,7 @@
 
 .stat {
   position: relative;
-  width: 260px;
+  width: 172px;
   flex: none;
   display: flex;
   flex-direction: column;
