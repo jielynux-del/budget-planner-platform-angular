@@ -1,23 +1,20 @@
 <div class="page">
-  <h1 class="page-title">Benefit Approvals</h1>
+  @if (!workstreamId()) { <h1 class="page-title">Benefit Approvals</h1> }
 
   @if (mine().length) {
     <ui-info-banner
       tone="warning"
       [title]="mine().length + ' item' + (mine().length === 1 ? '' : 's') + ' awaiting your approval'"
-      [message]="'Signed in as ' + persona().name + ' · ' + persona().role + '. Review the requests marked Pending Approval below.'"
       [dismissible]="false" />
   } @else if (myRework().length) {
     <ui-info-banner
       tone="warning"
       [title]="myRework().length + ' item' + (myRework().length === 1 ? '' : 's') + ' sent back to you for rework'"
-      [message]="'Signed in as ' + persona().name + '. Amend the request and resubmit it from the benefit.'"
       [dismissible]="false" />
   } @else {
     <ui-info-banner
       tone="info"
       title="Nothing is waiting on you"
-      [message]="'Signed in as ' + persona().name + ' · ' + persona().role + '. The queue below shows every live request across the portfolio.'"
       [dismissible]="false" />
   }
 
@@ -55,7 +52,9 @@
             <th><ui-column-header label="Request Type" size="sm" [first]="true" /></th>
             <th><ui-column-header label="Reference" size="sm" /></th>
             <th style="min-width: 220px"><ui-column-header label="Benefit" size="sm" /></th>
-            <th style="min-width: 200px"><ui-column-header label="Workstream" size="sm" /></th>
+            @if (!workstreamId()) {
+              <th style="min-width: 200px"><ui-column-header label="Workstream" size="sm" /></th>
+            }
             <th><ui-column-header label="Requested By" size="sm" /></th>
             <th><ui-column-header label="Requested On" size="sm" /></th>
             <th><ui-column-header label="Pending With" size="sm" /></th>
@@ -72,7 +71,7 @@
                 <div class="cell-name">{{ item.benefit.name }}</div>
                 <div class="cell-meta">{{ item.detail }}</div>
               </td>
-              <td class="cell-meta">{{ item.workstreamName }}</td>
+              @if (!workstreamId()) { <td class="cell-meta">{{ item.workstreamName }}</td> }
               <td>{{ item.requestedBy }}</td>
               <td>{{ item.requestedOn }}</td>
               <td>{{ item.pendingWith }}</td>
@@ -97,7 +96,7 @@
           }
           @if (!queue().length) {
             <tr ui-table-row>
-              <td colspan="9" class="empty">No live requests match these filters.</td>
+              <td [attr.colspan]="workstreamId() ? 8 : 9" class="empty">No live requests match these filters.</td>
             </tr>
           }
         </tbody>

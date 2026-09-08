@@ -97,7 +97,7 @@
         }
       </div>
 
-      <button ui-nav-rail-item type="button" label="Collapse view" [expanded]="navExpanded()" (click)="navExpanded.set(!navExpanded())">
+      <button ui-nav-rail-item type="button" label="Collapse view" [expanded]="navExpanded()" (click)="toggleRail()">
         <ui-icon uiNavRailIcon [name]="navExpanded() ? 'chevron-left' : 'chevron-right'" [size]="24" />
       </button>
     </div>

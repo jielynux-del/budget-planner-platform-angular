@@ -48,8 +48,7 @@ export class App {
         { label: 'Build Workstream Listing', route: '/workstreams' },
         { label: 'Build Sub-Workstream Listing' },
         { label: 'Maintain & Operate Listing' },
-        { label: 'Maintain & Operate Forecast' },
-        { label: 'Benefit Approvals', route: '/approvals' }
+        { label: 'Maintain & Operate Forecast' }
       ]
     },
     { icon: 'table', label: 'Driver Based Forecast' },
@@ -71,6 +70,13 @@ export class App {
   protected go(item: { label: string; route?: string }) {
     this.active.set(item.label);
     if (item.route) this.router.navigateByUrl(item.route);
+  }
+
+  /** Collapsing the rail closes any open group, or its flyout stays stuck open. */
+  protected toggleRail() {
+    const next = !this.navExpanded();
+    this.navExpanded.set(next);
+    if (!next) this.openGroup.set(null);
   }
 
   protected pickPersona(p: Persona) {

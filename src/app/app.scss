@@ -43,10 +43,12 @@
 
 // The switcher's panel hangs off the footer row rather than the page.
 .persona { position: relative; }
+// Anchored to the right of the rail so it never sits over the nav itself, and
+// above every panel and overlay the page can raise.
 .persona-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 8px;
-  z-index: 60;
+  bottom: 0;
+  left: calc(100% + 8px);
+  z-index: 200;
   min-width: 260px;
 }

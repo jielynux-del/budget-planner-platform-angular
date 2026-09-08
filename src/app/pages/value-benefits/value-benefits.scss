@@ -15,8 +15,8 @@
 }
 // Every tile is the same width, Total included, so the row reads as one object.
 .summary-total {
-  width: 172px;
-  flex: none;
+  flex: 1 1 210px;
+  min-width: 210px;
   padding: 8px 12px;
   position: relative;
 }
@@ -37,8 +37,8 @@
 
 .stat {
   position: relative;
-  width: 172px;
-  flex: none;
+  flex: 1 1 210px;
+  min-width: 210px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -69,6 +69,10 @@
 
 /* ── table ──────────────────────────────────────────────────── */
 .vb-scroll { overflow-x: auto; }
+// overflow-x also clips vertically, so a short page table would cut off an open
+// column filter. The floor gives the dropdown somewhere to land — the overlay
+// tables don't need it and would just gain dead space.
+.vb-scroll--page { min-height: 340px; }
 // Columns hug their content since the table scrolls horizontally — a header
 // narrower than its label would be ellipsised by the kit's own .label rule.
 .vb-table { min-width: 1400px; }
@@ -178,4 +182,10 @@ ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms bot
   background: var(--color-bg-app);
   @include type.label(sm);
   color: var(--color-text-strong);
+}
+
+/* Overlay tables read as records rather than a blotter, so every cell is ruled. */
+ui-modal-shell ::ng-deep table[ui-table] th,
+ui-modal-shell ::ng-deep table[ui-table] td {
+  border: 1px solid var(--color-border-decorative);
 }

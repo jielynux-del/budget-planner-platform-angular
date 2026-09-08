@@ -1,16 +1,24 @@
+<ui-sub-tabs [tabs]="pageTabs()" [(active)]="pageTab" />
+
 @if (awaitingMe().length) {
   <ui-info-banner
     tone="warning"
     [title]="awaitingMe().length + ' request' + (awaitingMe().length === 1 ? '' : 's') + ' on this workstream awaiting your approval'"
-    [message]="'Signed in as ' + persona().name + ' · ' + persona().role + '. Review them in Benefit Approvals.'"
-    [dismissible]="false" />
+    [dismissible]="false">
+    <button ui-info-banner-actions ui-button variant="secondary" size="small" type="button" (click)="viewPending()">View</button>
+  </ui-info-banner>
 } @else if (needsRework().length) {
   <ui-info-banner
     tone="warning"
     [title]="needsRework().length + ' request' + (needsRework().length === 1 ? '' : 's') + ' sent back for rework'"
-    [message]="'An approver has asked for changes. Amend the request and resubmit it from the row actions.'"
-    [dismissible]="false" />
+    [dismissible]="false">
+    <button ui-info-banner-actions ui-button variant="secondary" size="small" type="button" (click)="viewPending()">View</button>
+  </ui-info-banner>
 }
+
+@if (pageTab() === 'approvals') {
+  <app-approvals [workstreamId]="workstreamId()" />
+} @else {
 
 <!-- Status summary. Each figure filters the table.
      Stat filter needed because the kit is missing a clickable summary card. -->
@@ -73,7 +81,7 @@
     }
   </ui-table-header>
 
-  <div class="vb-scroll">
+  <div class="vb-scroll vb-scroll--page">
     @if (view() === 'tracking') {
       <table ui-table size="sm" class="vb-table">
         <thead>
@@ -218,6 +226,8 @@
 
   <ui-pagination [total]="filtered().length" [(page)]="page" [(pageSize)]="pageSize" />
 </ui-table-card>
+
+}
 
 <!-- ── Benefit detail: full-viewport focus overlay ────────────────────── -->
 @if (detail(); as b) {

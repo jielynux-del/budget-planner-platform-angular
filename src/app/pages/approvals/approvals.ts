@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   UiButton, UiCard, UiColumnHeader, UiIcon, UiInfoBanner, UiModalShell, UiPill, UiSelect,
@@ -23,6 +23,9 @@ const ALL = 'All';
 export class Approvals {
   private readonly router = inject(Router);
 
+  /** Scopes the queue to one workstream — a benefit only exists on a workstream. */
+  readonly workstreamId = input<string | null>(null);
+
   protected readonly persona = currentPersona;
   protected readonly all = ALL;
   protected readonly kindOptions = [ALL, 'Baseline Change', 'Benefit Closure'];
@@ -33,29 +36,28 @@ export class Approvals {
   /** Re-runs the derived queue after a decision. */
   protected readonly version = signal(0);
 
-  protected readonly queue = computed<ApprovalItem[]>(() => {
+  private readonly scoped = computed(() => {
     this.version();
-    return approvalQueue().filter((i) =>
-      (this.kind() === ALL || i.kind === this.kind()) &&
-      (this.state() === ALL || i.state === this.state()));
+    const ws = this.workstreamId();
+    return ws ? approvalQueue().filter((i) => i.workstreamId === ws) : approvalQueue();
   });
+
+  protected readonly queue = computed<ApprovalItem[]>(() =>
+    this.scoped().filter((i) =>
+      (this.kind() === ALL || i.kind === this.kind()) &&
+      (this.state() === ALL || i.state === this.state())));
 
   /** What is sitting with the signed-in persona specifically. */
   protected readonly mine = computed(() => {
-    this.version();
     const p = this.persona();
-    return approvalQueue().filter((i) => i.pendingWith === p.role && i.state === 'Pending Approval');
+    return this.scoped().filter((i) => i.pendingWith === p.role && i.state === 'Pending Approval');
   });
 
-  protected readonly myRework = computed(() => {
-    this.version();
-    const p = this.persona();
-    return approvalQueue().filter((i) => i.state === 'Changes Requested' && i.requestedBy === p.name);
-  });
+  protected readonly myRework = computed(() =>
+    this.scoped().filter((i) => i.state === 'Changes Requested'));
 
   protected readonly counts = computed(() => {
-    this.version();
-    const q = approvalQueue();
+    const q = this.scoped();
     return {
       total: q.length,
       pending: q.filter((i) => i.state === 'Pending Approval').length,

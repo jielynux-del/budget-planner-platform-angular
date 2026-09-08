@@ -2,9 +2,9 @@ import { Component, computed, input, signal } from '@angular/core';
 import {
   UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
-  UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
+  UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiSubTabs, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
-  type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiTagVariant
+  type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiSubTab, type UiTagVariant
 } from 'ai-dls-kit';
 import {
   BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, financialTotal, latestUpdate,
@@ -16,6 +16,7 @@ import {
 import type { Benefit, BenefitRow } from '../../data/models';
 import { benefitsFor } from '../../data/benefitsStore';
 import { currentPersona } from '../../data/personas';
+import { Approvals } from '../approvals/approvals';
 
 const ALL = 'All';
 
@@ -44,6 +45,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
     UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
+    UiSubTabs, Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
   templateUrl: './value-benefits.html',
@@ -92,6 +94,13 @@ export class ValueBenefits {
     { key: 'baseline', label: 'Baseline Management' }
   ];
   protected readonly view = signal('tracking');
+
+  /** A benefit lives on a workstream, so its approvals do too. */
+  protected readonly pageTabs = computed<UiSubTab[]>(() => [
+    { key: 'benefits', label: 'Benefits' },
+    { key: 'approvals', label: 'Approvals', count: this.awaitingMe().length || undefined }
+  ]);
+  protected readonly pageTab = signal('benefits');
 
   protected readonly filtersOpen = signal(false);
   protected readonly owner = signal(ALL);
@@ -194,6 +203,14 @@ export class ValueBenefits {
 
   protected lifecycleVariant(s: string): UiTagVariant { return LIFECYCLE_VARIANT[s] ?? 'neutral'; }
   protected approvalVariant(s: string): UiTagVariant { return APPROVAL_VARIANT[s] ?? 'neutral'; }
+
+  /** Banner CTA — show only what is waiting on a decision. */
+  protected viewPending() {
+    this.pageTab.set('benefits');
+    this.view.set('tracking');
+    this.statusTile.set('Closure Pending Approval');
+    this.page.set(1);
+  }
 
   protected toggleStatus(key: string) {
     this.statusTile.set(this.statusTile() === key ? ALL : key);
