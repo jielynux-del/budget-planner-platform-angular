@@ -210,6 +210,200 @@ export class ValueBenefits {
     setTimeout(() => { this.createOpen.set(false); this.closingCreate.set(false); }, ValueBenefits.EXIT_MS);
   }
 
+  /* ---------------- baseline detail ---------------- */
+
+  protected readonly baselineId = signal<string | null>(null);
+  protected readonly closingBaseline = signal(false);
+  protected readonly baselineOf = computed(() =>
+    this.benefits().find((b) => b.id === this.baselineId()) ?? null);
+
+  protected openBaseline(b: Benefit) { this.baselineId.set(b.id); }
+  protected closeBaseline() {
+    this.closingBaseline.set(true);
+    setTimeout(() => { this.baselineId.set(null); this.closingBaseline.set(false); }, ValueBenefits.EXIT_MS);
+  }
+
+  /** Baseline history with the change each version made to the one before it. */
+  protected baselineChain(b: Benefit) {
+    return b.baselineHistory.map((h, i) => {
+      const prev = i > 0 ? b.baselineHistory[i - 1] : null;
+      const delta = prev && h.baselineValue !== null && prev.baselineValue !== null
+        ? h.baselineValue - prev.baselineValue
+        : null;
+      const pct = delta !== null && prev?.baselineValue
+        ? Math.round((delta / prev.baselineValue) * 1000) / 10
+        : null;
+      return { ...h, delta, pct, isCurrent: h.baselineId === b.baselineId };
+    });
+  }
+
+  /** Audit entries that concern the baseline rather than reporting. */
+  protected baselineAudit(b: Benefit) {
+    return [...b.auditLog]
+      .filter((a) => a.action.toLowerCase().includes('baseline'))
+      .sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0));
+  }
+
+  /* ---------------- row actions ---------------- */
+
+  /** Which action form is open, and for which benefit. */
+  protected readonly actionKind = signal<'update' | 'closure' | 'change' | null>(null);
+  protected readonly actionId = signal<string | null>(null);
+  protected readonly closingAction = signal(false);
+  protected readonly actionBenefit = computed(() =>
+    this.benefits().find((b) => b.id === this.actionId()) ?? null);
+
+  protected readonly formActual = signal('');
+  protected readonly formProgress = signal('');
+  protected readonly formExplanation = signal('');
+  protected readonly formRootCause = signal('');
+  protected readonly formCorrective = signal('');
+  protected readonly formOutcome = signal('');
+  protected readonly formComments = signal('');
+  protected readonly formProposed = signal('');
+  protected readonly formEffective = signal('');
+  protected readonly formTarget = signal('');
+  protected readonly formReason = signal('');
+
+  protected openAction(kind: 'update' | 'closure' | 'change', b: Benefit, event: Event) {
+    event.stopPropagation();
+    this.closeMenu();
+    this.formActual.set('');
+    this.formProgress.set('');
+    this.formExplanation.set('');
+    this.formRootCause.set('');
+    this.formCorrective.set('');
+    this.formOutcome.set(b.type === 'Financial'
+      ? String(latestUpdate(b)?.actualValue ?? '')
+      : latestUpdate(b)?.progressUpdate ?? '');
+    this.formComments.set('');
+    this.formProposed.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
+    this.formEffective.set(b.effectiveDate);
+    this.formTarget.set(b.targetRealisationDate);
+    this.formReason.set('');
+    this.actionKind.set(kind);
+    this.actionId.set(b.id);
+  }
+
+  protected closeAction() {
+    this.closingAction.set(true);
+    setTimeout(() => {
+      this.actionKind.set(null);
+      this.actionId.set(null);
+      this.closingAction.set(false);
+    }, ValueBenefits.EXIT_MS);
+  }
+
+  protected readonly actionTitle = computed(() =>
+    this.actionKind() === 'update' ? 'Update Benefit'
+      : this.actionKind() === 'closure' ? 'Request Closure'
+      : 'Request Baseline Change');
+
+  private today() { return new Date().toISOString().slice(0, 10); }
+  private num(v: string) { return Number(String(v).replace(/[^0-9.-]/g, '')) || 0; }
+
+  private patch(id: string, fn: (b: Benefit) => Benefit) {
+    this.benefits.update((rows) => rows.map((b) => (b.id === id ? fn(b) : b)));
+  }
+
+  /** Reporting update — appends to history, never overwrites. */
+  protected saveUpdate() {
+    const b = this.actionBenefit();
+    if (!b) return;
+    const financial = b.type === 'Financial';
+    const actual = financial ? this.num(this.formActual()) : null;
+    const pct = financial && b.currentApprovedBaseline
+      ? Math.round(((actual! - b.currentApprovedBaseline) / b.currentApprovedBaseline) * 1000) / 10
+      : null;
+    this.patch(b.id, (cur) => ({
+      ...cur,
+      reportingHistory: [...cur.reportingHistory, {
+        id: `ru-${Date.now()}`,
+        updateDate: this.today(),
+        actualValue: actual,
+        progressUpdate: financial ? '' : this.formProgress().trim(),
+        variancePct: pct,
+        varianceExplanation: this.formExplanation().trim(),
+        rootCause: this.formRootCause().trim(),
+        correctiveAction: this.formCorrective().trim(),
+        updatedBy: CURRENT_USER,
+        evidence: ''
+      }],
+      auditLog: [...cur.auditLog, {
+        id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
+        action: 'Benefit Updated',
+        comments: financial ? `Actuals reported — ${this.money(actual)}.` : 'Progress update recorded.'
+      }]
+    }));
+    this.closeAction();
+  }
+
+  /** Closure request — status moves, nothing else is rewritten. */
+  protected submitClosure() {
+    const b = this.actionBenefit();
+    if (!b) return;
+    const outcome = this.formOutcome().trim();
+    this.patch(b.id, (cur) => ({
+      ...cur,
+      status: 'Closure Pending Approval',
+      auditLog: [...cur.auditLog, {
+        id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
+        action: 'Closure Submitted',
+        comments: (cur.type === 'Financial'
+          ? `Final realised value ${this.money(this.num(outcome))} submitted for approval.`
+          : `${outcome} submitted for approval.`) +
+          (this.formComments().trim() ? ` ${this.formComments().trim()}` : '')
+      }]
+    }));
+    this.closeAction();
+  }
+
+  /**
+   * Baseline change — appends a new BL id at Pending Approval. The current
+   * approved baseline is untouched until someone approves it.
+   */
+  protected submitBaselineChange() {
+    const b = this.actionBenefit();
+    if (!b) return;
+    const id = nextBaselineId(this.benefits());
+    const proposed = b.type === 'Financial' ? this.num(this.formProposed()) : null;
+    this.patch(b.id, (cur) => ({
+      ...cur,
+      baselineId: id,
+      approvalStatus: 'Pending Approval',
+      approvedBy: '-',
+      approvalDate: '-',
+      baselineHistory: [...cur.baselineHistory, {
+        baselineId: id,
+        baselineValue: proposed,
+        effectiveDate: this.formEffective(),
+        targetRealisationDate: this.formTarget(),
+        requestedBy: CURRENT_USER,
+        approvedBy: '-',
+        approvalDate: '-',
+        changeReason: this.formReason().trim(),
+        status: 'Pending Approval'
+      }],
+      auditLog: [...cur.auditLog, {
+        id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
+        action: 'Baseline Change Requested',
+        comments: `${id} submitted for approval` +
+          (proposed !== null ? ` — proposed baseline ${this.money(proposed)}.` : '.')
+      }]
+    }));
+    this.closeAction();
+  }
+
+  protected readonly actionValid = computed(() => {
+    const b = this.actionBenefit();
+    if (!b) return false;
+    if (this.actionKind() === 'update') {
+      return b.type === 'Financial' ? this.formActual().trim() !== '' : this.formProgress().trim() !== '';
+    }
+    if (this.actionKind() === 'closure') return this.formOutcome().trim() !== '';
+    return this.formReason().trim() !== '' && this.formEffective() !== '' && this.formTarget() !== '';
+  });
+
   /* ---------------- Add New Benefit ---------------- */
 
   protected readonly createOpen = signal(false);

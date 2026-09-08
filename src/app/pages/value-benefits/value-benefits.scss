@@ -68,7 +68,18 @@
 
 /* ── table ──────────────────────────────────────────────────── */
 .vb-scroll { overflow-x: auto; }
+// Columns hug their content since the table scrolls horizontally — a header
+// narrower than its label would be ellipsised by the kit's own .label rule.
 .vb-table { min-width: 1400px; }
+// Columns hug their titles. Two kit defaults have to give way for that, and
+// only inside these horizontally scrolling tables:
+//   table-layout: fixed  — under fixed layout content cannot size a column at
+//                          all, so every header would sit at an equal share
+//   .label ellipsis      — right for a fixed-width column, but here there is
+//                          room to scroll, so a truncated title is just lost
+.vb-scroll table { table-layout: auto; }
+.vb-scroll table th { white-space: nowrap; }
+.vb-scroll ::ng-deep ui-column-header .label { overflow: visible; text-overflow: clip; }
 
 // RULES.md #15 — the frozen edge is painted inside the sticky cell, never as a
 // border-left on the first scrolling column, or it scrolls away with the content.
@@ -156,3 +167,14 @@ ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms bot
 }
 .create-grid .span-2 { grid-column: 1 / -1; }
 .add-line { margin-top: 14px; }
+
+.readonly {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: var(--color-bg-app);
+  @include type.label(sm);
+  color: var(--color-text-strong);
+}

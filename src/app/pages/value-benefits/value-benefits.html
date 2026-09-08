@@ -51,10 +51,12 @@
       <button uiPopoverActions ui-button variant="primary" size="small" type="button" (click)="filtersOpen.set(false)">Apply</button>
     </ui-popover>
 
-    <button uiTableActions ui-button variant="primary" size="small" type="button" (click)="openCreate()">
-      <ui-icon name="plus" />
-      Add New Benefit
-    </button>
+    @if (view() === 'tracking') {
+      <button uiTableActions ui-button variant="primary" size="small" type="button" (click)="openCreate()">
+        <ui-icon name="plus" />
+        Add New Benefit
+      </button>
+    }
   </ui-table-header>
 
   <div class="vb-scroll">
@@ -62,31 +64,31 @@
       <table ui-table size="sm" class="vb-table">
         <thead>
           <tr>
-            <th style="width: 230px">
+            <th style="min-width: 230px">
               <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [first]="true" [filtered]="colName() !== all">
                 <ui-select [options]="nameOptions()" [(value)]="colName" [emptyValue]="all" [searchable]="true" />
               </ui-column-header>
             </th>
-            <th style="width: 130px">
+            <th>
               <ui-column-header label="Benefit Type" size="sm" [sortable]="true" [filtered]="colType() !== all">
                 <ui-select [options]="typeOptions" [(value)]="colType" [emptyValue]="all" />
               </ui-column-header>
             </th>
-            <th style="width: 190px">
+            <th>
               <ui-column-header label="Benefit Owner" size="sm" [sortable]="true" [filtered]="colOwner() !== all">
                 <ui-select [options]="ownerOptions" [(value)]="colOwner" [emptyValue]="all" [searchable]="true" />
               </ui-column-header>
             </th>
-            <th style="width: 170px"><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-            <th style="width: 240px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
-            <th style="width: 180px">
+            <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+            <th style="min-width: 260px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
+            <th>
               <ui-column-header label="Benefit Status" size="sm" [sortable]="true" [filtered]="colStatus() !== all">
                 <ui-select [options]="statusOptions" [(value)]="colStatus" [emptyValue]="all" />
               </ui-column-header>
             </th>
-            <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
-            <th style="width: 160px"><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
-            <th style="width: 130px"><ui-column-header label="Last Updated" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Last Updated" size="sm" [sortable]="true" /></th>
             <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
           </tr>
         </thead>
@@ -127,7 +129,7 @@
                   @if (openMenuId() === b.id) {
                     <ui-dropdown-menu class="row-menu" role="menu">
                       @for (a of rowActions; track a.key) {
-                        <button ui-dropdown-item type="button" (click)="closeMenu(); $event.stopPropagation()">{{ a.label }}</button>
+                        <button ui-dropdown-item type="button" (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
                       }
                     </ui-dropdown-menu>
                   }
@@ -141,29 +143,29 @@
       <table ui-table size="sm" class="vb-table">
         <thead>
           <tr>
-            <th style="width: 120px"><ui-column-header label="Baseline ID" size="sm" [sortable]="true" [first]="true" /></th>
-            <th style="width: 230px">
+            <th><ui-column-header label="Baseline ID" size="sm" [sortable]="true" [first]="true" /></th>
+            <th style="min-width: 230px">
               <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [filtered]="colName() !== all">
                 <ui-select [options]="nameOptions()" [(value)]="colName" [emptyValue]="all" [searchable]="true" />
               </ui-column-header>
             </th>
-            <th style="width: 170px"><ui-column-header label="Original Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-            <th style="width: 170px"><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-            <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
-            <th style="width: 160px"><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
-            <th style="width: 170px">
+            <th><ui-column-header label="Original Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+            <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+            <th><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
+            <th>
               <ui-column-header label="Approval Status" size="sm" [sortable]="true" [filtered]="colApproval() !== all">
                 <ui-select [options]="approvalOptions" [(value)]="colApproval" [emptyValue]="all" />
               </ui-column-header>
             </th>
-            <th style="width: 150px"><ui-column-header label="Approved By" size="sm" [sortable]="true" /></th>
-            <th style="width: 130px"><ui-column-header label="Approval Date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Approved By" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Approval Date" size="sm" [sortable]="true" /></th>
             <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
           </tr>
         </thead>
         <tbody>
           @for (b of rows(); track b.id) {
-            <tr ui-table-row interactive (activate)="openDetail(b)">
+            <tr ui-table-row interactive (activate)="openBaseline(b)">
               <td class="cell-name">{{ b.baselineId }}</td>
               <td>
                 <div class="cell-name">{{ b.name }}</div>
@@ -187,7 +189,7 @@
                   @if (openMenuId() === b.id) {
                     <ui-dropdown-menu class="row-menu" role="menu">
                       @for (a of baselineActions; track a.key) {
-                        <button ui-dropdown-item type="button" (click)="closeMenu(); $event.stopPropagation()">{{ a.label }}</button>
+                        <button ui-dropdown-item type="button" (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
                       }
                     </ui-dropdown-menu>
                   }
@@ -237,15 +239,15 @@
           <table ui-table size="sm">
             <thead>
               <tr>
-                <th style="width: 120px"><ui-column-header label="Update Date" size="sm" [first]="true" /></th>
-                <th style="width: 220px"><ui-column-header [label]="b.type === 'Financial' ? 'Value' : 'Progress Update'" size="sm" /></th>
+                <th><ui-column-header label="Update Date" size="sm" [first]="true" /></th>
+                <th><ui-column-header [label]="b.type === 'Financial' ? 'Value' : 'Progress Update'" size="sm" /></th>
                 @if (b.type === 'Financial') {
-                  <th style="width: 100px"><ui-column-header label="Variance %" size="sm" align="end" /></th>
-                  <th style="width: 210px"><ui-column-header label="Variance Explanation" size="sm" /></th>
-                  <th style="width: 210px"><ui-column-header label="Root Cause" size="sm" /></th>
-                  <th style="width: 210px"><ui-column-header label="Corrective Action" size="sm" /></th>
+                  <th><ui-column-header label="Variance %" size="sm" align="end" /></th>
+                  <th><ui-column-header label="Variance Explanation" size="sm" /></th>
+                  <th><ui-column-header label="Root Cause" size="sm" /></th>
+                  <th><ui-column-header label="Corrective Action" size="sm" /></th>
                 }
-                <th style="width: 130px"><ui-column-header label="Updated By" size="sm" [last]="true" /></th>
+                <th><ui-column-header label="Updated By" size="sm" [last]="true" /></th>
               </tr>
             </thead>
             <tbody>
@@ -275,12 +277,12 @@
         <table ui-table size="sm">
           <thead>
             <tr>
-              <th style="width: 120px"><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
-              <th style="width: 150px"><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
-              <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" /></th>
-              <th style="width: 140px"><ui-column-header label="Requested By" size="sm" /></th>
-              <th style="width: 140px"><ui-column-header label="Approved By" size="sm" /></th>
-              <th style="width: 130px"><ui-column-header label="Approval Date" size="sm" /></th>
+              <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
+              <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
+              <th><ui-column-header label="Effective Date" size="sm" /></th>
+              <th><ui-column-header label="Requested By" size="sm" /></th>
+              <th><ui-column-header label="Approved By" size="sm" /></th>
+              <th><ui-column-header label="Approval Date" size="sm" /></th>
               <th><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
             </tr>
           </thead>
@@ -325,9 +327,9 @@
         <table ui-table size="sm">
           <thead>
             <tr>
-              <th style="width: 130px"><ui-column-header label="Date" size="sm" [first]="true" /></th>
-              <th style="width: 170px"><ui-column-header label="User" size="sm" /></th>
-              <th style="width: 230px"><ui-column-header label="Action" size="sm" /></th>
+              <th><ui-column-header label="Date" size="sm" [first]="true" /></th>
+              <th><ui-column-header label="User" size="sm" /></th>
+              <th><ui-column-header label="Action" size="sm" /></th>
               <th><ui-column-header label="Comments" size="sm" [last]="true" /></th>
             </tr>
           </thead>
@@ -409,13 +411,13 @@
           <table ui-table size="sm">
             <thead>
               <tr>
-                <th style="width: 180px"><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
-                <th style="width: 190px"><ui-column-header label="Drivers" size="sm" /></th>
-                <th style="width: 160px"><ui-column-header label="Measure" size="sm" /></th>
+                <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                <th><ui-column-header label="Drivers" size="sm" /></th>
+                <th><ui-column-header label="Measure" size="sm" /></th>
                 @for (y of years; track y) {
-                  <th style="width: 150px"><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
+                  <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
                 }
-                <th style="width: 140px"><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
+                <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
               </tr>
             </thead>
             <tbody>
@@ -467,6 +469,217 @@
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!step1Valid()" (click)="step.set(step() + 1)">Next</button>
     } @else {
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!step1Valid()" (click)="createBenefit()">Create Benefit</button>
+    }
+  </ui-modal-shell>
+}
+
+<!-- ── Baseline detail: the agreement, not the benefit's performance ──── -->
+@if (baselineOf(); as b) {
+  <ui-modal-shell
+    [title]="'Baseline ' + b.baselineId"
+    [subtitle]="b.benefitRef + ' · ' + b.name"
+    [class.sheet-closing]="closingBaseline()"
+    (closed)="closeBaseline()">
+
+    <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
+      <ui-icon name="download" />
+      Download
+    </button>
+
+    <ui-card title="Current Approved Baseline">
+      <dl class="detail-grid">
+        <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
+        <div><dt>Approval Status</dt><dd><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></dd></div>
+        <div><dt>Baseline Value</dt><dd>{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : 'Not applicable' }}</dd></div>
+        <div><dt>Original Approved Baseline</dt><dd>{{ b.type === 'Financial' ? money(b.originalApprovedBaseline) : 'Not applicable' }}</dd></div>
+        <div><dt>Effective Date</dt><dd>{{ b.effectiveDate }}</dd></div>
+        <div><dt>Target Realisation Date</dt><dd>{{ b.targetRealisationDate }}</dd></div>
+        <div><dt>Approved By</dt><dd>{{ b.approvedBy }}</dd></div>
+        <div><dt>Approval Date</dt><dd>{{ b.approvalDate }}</dd></div>
+      </dl>
+    </ui-card>
+
+    <ui-card title="Baseline History">
+      <div class="vb-scroll">
+        <table ui-table size="sm">
+          <thead>
+            <tr>
+              <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
+              <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
+              <th><ui-column-header label="Change vs Previous" size="sm" align="end" /></th>
+              <th><ui-column-header label="Effective Date" size="sm" /></th>
+              <th><ui-column-header label="Target Realisation Date" size="sm" /></th>
+              <th><ui-column-header label="Requested By" size="sm" /></th>
+              <th><ui-column-header label="Approved By" size="sm" /></th>
+              <th><ui-column-header label="Approval Date" size="sm" /></th>
+              <th><ui-column-header label="Status" size="sm" /></th>
+              <th style="min-width: 280px"><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (h of baselineChain(b); track h.baselineId) {
+              <tr ui-table-row [selected]="h.isCurrent">
+                <td class="cell-name">{{ h.baselineId }}</td>
+                <td class="ui-cell-number">{{ money(h.baselineValue) }}</td>
+                <td class="ui-cell-number">
+                  @if (h.delta === null) {
+                    <span class="cell-meta">Opening baseline</span>
+                  } @else {
+                    <ui-pill
+                      [label]="(h.delta > 0 ? '+' : '') + money(h.delta) + (h.pct !== null ? ' (' + (h.pct > 0 ? '+' : '') + h.pct + '%)' : '')"
+                      [color]="h.delta >= 0 ? 'green' : 'red'"
+                      [dot]="false" />
+                  }
+                </td>
+                <td>{{ h.effectiveDate }}</td>
+                <td>{{ h.targetRealisationDate }}</td>
+                <td>{{ h.requestedBy }}</td>
+                <td>{{ h.approvedBy }}</td>
+                <td>{{ h.approvalDate }}</td>
+                <td class="ui-cell-status"><ui-status-tag [status]="h.status" [variant]="approvalVariant(h.status)" /></td>
+                <td>{{ h.changeReason }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </ui-card>
+
+    <ui-card title="Approval Trail">
+      <div class="vb-scroll">
+        <table ui-table size="sm">
+          <thead>
+            <tr>
+              <th><ui-column-header label="Date" size="sm" [first]="true" /></th>
+              <th><ui-column-header label="User" size="sm" /></th>
+              <th><ui-column-header label="Action" size="sm" /></th>
+              <th style="min-width: 320px"><ui-column-header label="Comments" size="sm" [last]="true" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of baselineAudit(b); track a.id) {
+              <tr ui-table-row>
+                <td>{{ a.date }}</td>
+                <td>{{ a.user }}</td>
+                <td class="cell-name">{{ a.action }}</td>
+                <td>{{ a.comments }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </ui-card>
+  </ui-modal-shell>
+}
+
+<!-- ── Row actions: update, closure, baseline change ──────────────────── -->
+@if (actionBenefit(); as b) {
+  <ui-modal-shell
+    [title]="actionTitle()"
+    [subtitle]="b.benefitRef + ' · ' + b.name"
+    [hasFooterSlot]="true"
+    [class.sheet-closing]="closingAction()"
+    (closed)="closeAction()">
+
+    @if (actionKind() === 'update') {
+      <ui-card title="Update Benefit">
+        <div class="create-grid">
+          @if (b.type === 'Financial') {
+            <div class="filter-field">
+              <span class="filter-label">Actual Benefit Value (S$)</span>
+              <ui-text-input [(value)]="formActual" placeholder="0" />
+            </div>
+            <div class="filter-field">
+              <span class="filter-label">Current Approved Baseline</span>
+              <div class="readonly">{{ money(b.currentApprovedBaseline) }}</div>
+            </div>
+            <div class="filter-field span-2">
+              <span class="filter-label">Variance Explanation</span>
+              <ui-textarea [(value)]="formExplanation" placeholder="Why the actual differs from the baseline" />
+            </div>
+            <div class="filter-field span-2">
+              <span class="filter-label">Root Cause</span>
+              <ui-textarea [(value)]="formRootCause" />
+            </div>
+            <div class="filter-field span-2">
+              <span class="filter-label">Corrective Action</span>
+              <ui-textarea [(value)]="formCorrective" />
+            </div>
+          } @else {
+            <div class="filter-field span-2">
+              <span class="filter-label">Progress Update</span>
+              <ui-textarea [(value)]="formProgress" placeholder="e.g. Cross-border integration completed in 4 countries" />
+            </div>
+          }
+        </div>
+        <p class="empty">Saving adds a new entry to the reporting history. Nothing already reported is changed.</p>
+      </ui-card>
+    }
+
+    @if (actionKind() === 'closure') {
+      <ui-card title="Request Closure">
+        <div class="create-grid">
+          <div class="filter-field">
+            <span class="filter-label">{{ b.type === 'Financial' ? 'Final Realised Value (S$)' : 'Final Outcome' }}</span>
+            <ui-text-input [(value)]="formOutcome" />
+          </div>
+          @if (b.type === 'Financial') {
+            <div class="filter-field">
+              <span class="filter-label">Current Approved Baseline</span>
+              <div class="readonly">{{ money(b.currentApprovedBaseline) }}</div>
+            </div>
+          }
+          <div class="filter-field span-2">
+            <span class="filter-label">Closure Comments</span>
+            <ui-textarea [(value)]="formComments" />
+          </div>
+        </div>
+        <p class="empty">On submission the benefit status becomes <strong>Closure Pending Approval</strong> and further updates are locked.</p>
+      </ui-card>
+    }
+
+    @if (actionKind() === 'change') {
+      <ui-card title="Request Baseline Change">
+        <div class="create-grid">
+          <div class="filter-field">
+            <span class="filter-label">Current Baseline</span>
+            <div class="readonly">{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : 'Not applicable' }}</div>
+          </div>
+          @if (b.type === 'Financial') {
+            <div class="filter-field">
+              <span class="filter-label">Proposed Baseline (S$)</span>
+              <ui-text-input [(value)]="formProposed" />
+            </div>
+          }
+          <div class="filter-field">
+            <span class="filter-label">Effective Date</span>
+            <ui-date-input [(value)]="formEffective" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Target Realisation Date</span>
+            <ui-date-input [(value)]="formTarget" />
+          </div>
+          <div class="filter-field span-2">
+            <span class="filter-label">Change Reason</span>
+            <ui-textarea [(value)]="formReason" placeholder="Why the approved baseline should change" />
+          </div>
+        </div>
+        <p class="empty">
+          The request is recorded as the next baseline ID at <strong>Pending Approval</strong>.
+          The current approved baseline is unchanged until it is approved.
+        </p>
+      </ui-card>
+    }
+
+    <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeAction()">Cancel</button>
+    @if (actionKind() === 'update') {
+      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="saveUpdate()">Save</button>
+    }
+    @if (actionKind() === 'closure') {
+      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitClosure()">Submit Closure Request</button>
+    }
+    @if (actionKind() === 'change') {
+      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitBaselineChange()">Submit Request</button>
     }
   </ui-modal-shell>
 }
