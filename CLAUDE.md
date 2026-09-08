@@ -14,3 +14,7 @@ colour inherited from the surrounding text. Never paste an SVG, an icon font
 or a copied path. `kit-pack/components/icon.md` lists all 569 names.
 
 Before finishing, run `node kit-pack/lint/lint-boundaries.mjs src`.
+
+Design and scope decisions, kit deviations and known gaps are recorded in
+`DECISIONS.md`. Add an entry there when a choice is worth explaining later;
+keep it newest-first.
