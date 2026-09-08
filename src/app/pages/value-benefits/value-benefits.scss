@@ -10,28 +10,46 @@
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
-  gap: 0;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 8px 4px;
 }
-.summary-total { padding: 6px 28px 6px 4px; border-right: 1px solid var(--color-border-decorative); }
+.summary-total {
+  width: 120px;
+  flex: none;
+  padding: 8px 12px;
+  position: relative;
+}
+// Dividers are drawn between tiles rather than as borders, so a selected
+// tile's own border is never clipped by its neighbour's.
+.summary-total::after,
+.stat:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--color-border-decorative);
+}
 .summary-count { @include type.heading(md); color: var(--color-text-strong); display: block; }
 .summary-label { @include type.label(sm); color: var(--color-text-subtle); }
 
 .stat {
+  position: relative;
+  width: 260px;
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: 6px 28px;
+  padding: 8px 12px;
   border: 1px solid transparent;
-  border-right: 1px solid var(--color-border-decorative);
   border-radius: 6px;
   background: none;
   cursor: pointer;
   text-align: left;
   font: inherit;
 }
-.stat:last-child { border-right: 0; }
 .stat:hover { background: var(--color-bg-hover); }
 .stat--active { background: var(--color-primary-subtle); border-color: var(--color-primary); }
 .stat-top { display: flex; align-items: center; gap: 8px; }
@@ -65,7 +83,17 @@
 // Sticky cells stack in DOM order, so a later row's cell paints over an open
 // menu belonging to an earlier row. The cell holding the open menu wins.
 .ui-td-sticky:has(ui-dropdown-menu) { z-index: 3; }
-.ui-cell-actions.ui-td-sticky { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
+.vb-table tbody .ui-td-sticky { vertical-align: middle; }
+// A td must stay display:table-cell or it drops out of the row's height and
+// baseline alignment, so the flex row lives on a wrapper inside it.
+.row-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.row-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 40; }
 
 .cell-name { @include type.label(md); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
@@ -86,3 +114,45 @@
 @media (max-width: 900px) {
   .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ── focus overlay motion ───────────────────────────────────────────────
+   The kit animates its own .panel with a 24px lift and exposes no hook to
+   change it, so the sheet motion is applied through ::ng-deep. It must land
+   on .panel, NOT on the ui-modal-shell host: the host is static and its
+   .overlay child is position:fixed, so any transform on the host makes it
+   the containing block and the overlay stops being viewport-positioned. */
+ui-modal-shell ::ng-deep .panel {
+  animation: sheet-up 280ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
+}
+ui-modal-shell.sheet-closing ::ng-deep .panel {
+  animation: sheet-down 220ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms both; }
+
+@keyframes sheet-up {
+  from { transform: translateY(100vh); }
+  to   { transform: translateY(0); }
+}
+@keyframes sheet-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100vh); }
+}
+@keyframes scrim-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ui-modal-shell ::ng-deep .panel,
+  ui-modal-shell.sheet-closing ::ng-deep .panel,
+  ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: none; }
+}
+
+/* ── create wizard ──────────────────────────────────────────── */
+.create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+}
+.create-grid .span-2 { grid-column: 1 / -1; }
+.add-line { margin-top: 14px; }

@@ -51,7 +51,7 @@
       <button uiPopoverActions ui-button variant="primary" size="small" type="button" (click)="filtersOpen.set(false)">Apply</button>
     </ui-popover>
 
-    <button uiTableActions ui-button variant="primary" size="small" type="button">
+    <button uiTableActions ui-button variant="primary" size="small" type="button" (click)="openCreate()">
       <ui-icon name="plus" />
       Add New Benefit
     </button>
@@ -117,10 +117,21 @@
               <td>{{ b.targetRealisationDate }}</td>
               <td>{{ latest(b)?.updateDate ?? '-' }}</td>
               <td class="ui-cell-actions ui-td-sticky">
-                <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
-                  <ui-icon name="history" />
-                </button>
-                <ui-kebab-menu [items]="rowActions" />
+                <div class="row-actions">
+                  <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
+                    <ui-icon name="history" />
+                  </button>
+                  <button ui-icon-button size="small" type="button" aria-label="More actions" (click)="toggleMenu(b.id, $event)">
+                    <ui-icon name="more-vertical" />
+                  </button>
+                  @if (openMenuId() === b.id) {
+                    <ui-dropdown-menu class="row-menu" role="menu">
+                      @for (a of rowActions; track a.key) {
+                        <button ui-dropdown-item type="button" (click)="closeMenu(); $event.stopPropagation()">{{ a.label }}</button>
+                      }
+                    </ui-dropdown-menu>
+                  }
+                </div>
               </td>
             </tr>
           }
@@ -166,10 +177,21 @@
               <td>{{ b.approvedBy }}</td>
               <td>{{ b.approvalDate }}</td>
               <td class="ui-cell-actions ui-td-sticky">
-                <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
-                  <ui-icon name="history" />
-                </button>
-                <ui-kebab-menu [items]="baselineActions" />
+                <div class="row-actions">
+                  <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
+                    <ui-icon name="history" />
+                  </button>
+                  <button ui-icon-button size="small" type="button" aria-label="More actions" (click)="toggleMenu(b.id, $event)">
+                    <ui-icon name="more-vertical" />
+                  </button>
+                  @if (openMenuId() === b.id) {
+                    <ui-dropdown-menu class="row-menu" role="menu">
+                      @for (a of baselineActions; track a.key) {
+                        <button ui-dropdown-item type="button" (click)="closeMenu(); $event.stopPropagation()">{{ a.label }}</button>
+                      }
+                    </ui-dropdown-menu>
+                  }
+                </div>
               </td>
             </tr>
           }
@@ -186,7 +208,8 @@
   <ui-modal-shell
     [title]="b.name"
     [subtitle]="b.benefitRef + ' · ' + b.type + ' · ' + b.owner"
-    (closed)="detailId.set(null)">
+    [class.sheet-closing]="closingDetail()"
+    (closed)="closeDetail()">
 
     <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
       <ui-icon name="download" />
@@ -285,7 +308,8 @@
   <ui-modal-shell
     title="Audit Log"
     [subtitle]="b.benefitRef + ' · ' + b.name"
-    (closed)="auditId.set(null)">
+    [class.sheet-closing]="closingAudit()"
+    (closed)="closeAudit()">
 
     <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
       <ui-icon name="download" />
@@ -320,5 +344,129 @@
         </table>
       </div>
     </ui-card>
+  </ui-modal-shell>
+}
+
+<!-- ── Add New Benefit: focus overlay ─────────────────────────────────── -->
+@if (createOpen()) {
+  <ui-modal-shell
+    title="Add New Benefit"
+    [subtitle]="'Step ' + step() + ' of ' + lastStep()"
+    [hasTabsSlot]="true"
+    [hasFooterSlot]="true"
+    [class.sheet-closing]="closingCreate()"
+    (closed)="closeCreate()">
+
+    <ui-stepper ui-modal-tabs [steps]="steps()" [current]="'' + step()" orientation="horizontal" />
+
+    @if (step() === 1) {
+      <ui-card title="Key Benefits">
+        <div class="create-grid">
+          <div class="filter-field">
+            <span class="filter-label">Benefit Name</span>
+            <ui-text-input [(value)]="draftName" placeholder="e.g. Manual onboarding effort reduction" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Benefit Owner</span>
+            <ui-select [options]="ownerChoices" [(value)]="draftOwner" placeholder="Please select" [searchable]="true" />
+          </div>
+          <div class="filter-field span-2">
+            <span class="filter-label">Key Benefits Description</span>
+            <ui-textarea [(value)]="draftDescription" placeholder="What this benefit delivers" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Benefit Category</span>
+            <ui-select [options]="categoryOptions()" [(value)]="draftCategory" placeholder="Please select" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">With Financial Impact?</span>
+            <ui-checkbox
+              [checked]="draftFinancial()"
+              (checkedChange)="setFinancial($event)"
+              [description]="draftFinancial() ? 'Financial benefit' : 'Non-financial benefit'" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Effective Date</span>
+            <ui-date-input [(value)]="draftEffective" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Target Realisation Date</span>
+            <ui-date-input [(value)]="draftTarget" />
+          </div>
+        </div>
+        @if (!draftFinancial()) {
+          <p class="empty">
+            Non-financial benefit — no baseline value, variance or actuals are captured.
+            Realisation is tracked through periodic progress updates instead.
+          </p>
+        }
+      </ui-card>
+    }
+
+    @if (step() === 2) {
+      <ui-card title="Financial and Stat Impact">
+        <div class="vb-scroll">
+          <table ui-table size="sm">
+            <thead>
+              <tr>
+                <th style="width: 180px"><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                <th style="width: 190px"><ui-column-header label="Drivers" size="sm" /></th>
+                <th style="width: 160px"><ui-column-header label="Measure" size="sm" /></th>
+                @for (y of years; track y) {
+                  <th style="width: 150px"><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
+                }
+                <th style="width: 140px"><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of draftLines(); track row.id) {
+                <tr ui-table-row>
+                  <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
+                  <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" /></td>
+                  <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" /></td>
+                  @for (y of years; track y) {
+                    <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setLineValue(row.id, y, $event)" placeholder="0" /></td>
+                  }
+                  <td class="ui-cell-number cell-name">{{ money(lineTotal(row)) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <button ui-button variant="secondary" size="small" type="button" class="add-line" (click)="addLine()">
+          <ui-icon name="plus" />
+          Add Benefit Line
+        </button>
+      </ui-card>
+    }
+
+    @if (step() === 3) {
+      <ui-card title="Total Investments &amp; Benefits">
+        <dl class="detail-grid">
+          <div><dt>Benefit Name</dt><dd>{{ draftName() || '-' }}</dd></div>
+          <div><dt>Benefit Owner</dt><dd>{{ draftOwner() || '-' }}</dd></div>
+          <div><dt>Benefit Category</dt><dd>{{ draftCategory() || '-' }}</dd></div>
+          <div><dt>Benefit Type</dt><dd>Financial</dd></div>
+          <div><dt>Effective Date</dt><dd>{{ draftEffective() || '-' }}</dd></div>
+          <div><dt>Target Realisation Date</dt><dd>{{ draftTarget() || '-' }}</dd></div>
+          <div><dt>Original Approved Baseline</dt><dd>{{ money(draftBaseline()) }}</dd></div>
+          <div><dt>Baseline ID</dt><dd>Assigned on creation</dd></div>
+        </dl>
+        <p class="empty">
+          On creation this benefit is baselined and appears in both Benefits Tracking and
+          Baseline Management.
+        </p>
+      </ui-card>
+    }
+
+    <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeCreate()">Cancel</button>
+    @if (step() > 1) {
+      <button ui-modal-footer ui-button variant="secondary" size="small" type="button" (click)="step.set(step() - 1)">Back</button>
+    }
+    @if (step() < lastStep()) {
+      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!step1Valid()" (click)="step.set(step() + 1)">Next</button>
+    } @else {
+      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!step1Valid()" (click)="createBenefit()">Create Benefit</button>
+    }
   </ui-modal-shell>
 }

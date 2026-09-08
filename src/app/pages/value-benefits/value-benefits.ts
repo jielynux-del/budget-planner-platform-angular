@@ -1,13 +1,19 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, linkedSignal, signal } from '@angular/core';
 import {
-  UiButton, UiCard, UiColumnHeader, UiDateInput, UiIcon, UiIconButton, UiKebabMenu,
-  UiModalShell, UiPagination, UiPill, UiPopover, UiSectionHeader, UiSegmented, UiSelect,
-  UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow,
-  type UiMenuItem, type UiPillColor, type UiSegment, type UiTagVariant
+  UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem,
+  UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
+  UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
+  UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
+  type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiTagVariant
 } from 'ai-dls-kit';
-import { BENEFIT_STATUSES, latestUpdate } from '../../data/benefitsData';
-import { BENEFIT_OWNERS } from '../../data/lookups';
-import type { Benefit } from '../../data/models';
+import {
+  BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, financialTotal, latestUpdate,
+  nextBaselineId, nextBenefitRef
+} from '../../data/benefitsData';
+import {
+  BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, BENEFIT_OWNERS, FINANCIAL_TYPES
+} from '../../data/lookups';
+import type { Benefit, BenefitRow } from '../../data/models';
 
 const ALL = 'All';
 
@@ -35,16 +41,22 @@ const STATUS_DOT: Record<string, UiPillColor> = {
   imports: [
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
-    UiKebabMenu, UiPagination, UiModalShell, UiSectionHeader
+    UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper,
+    UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
   templateUrl: './value-benefits.html',
   styleUrl: './value-benefits.scss'
 })
 export class ValueBenefits {
-  readonly benefits = input.required<Benefit[]>();
+  readonly seeded = input.required<Benefit[]>({ alias: 'benefits' });
+
+  /** Local working copy — resets when a different workstream is opened. */
+  protected readonly benefits = linkedSignal(() => this.seeded());
 
   protected readonly all = ALL;
   protected readonly ownerOptions = [ALL, ...BENEFIT_OWNERS];
+  /** The wizard picks a real owner, so it must not offer the filter's All sentinel. */
+  protected readonly ownerChoices = BENEFIT_OWNERS;
   protected readonly statusOptions = [ALL, ...BENEFIT_STATUSES];
   protected readonly typeOptions = [ALL, 'Financial', 'Non-Financial'];
   protected readonly approvalOptions = [ALL, 'Approved', 'Pending Approval', 'Rejected'];
@@ -90,6 +102,20 @@ export class ValueBenefits {
   protected readonly baselineActions: UiMenuItem[] = [
     { key: 'change', label: 'Request Baseline Change' }
   ];
+
+  /**
+   * ui-kebab-menu owns its own open state, so two rows could be open at once.
+   * The menu is composed from ui-dropdown-menu here instead, with the open row
+   * held in one signal — only ever one.
+   */
+  protected readonly openMenuId = signal<string | null>(null);
+
+  protected toggleMenu(id: string, event: Event) {
+    event.stopPropagation();
+    this.openMenuId.set(this.openMenuId() === id ? null : id);
+  }
+
+  protected closeMenu() { this.openMenuId.set(null); }
 
   protected readonly nameOptions = computed(() => [ALL, ...this.benefits().map((b) => b.name)]);
 
@@ -156,9 +182,175 @@ export class ValueBenefits {
     this.realisationTo.set('');
   }
 
+  /**
+   * Overlays slide up on open and down on close, so the element has to survive
+   * the closing animation before it is removed.
+   */
+  protected readonly closingDetail = signal(false);
+  protected readonly closingAudit = signal(false);
+  protected readonly closingCreate = signal(false);
+  private static readonly EXIT_MS = 220;
+
   /** Row click opens the benefit; the audit icon opens just its history. */
   protected openDetail(b: Benefit) { this.detailId.set(b.id); }
   protected openAudit(b: Benefit) { this.auditId.set(b.id); }
+
+  protected closeDetail() {
+    this.closingDetail.set(true);
+    setTimeout(() => { this.detailId.set(null); this.closingDetail.set(false); }, ValueBenefits.EXIT_MS);
+  }
+
+  protected closeAudit() {
+    this.closingAudit.set(true);
+    setTimeout(() => { this.auditId.set(null); this.closingAudit.set(false); }, ValueBenefits.EXIT_MS);
+  }
+
+  protected closeCreate() {
+    this.closingCreate.set(true);
+    setTimeout(() => { this.createOpen.set(false); this.closingCreate.set(false); }, ValueBenefits.EXIT_MS);
+  }
+
+  /* ---------------- Add New Benefit ---------------- */
+
+  protected readonly createOpen = signal(false);
+  protected readonly step = signal(1);
+
+  protected readonly draftName = signal('');
+  protected readonly draftOwner = signal('');
+  protected readonly draftCategory = signal('');
+  protected readonly draftDescription = signal('');
+  protected readonly draftFinancial = signal(true);
+  protected readonly draftEffective = signal('');
+  protected readonly draftTarget = signal('');
+  protected readonly draftLines = signal<BenefitRow[]>([]);
+
+  protected readonly financialTypes = FINANCIAL_TYPES as unknown as string[];
+  protected readonly driverOptions = BENEFIT_DRIVERS;
+  protected readonly measureOptions = BENEFIT_MEASURES;
+  protected readonly years = [2024, 2025, 2026];
+
+  protected readonly categoryOptions = computed(() =>
+    this.draftFinancial() ? BENEFIT_CATEGORIES : NON_FINANCIAL_CATEGORIES);
+
+  protected readonly lastStep = computed(() => (this.draftFinancial() ? 3 : 1));
+
+  protected readonly steps = computed<UiStepperStep[]>(() => {
+    const labels = this.draftFinancial()
+      ? ['Key Benefits', 'Financial and Stat Impact', 'Total Investments & Benefits']
+      : ['Key Benefits'];
+    return labels.map((label, i) => ({
+      key: String(i + 1),
+      label,
+      status: this.step() === i + 1 ? 'current' : this.step() > i + 1 ? 'completed' : 'pending'
+    })) as UiStepperStep[];
+  });
+
+  protected readonly draftBaseline = computed(() =>
+    this.draftFinancial() ? financialTotal(this.draftLines()) : null);
+
+  protected readonly step1Valid = computed(() =>
+    this.draftName().trim() !== '' && this.draftOwner() !== '' &&
+    this.draftEffective() !== '' && this.draftTarget() !== '');
+
+  protected openCreate() {
+    this.step.set(1);
+    this.draftName.set('');
+    this.draftOwner.set('');
+    this.draftCategory.set('');
+    this.draftDescription.set('');
+    this.draftFinancial.set(true);
+    this.draftEffective.set('');
+    this.draftTarget.set('');
+    this.draftLines.set([this.blankLine()]);
+    this.createOpen.set(true);
+  }
+
+  private blankLine(): BenefitRow {
+    return {
+      id: `fr-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
+      benefitRef: '', typeOfFinancial: '', driver: '', measure: '', values: {}, comments: ''
+    };
+  }
+
+  protected addLine() { this.draftLines.update((l) => [...l, this.blankLine()]); }
+
+  // ui-select clears to null, so an unset line reads as an empty string.
+  protected setLine(id: string, field: 'typeOfFinancial' | 'driver' | 'measure', value: string | null) {
+    this.draftLines.update((rows) =>
+      rows.map((r) => (r.id === id ? ({ ...r, [field]: value ?? '' } as BenefitRow) : r)));
+  }
+
+  protected setLineValue(id: string, year: number, value: string | null) {
+    const n = Number(String(value).replace(/[^0-9.-]/g, '')) || 0;
+    this.draftLines.update((rows) =>
+      rows.map((r) => (r.id === id ? { ...r, values: { ...r.values, [year]: n } } : r)));
+  }
+
+  protected lineValue(row: BenefitRow, year: number) {
+    return row.values[year] ? String(row.values[year]) : '';
+  }
+
+  protected lineTotal(row: BenefitRow) {
+    return this.years.reduce((s, y) => s + (row.values[y] ?? 0), 0);
+  }
+
+  protected setFinancial(on: boolean) {
+    this.draftFinancial.set(on);
+    this.draftCategory.set('');
+    this.step.set(1);
+  }
+
+  /** Creates the benefit, its opening baseline and its first audit entry. */
+  protected createBenefit() {
+    const list = this.benefits();
+    const financial = this.draftFinancial();
+    const baseline = financial ? financialTotal(this.draftLines()) : null;
+    const baselineId = nextBaselineId(list);
+    const ref = nextBenefitRef(list);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const benefit: Benefit = {
+      id: `bf-${Date.now()}`,
+      benefitRef: ref,
+      name: this.draftName().trim(),
+      type: financial ? 'Financial' : 'Non-Financial',
+      category: this.draftCategory(),
+      description: this.draftDescription().trim(),
+      owner: this.draftOwner(),
+      baselineId,
+      originalApprovedBaseline: baseline,
+      currentApprovedBaseline: baseline,
+      effectiveDate: this.draftEffective(),
+      targetRealisationDate: this.draftTarget(),
+      approvalStatus: 'Approved',
+      approvedBy: CURRENT_USER,
+      approvalDate: today,
+      status: 'Tracking Active',
+      financialRows: financial ? this.draftLines().map((r) => ({ ...r, benefitRef: ref })) : [],
+      baselineHistory: [{
+        baselineId,
+        baselineValue: baseline,
+        effectiveDate: this.draftEffective(),
+        targetRealisationDate: this.draftTarget(),
+        requestedBy: CURRENT_USER,
+        approvedBy: CURRENT_USER,
+        approvalDate: today,
+        changeReason: 'Original approved baseline captured at benefit creation',
+        status: 'Approved'
+      }],
+      reportingHistory: [],
+      auditLog: [{
+        id: `ba-${Date.now()}`,
+        date: today,
+        user: CURRENT_USER,
+        action: 'Baseline Created',
+        comments: `${baselineId} created — ${financial ? this.money(baseline) : 'non-financial benefit'}.`
+      }]
+    };
+
+    this.benefits.update((rows) => [...rows, benefit]);
+    this.closeCreate();
+  }
 
   /** Downloads the open benefit as CSV — summary, reporting history and audit log. */
   protected download(b: Benefit) {
