@@ -2,9 +2,9 @@ import { Component, computed, input, signal } from '@angular/core';
 import {
   UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
-  UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiSubTabs, UiTable, UiTableCard,
+  UiFilterTabs, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
-  type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiSubTab, type UiTagVariant
+  type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiTagVariant
 } from 'ai-dls-kit';
 import {
   BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, financialTotal, latestUpdate,
@@ -44,8 +44,8 @@ const STATUS_DOT: Record<string, UiPillColor> = {
   imports: [
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
-    UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
-    UiSubTabs, Approvals,
+    UiFilterTabs, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
+    Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
   templateUrl: './value-benefits.html',
@@ -96,7 +96,7 @@ export class ValueBenefits {
   protected readonly view = signal('tracking');
 
   /** A benefit lives on a workstream, so its approvals do too. */
-  protected readonly pageTabs = computed<UiSubTab[]>(() => [
+  protected readonly pageTabs = computed<UiFilterTab[]>(() => [
     { key: 'benefits', label: 'Benefits' },
     { key: 'approvals', label: 'Approvals', count: this.awaitingMe().length || undefined }
   ]);

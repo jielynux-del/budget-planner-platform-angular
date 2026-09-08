@@ -2,22 +2,23 @@
 
 // The table sets a min-width so its middle columns scroll; without min-width:0
 // that width would propagate up the grid and stretch the cards with it.
-:host { display: grid; gap: 16px; min-width: 0; }
+:host { display: grid; gap: 12px; min-width: 0; }
 :host > * { min-width: 0; }
 
 /* ── status summary ─────────────────────────────────────────── */
+// Four tiles on one row: the caption sets the floor, so it takes the 12px
+// label role rather than 13px, and the figure drops from 24px to 20px.
 .summary {
   display: flex;
-  flex-wrap: wrap;
   align-items: stretch;
-  gap: 8px;
-  padding: 8px 4px;
+  gap: 4px;
+  padding: 0;
 }
 // Every tile is the same width, Total included, so the row reads as one object.
 .summary-total {
-  flex: 1 1 210px;
-  min-width: 210px;
-  padding: 8px 12px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 12px;
   position: relative;
 }
 // Dividers are drawn between tiles rather than as borders, so a selected
@@ -32,18 +33,18 @@
   width: 1px;
   background: var(--color-border-decorative);
 }
-.summary-count { @include type.heading(md); color: var(--color-text-strong); display: block; }
-.summary-label { @include type.label(sm); color: var(--color-text-subtle); }
+.summary-count { @include type.heading(sm); color: var(--color-text-strong); display: block; }
+.summary-label { @include type.label(xs); color: var(--color-text-subtle); }
 
 .stat {
   position: relative;
-  flex: 1 1 210px;
-  min-width: 210px;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 8px 12px;
+  gap: 1px;
+  padding: 4px 12px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: none;
@@ -54,9 +55,9 @@
 .stat:hover { background: var(--color-bg-hover); }
 .stat--active { background: var(--color-primary-subtle); border-color: var(--color-primary); }
 .stat-top { display: flex; align-items: center; gap: 8px; }
-.stat-label { @include type.label(sm); color: var(--color-text-subtle); display: flex; align-items: center; gap: 7px; }
+.stat-label { @include type.label(xs); color: var(--color-text-subtle); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex: none; }
 .dot--green { background: var(--color-icon-selected); }
 .dot--yellow { background: var(--color-warning-strong); }
 .dot--grey { background: var(--color-icon-decorative); }
@@ -111,7 +112,7 @@
 }
 .row-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 40; }
 
-.cell-name { @include type.label(md); color: var(--color-text-strong); }
+.cell-name { @include type.label(sm); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
 .cell-delta { margin-left: 6px; vertical-align: middle; }
 
@@ -119,11 +120,11 @@
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px 32px;
+  gap: 14px 28px;
   margin: 0;
 
   dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
-  dd { @include type.label(md); color: var(--color-text-strong); margin: 0; }
+  dd { @include type.label(sm); color: var(--color-text-strong); margin: 0; }
 }
 .empty { @include type.body(sm); color: var(--color-text-subtle); margin: 0; }
 
@@ -184,8 +185,10 @@ ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms bot
   color: var(--color-text-strong);
 }
 
-/* Overlay tables read as records rather than a blotter, so every cell is ruled. */
-ui-modal-shell ::ng-deep table[ui-table] th,
-ui-modal-shell ::ng-deep table[ui-table] td {
-  border: 1px solid var(--color-border-decorative);
+/* table[ui-table] already draws its own row rule, so only the vertical
+   dividers are added here — a full border on every cell doubles up on the
+   horizontal ones and reads far too heavy. */
+ui-modal-shell ::ng-deep table[ui-table] th:not(:last-child),
+ui-modal-shell ::ng-deep table[ui-table] td:not(:last-child) {
+  border-right: 1px solid var(--color-border-decorative);
 }
