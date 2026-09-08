@@ -1,31 +1,60 @@
 @use 'ai-dls-kit/tokens/type' as type;
 
 // The table sets a min-width so its middle columns scroll; without min-width:0
-// that width would propagate up the grid and stretch the filters card with it.
+// that width would propagate up the grid and stretch the cards with it.
 :host { display: grid; gap: 16px; min-width: 0; }
 :host > * { min-width: 0; }
 
-.vb-filters {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));   // all four controls on one row
-  gap: 20px 24px;
-  padding: 4px 0 0;
+/* ── status summary ─────────────────────────────────────────── */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 4px 0;
 }
-.vb-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
-.vb-field { display: grid; gap: 6px; }
-.vb-label { @include type.body(sm); color: var(--color-text-subtle); }
+.summary-total { padding: 6px 28px 6px 4px; border-right: 1px solid var(--color-border-decorative); }
+.summary-count { @include type.heading(md); color: var(--color-text-strong); display: block; }
+.summary-label { @include type.label(sm); color: var(--color-text-subtle); }
 
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 28px;
+  border: 1px solid transparent;
+  border-right: 1px solid var(--color-border-decorative);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.stat:last-child { border-right: 0; }
+.stat:hover { background: var(--color-bg-hover); }
+.stat--active { background: var(--color-primary-subtle); border-color: var(--color-primary); }
+.stat-top { display: flex; align-items: center; gap: 8px; }
+.stat-label { @include type.label(sm); color: var(--color-text-subtle); display: flex; align-items: center; gap: 7px; }
 
-// The middle columns scroll; the actions column is frozen by .ui-td-sticky.
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.dot--green { background: var(--color-icon-selected); }
+.dot--yellow { background: var(--color-warning-strong); }
+.dot--grey { background: var(--color-icon-decorative); }
+.dot--red { background: var(--color-text-danger); }
+
+/* ── filter popover ─────────────────────────────────────────── */
+.filter-field { display: grid; gap: 6px; margin-bottom: 14px; }
+.filter-field:last-of-type { margin-bottom: 0; }
+.filter-label { @include type.body(sm); color: var(--color-text-subtle); }
+
+/* ── table ──────────────────────────────────────────────────── */
 .vb-scroll { overflow-x: auto; }
 .vb-table { min-width: 1400px; }
 
-.cell-name { @include type.label(md); color: var(--color-text-strong); }
-.cell-delta { margin-left: 6px; vertical-align: middle; }
-.cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
 // RULES.md #15 — the frozen edge is painted inside the sticky cell, never as a
 // border-left on the first scrolling column, or it scrolls away with the content.
-.vb-table .ui-td-sticky::before {
+.ui-td-sticky::before {
   content: '';
   position: absolute;
   inset-block: 0;
@@ -33,4 +62,27 @@
   width: 1px;
   background: var(--color-border-decorative);
 }
-.vb-table .ui-td-sticky { position: sticky; }
+// Sticky cells stack in DOM order, so a later row's cell paints over an open
+// menu belonging to an earlier row. The cell holding the open menu wins.
+.ui-td-sticky:has(ui-dropdown-menu) { z-index: 3; }
+.ui-cell-actions.ui-td-sticky { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
+
+.cell-name { @include type.label(md); color: var(--color-text-strong); }
+.cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
+.cell-delta { margin-left: 6px; vertical-align: middle; }
+
+/* ── focus overlays ─────────────────────────────────────────── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 32px;
+  margin: 0;
+
+  dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
+  dd { @include type.label(md); color: var(--color-text-strong); margin: 0; }
+}
+.empty { @include type.body(sm); color: var(--color-text-subtle); margin: 0; }
+
+@media (max-width: 900px) {
+  .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

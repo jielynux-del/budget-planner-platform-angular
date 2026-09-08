@@ -1,35 +1,56 @@
-<div class="vb-subtabs">
-  <ui-filter-tabs [tabs]="subTabs" [(active)]="subTab" />
-</div>
-
-<ui-card title="Parameters">
-  <div class="vb-filters">
-    <div class="vb-field">
-      <span class="vb-label">Benefit Owner</span>
-      <ui-select [options]="ownerOptions" [(value)]="owner" [emptyValue]="all" [searchable]="true" />
+<!-- Status summary. Each figure filters the table.
+     Stat filter needed because the kit is missing a clickable summary card. -->
+<ui-card>
+  <div class="summary">
+    <div class="summary-total">
+      <span class="summary-count">{{ benefits().length }}</span>
+      <span class="summary-label">Total</span>
     </div>
-    <div class="vb-field">
-      <span class="vb-label">Expected Realisation Date From</span>
-      <ui-date-input [(value)]="realisationFrom" />
-    </div>
-    <div class="vb-field">
-      <span class="vb-label">Expected Realisation Date To</span>
-      <ui-date-input [(value)]="realisationTo" />
-    </div>
-    <div class="vb-field">
-      <span class="vb-label">Benefit Status</span>
-      <ui-select [options]="statusOptions" [(value)]="status" [emptyValue]="all" />
-    </div>
-    <div class="vb-actions">
-      <button ui-button variant="secondary" size="small" type="button" [disabled]="!filtersActive()" (click)="clearFilters()">
-        Reset
+    @for (s of summary(); track s.key) {
+      <button type="button" class="stat" [class.stat--active]="statusTile() === s.key" [attr.aria-pressed]="statusTile() === s.key" (click)="toggleStatus(s.key)"> <!-- boundary-allow: clickable summary figure — ui-summary-card is display-only -->
+        <span class="stat-top">
+          <span class="summary-count">{{ s.count }}</span>
+          <ui-pill [label]="s.pct + '%'" color="grey" [dot]="false" />
+        </span>
+        <span class="stat-label">
+          <span class="dot" [class]="'dot dot--' + s.dot"></span>{{ s.label }}
+        </span>
       </button>
-    </div>
+    }
   </div>
 </ui-card>
 
 <ui-table-card>
-  <ui-table-header [title]="subTab() === 'tracking' ? 'Benefits Tracking' : 'Baseline Management'">
+  <ui-table-header title="Value / Benefits">
+    <ui-segmented [segments]="views" [(value)]="view" label="Table view" />
+
+    <ui-popover uiTableActions title="Filters" [(open)]="filtersOpen" [width]="360" placement="bottom-end">
+      <button uiPopoverTrigger ui-button variant="secondary" size="small" type="button">
+        <ui-icon name="filter" />
+        Filter@if (activeFilterCount()) { <span>&nbsp;({{ activeFilterCount() }})</span> }
+      </button>
+
+      <div class="filter-field">
+        <span class="filter-label">Benefit Owner</span>
+        <ui-select [options]="ownerOptions" [(value)]="owner" [emptyValue]="all" [searchable]="true" />
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">Benefit Status</span>
+        <ui-select [options]="statusOptions" [(value)]="status" [emptyValue]="all" />
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">Expected Realisation Date From</span>
+        <ui-date-input [(value)]="realisationFrom" />
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">Expected Realisation Date To</span>
+        <ui-date-input [(value)]="realisationTo" />
+      </div>
+
+      <button uiPopoverActions ui-button variant="secondary" size="small" type="button" (click)="resetFilters()">Reset</button>
+      <button uiPopoverActions ui-button variant="primary" size="small" type="button" (click)="filtersOpen.set(false)">Apply</button>
+    </ui-popover>
+
     <button uiTableActions ui-button variant="primary" size="small" type="button">
       <ui-icon name="plus" />
       Add New Benefit
@@ -37,7 +58,7 @@
   </ui-table-header>
 
   <div class="vb-scroll">
-    @if (subTab() === 'tracking') {
+    @if (view() === 'tracking') {
       <table ui-table size="sm" class="vb-table">
         <thead>
           <tr>
@@ -66,12 +87,12 @@
             <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
             <th style="width: 160px"><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
             <th style="width: 130px"><ui-column-header label="Last Updated" size="sm" [sortable]="true" /></th>
-            <th style="width: 72px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+            <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
           </tr>
         </thead>
         <tbody>
           @for (b of rows(); track b.id) {
-            <tr ui-table-row interactive>
+            <tr ui-table-row interactive (activate)="openDetail(b)">
               <td>
                 <div class="cell-name">{{ b.name }}</div>
                 <div class="cell-meta">{{ b.benefitRef }} · {{ b.category }}</div>
@@ -96,6 +117,9 @@
               <td>{{ b.targetRealisationDate }}</td>
               <td>{{ latest(b)?.updateDate ?? '-' }}</td>
               <td class="ui-cell-actions ui-td-sticky">
+                <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
+                  <ui-icon name="history" />
+                </button>
                 <ui-kebab-menu [items]="rowActions" />
               </td>
             </tr>
@@ -123,12 +147,12 @@
             </th>
             <th style="width: 150px"><ui-column-header label="Approved By" size="sm" [sortable]="true" /></th>
             <th style="width: 130px"><ui-column-header label="Approval Date" size="sm" [sortable]="true" /></th>
-            <th style="width: 72px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+            <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
           </tr>
         </thead>
         <tbody>
           @for (b of rows(); track b.id) {
-            <tr ui-table-row>
+            <tr ui-table-row interactive (activate)="openDetail(b)">
               <td class="cell-name">{{ b.baselineId }}</td>
               <td>
                 <div class="cell-name">{{ b.name }}</div>
@@ -142,6 +166,9 @@
               <td>{{ b.approvedBy }}</td>
               <td>{{ b.approvalDate }}</td>
               <td class="ui-cell-actions ui-td-sticky">
+                <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
+                  <ui-icon name="history" />
+                </button>
                 <ui-kebab-menu [items]="baselineActions" />
               </td>
             </tr>
@@ -153,3 +180,145 @@
 
   <ui-pagination [total]="filtered().length" [(page)]="page" [(pageSize)]="pageSize" />
 </ui-table-card>
+
+<!-- ── Benefit detail: full-viewport focus overlay ────────────────────── -->
+@if (detail(); as b) {
+  <ui-modal-shell
+    [title]="b.name"
+    [subtitle]="b.benefitRef + ' · ' + b.type + ' · ' + b.owner"
+    (closed)="detailId.set(null)">
+
+    <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
+      <ui-icon name="download" />
+      Download
+    </button>
+
+    <ui-card title="Benefit Summary">
+      <dl class="detail-grid">
+        <div><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
+        <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
+        <div><dt>Original Approved Baseline</dt><dd>{{ b.type === 'Financial' ? money(b.originalApprovedBaseline) : 'Not applicable' }}</dd></div>
+        <div><dt>Current Approved Baseline</dt><dd>{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' : 'Not applicable' }}</dd></div>
+        <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></dd></div>
+        <div><dt>Benefit Owner</dt><dd>{{ b.owner }}</dd></div>
+        <div><dt>Effective Date</dt><dd>{{ b.effectiveDate }}</dd></div>
+        <div><dt>Target Realisation Date</dt><dd>{{ b.targetRealisationDate }}</dd></div>
+      </dl>
+    </ui-card>
+
+    <ui-card title="Reporting History">
+      @if (!b.reportingHistory.length) {
+        <p class="empty">Nothing has been reported for this benefit yet.</p>
+      } @else {
+        <div class="vb-scroll">
+          <table ui-table size="sm">
+            <thead>
+              <tr>
+                <th style="width: 120px"><ui-column-header label="Update Date" size="sm" [first]="true" /></th>
+                <th style="width: 220px"><ui-column-header [label]="b.type === 'Financial' ? 'Value' : 'Progress Update'" size="sm" /></th>
+                @if (b.type === 'Financial') {
+                  <th style="width: 100px"><ui-column-header label="Variance %" size="sm" align="end" /></th>
+                  <th style="width: 210px"><ui-column-header label="Variance Explanation" size="sm" /></th>
+                  <th style="width: 210px"><ui-column-header label="Root Cause" size="sm" /></th>
+                  <th style="width: 210px"><ui-column-header label="Corrective Action" size="sm" /></th>
+                }
+                <th style="width: 130px"><ui-column-header label="Updated By" size="sm" [last]="true" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of b.reportingHistory; track r.id) {
+                <tr ui-table-row>
+                  <td>{{ r.updateDate }}</td>
+                  <td>{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
+                  @if (b.type === 'Financial') {
+                    <td class="ui-cell-number">
+                      <ui-pill [label]="variance(r.variancePct)" [color]="varianceColour(r.variancePct)" [dot]="false" />
+                    </td>
+                    <td>{{ r.varianceExplanation || '-' }}</td>
+                    <td>{{ r.rootCause || '-' }}</td>
+                    <td>{{ r.correctiveAction || '-' }}</td>
+                  }
+                  <td>{{ r.updatedBy }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </ui-card>
+
+    <ui-card title="Baseline History">
+      <div class="vb-scroll">
+        <table ui-table size="sm">
+          <thead>
+            <tr>
+              <th style="width: 120px"><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
+              <th style="width: 150px"><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
+              <th style="width: 130px"><ui-column-header label="Effective Date" size="sm" /></th>
+              <th style="width: 140px"><ui-column-header label="Requested By" size="sm" /></th>
+              <th style="width: 140px"><ui-column-header label="Approved By" size="sm" /></th>
+              <th style="width: 130px"><ui-column-header label="Approval Date" size="sm" /></th>
+              <th><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (h of b.baselineHistory; track h.baselineId) {
+              <tr ui-table-row>
+                <td class="cell-name">{{ h.baselineId }}</td>
+                <td class="ui-cell-number">{{ money(h.baselineValue) }}</td>
+                <td>{{ h.effectiveDate }}</td>
+                <td>{{ h.requestedBy }}</td>
+                <td>{{ h.approvedBy }}</td>
+                <td>{{ h.approvalDate }}</td>
+                <td>{{ h.changeReason }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </ui-card>
+  </ui-modal-shell>
+}
+
+<!-- ── Audit log: its own focus overlay, from the row icon ────────────── -->
+@if (audit(); as b) {
+  <ui-modal-shell
+    title="Audit Log"
+    [subtitle]="b.benefitRef + ' · ' + b.name"
+    (closed)="auditId.set(null)">
+
+    <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
+      <ui-icon name="download" />
+      Download
+    </button>
+
+    <ui-card>
+      <ui-section-header
+        title="Every change to this benefit"
+        [subtitle]="b.auditLog.length + ' entries, newest first'"
+        size="sm" />
+      <div class="vb-scroll">
+        <table ui-table size="sm">
+          <thead>
+            <tr>
+              <th style="width: 130px"><ui-column-header label="Date" size="sm" [first]="true" /></th>
+              <th style="width: 170px"><ui-column-header label="User" size="sm" /></th>
+              <th style="width: 230px"><ui-column-header label="Action" size="sm" /></th>
+              <th><ui-column-header label="Comments" size="sm" [last]="true" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of auditEntries(b); track a.id) {
+              <tr ui-table-row>
+                <td>{{ a.date }}</td>
+                <td>{{ a.user }}</td>
+                <td class="cell-name">{{ a.action }}</td>
+                <td>{{ a.comments }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </ui-card>
+  </ui-modal-shell>
+}
