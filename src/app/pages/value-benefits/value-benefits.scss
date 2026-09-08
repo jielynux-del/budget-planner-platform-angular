@@ -186,9 +186,19 @@ ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms bot
 }
 
 /* table[ui-table] already draws its own row rule, so only the vertical
-   dividers are added here — a full border on every cell doubles up on the
-   horizontal ones and reads far too heavy. */
+   dividers and the outer edge are added here — a full border on every cell
+   doubles up on the horizontal rules and reads far too heavy. */
+ui-modal-shell ::ng-deep table[ui-table] {
+  border: 1px solid var(--color-border-decorative);
+  border-radius: var(--radius-sm, 4px);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
 ui-modal-shell ::ng-deep table[ui-table] th:not(:last-child),
 ui-modal-shell ::ng-deep table[ui-table] td:not(:last-child) {
   border-right: 1px solid var(--color-border-decorative);
 }
+// A figure must never wrap mid-number.
+ui-modal-shell ::ng-deep table[ui-table] .ui-cell-number,
+ui-modal-shell ::ng-deep table[ui-table] th { white-space: nowrap; }
