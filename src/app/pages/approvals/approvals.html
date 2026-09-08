@@ -1,0 +1,156 @@
+<div class="page">
+  <h1 class="page-title">Benefit Approvals</h1>
+
+  @if (mine().length) {
+    <ui-info-banner
+      tone="warning"
+      [title]="mine().length + ' item' + (mine().length === 1 ? '' : 's') + ' awaiting your approval'"
+      [message]="'Signed in as ' + persona().name + ' · ' + persona().role + '. Review the requests marked Pending Approval below.'"
+      [dismissible]="false" />
+  } @else if (myRework().length) {
+    <ui-info-banner
+      tone="warning"
+      [title]="myRework().length + ' item' + (myRework().length === 1 ? '' : 's') + ' sent back to you for rework'"
+      [message]="'Signed in as ' + persona().name + '. Amend the request and resubmit it from the benefit.'"
+      [dismissible]="false" />
+  } @else {
+    <ui-info-banner
+      tone="info"
+      title="Nothing is waiting on you"
+      [message]="'Signed in as ' + persona().name + ' · ' + persona().role + '. The queue below shows every live request across the portfolio.'"
+      [dismissible]="false" />
+  }
+
+  <ui-card>
+    <div class="summary">
+      <div class="stat">
+        <span class="stat-count">{{ counts().total }}</span>
+        <span class="stat-label">Live requests</span>
+      </div>
+      <div class="stat">
+        <span class="stat-count">{{ counts().pending }}</span>
+        <span class="stat-label"><span class="dot dot--amber"></span>Pending approval</span>
+      </div>
+      <div class="stat">
+        <span class="stat-count">{{ counts().rework }}</span>
+        <span class="stat-label"><span class="dot dot--purple"></span>Awaiting rework</span>
+      </div>
+      <div class="stat">
+        <span class="stat-count">{{ mine().length }}</span>
+        <span class="stat-label"><span class="dot dot--blue"></span>With you</span>
+      </div>
+    </div>
+  </ui-card>
+
+  <ui-table-card>
+    <ui-table-header title="Approval Queue">
+      <ui-select class="toolbar-filter" [options]="kindOptions" [(value)]="kind" [emptyValue]="all" />
+      <ui-select class="toolbar-filter" [options]="stateOptions" [(value)]="state" [emptyValue]="all" />
+    </ui-table-header>
+
+    <div class="scroll">
+      <table ui-table size="sm" class="queue">
+        <thead>
+          <tr>
+            <th><ui-column-header label="Request Type" size="sm" [first]="true" /></th>
+            <th><ui-column-header label="Reference" size="sm" /></th>
+            <th style="min-width: 220px"><ui-column-header label="Benefit" size="sm" /></th>
+            <th style="min-width: 200px"><ui-column-header label="Workstream" size="sm" /></th>
+            <th><ui-column-header label="Requested By" size="sm" /></th>
+            <th><ui-column-header label="Requested On" size="sm" /></th>
+            <th><ui-column-header label="Pending With" size="sm" /></th>
+            <th><ui-column-header label="State" size="sm" /></th>
+            <th style="min-width: 240px"><ui-column-header label="Actions" size="sm" [last]="true" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of queue(); track item.benefit.id + item.kind) {
+            <tr ui-table-row>
+              <td>{{ item.kind }}</td>
+              <td class="cell-name">{{ item.reference }}</td>
+              <td>
+                <div class="cell-name">{{ item.benefit.name }}</div>
+                <div class="cell-meta">{{ item.detail }}</div>
+              </td>
+              <td class="cell-meta">{{ item.workstreamName }}</td>
+              <td>{{ item.requestedBy }}</td>
+              <td>{{ item.requestedOn }}</td>
+              <td>{{ item.pendingWith }}</td>
+              <td class="ui-cell-status">
+                <ui-status-tag [status]="item.state" [variant]="stateVariant(item.state)" />
+              </td>
+              <td>
+                @if (persona().canApprove && item.state === 'Pending Approval') {
+                  <div class="row-actions">
+                    <button ui-button variant="primary" size="tiny" type="button" (click)="open(item, 'approve')">Approve</button>
+                    <button ui-button variant="secondary" size="tiny" type="button" (click)="open(item, 'rework')">Rework</button>
+                    <button ui-button variant="secondary" size="tiny" type="button" (click)="open(item, 'reject')">Reject</button>
+                  </div>
+                } @else {
+                  <button ui-button variant="secondary" size="tiny" type="button" (click)="openWorkstream(item)">
+                    <ui-icon name="arrow-right" />
+                    Open workstream
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+          @if (!queue().length) {
+            <tr ui-table-row>
+              <td colspan="9" class="empty">No live requests match these filters.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </ui-table-card>
+</div>
+
+@if (decisionFor(); as item) {
+  <ui-modal-shell
+    [title]="decisionTitle()"
+    [subtitle]="item.kind + ' · ' + item.reference + ' · ' + item.benefit.name"
+    [hasFooterSlot]="true"
+    [class.sheet-closing]="closingDecision()"
+    (closed)="closeDecision()">
+
+    <ui-card title="Request">
+      <dl class="detail-grid">
+        <div><dt>Request Type</dt><dd>{{ item.kind }}</dd></div>
+        <div><dt>Reference</dt><dd>{{ item.reference }}</dd></div>
+        <div><dt>Requested By</dt><dd>{{ item.requestedBy }}</dd></div>
+        <div><dt>Requested On</dt><dd>{{ item.requestedOn }}</dd></div>
+        <div class="span-2"><dt>Reason given</dt><dd>{{ item.detail || '-' }}</dd></div>
+      </dl>
+    </ui-card>
+
+    <ui-card [title]="decisionKind() === 'approve' ? 'Approval note' : 'Reason'">
+      <ui-textarea
+        [(value)]="decisionNote"
+        [placeholder]="decisionKind() === 'approve'
+          ? 'Optional note recorded against the approval'
+          : 'Tell the requester what needs to change'" />
+      @if (decisionKind() === 'approve' && item.kind === 'Baseline Change') {
+        <p class="empty">Approving promotes {{ item.reference }} to the current approved baseline.</p>
+      }
+      @if (decisionKind() === 'rework') {
+        <p class="empty">The request goes back to the requester to amend and resubmit. Nothing is discarded.</p>
+      }
+      @if (decisionKind() === 'reject') {
+        <p class="empty">Rejecting ends the request. The current approved baseline is unchanged.</p>
+      }
+    </ui-card>
+
+    <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeDecision()">Cancel</button>
+    <button
+      ui-modal-footer
+      ui-button
+      variant="primary"
+      size="small"
+      type="button"
+      [disabled]="decisionKind() !== 'approve' && !decisionNote().trim()"
+      (click)="submitDecision()">
+      {{ decisionKind() === 'approve' ? 'Approve' : decisionKind() === 'rework' ? 'Send back' : 'Reject' }}
+    </button>
+  </ui-modal-shell>
+}

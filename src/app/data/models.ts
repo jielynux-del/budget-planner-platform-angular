@@ -163,9 +163,18 @@ export interface AppNotification {
 
 export type BenefitType = 'Financial' | 'Non-Financial';
 
-export type BaselineApprovalStatus = 'Approved' | 'Pending Approval' | 'Rejected';
+/**
+ * 'Changes Requested' is rework: sent back to the requester to amend and
+ * resubmit. Distinct from 'Rejected', which ends the request.
+ */
+export type BaselineApprovalStatus =
+  | 'Approved' | 'Pending Approval' | 'Changes Requested' | 'Rejected';
 
-export type BenefitLifecycleStatus = 'Tracking Active' | 'Closure Pending Approval' | 'Closed';
+export type BenefitLifecycleStatus =
+  | 'Tracking Active'
+  | 'Closure Pending Approval'
+  | 'Closure Changes Requested'
+  | 'Closed';
 
 /** One immutable entry in a benefit's baseline history. Never overwritten. */
 export interface BaselineRecord {
@@ -174,10 +183,14 @@ export interface BaselineRecord {
   effectiveDate: string;
   targetRealisationDate: string;
   requestedBy: string;
+  /** When it was raised — a queue needs an age, not just an outcome date. */
+  requestedOn?: string;
   approvedBy: string;
   approvalDate: string;
   changeReason: string;
   status: BaselineApprovalStatus;
+  /** Why it was rejected or sent back. */
+  decisionNote?: string;
 }
 
 /** One periodic update. Appended, never edited in place. */
@@ -227,6 +240,8 @@ export interface Benefit {
   approvalDate: string;
 
   status: BenefitLifecycleStatus;
+  /** Which approver role a live request is sitting with, if any. */
+  pendingWith?: string;
 
   /** Year-phased financial lines captured at definition (financial benefits). */
   financialRows: BenefitRow[];

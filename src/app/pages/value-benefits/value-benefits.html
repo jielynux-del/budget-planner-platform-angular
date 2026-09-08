@@ -1,3 +1,17 @@
+@if (awaitingMe().length) {
+  <ui-info-banner
+    tone="warning"
+    [title]="awaitingMe().length + ' request' + (awaitingMe().length === 1 ? '' : 's') + ' on this workstream awaiting your approval'"
+    [message]="'Signed in as ' + persona().name + ' · ' + persona().role + '. Review them in Benefit Approvals.'"
+    [dismissible]="false" />
+} @else if (needsRework().length) {
+  <ui-info-banner
+    tone="warning"
+    [title]="needsRework().length + ' request' + (needsRework().length === 1 ? '' : 's') + ' sent back for rework'"
+    [message]="'An approver has asked for changes. Amend the request and resubmit it from the row actions.'"
+    [dismissible]="false" />
+}
+
 <!-- Status summary. Each figure filters the table.
      Stat filter needed because the kit is missing a clickable summary card. -->
 <ui-card>

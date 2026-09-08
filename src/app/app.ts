@@ -48,7 +48,8 @@ export class App {
         { label: 'Build Workstream Listing', route: '/workstreams' },
         { label: 'Build Sub-Workstream Listing' },
         { label: 'Maintain & Operate Listing' },
-        { label: 'Maintain & Operate Forecast' }
+        { label: 'Maintain & Operate Forecast' },
+        { label: 'Benefit Approvals', route: '/approvals' }
       ]
     },
     { icon: 'table', label: 'Driver Based Forecast' },

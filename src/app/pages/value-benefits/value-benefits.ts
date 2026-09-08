@@ -1,6 +1,6 @@
-import { Component, computed, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import {
-  UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem,
+  UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
   UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
@@ -14,6 +14,8 @@ import {
   BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, BENEFIT_OWNERS, FINANCIAL_TYPES
 } from '../../data/lookups';
 import type { Benefit, BenefitRow } from '../../data/models';
+import { benefitsFor } from '../../data/benefitsStore';
+import { currentPersona } from '../../data/personas';
 
 const ALL = 'All';
 
@@ -41,7 +43,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
   imports: [
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
-    UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper,
+    UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
   templateUrl: './value-benefits.html',
@@ -49,9 +51,32 @@ const STATUS_DOT: Record<string, UiPillColor> = {
 })
 export class ValueBenefits {
   readonly seeded = input.required<Benefit[]>({ alias: 'benefits' });
+  readonly workstreamId = input.required<string>();
 
-  /** Local working copy — resets when a different workstream is opened. */
-  protected readonly benefits = linkedSignal(() => this.seeded());
+  /** The session store's list for this workstream, so edits persist. */
+  protected readonly benefits = computed(() => benefitsFor(this.workstreamId())());
+
+  protected readonly persona = currentPersona;
+
+  /**
+   * Requests on this workstream sitting with the signed-in persona. Routing
+   * matches the approvals queue: baseline changes go to Finance, closures to
+   * the Portfolio Approver.
+   */
+  protected readonly awaitingMe = computed(() => {
+    const role = this.persona().role;
+    if (!this.persona().canApprove) return [];
+    return this.benefits().filter((b) =>
+      (b.approvalStatus === 'Pending Approval' &&
+        (b.pendingWith ?? 'Finance Business Partner') === role) ||
+      (b.status === 'Closure Pending Approval' &&
+        (b.pendingWith ?? 'Portfolio Approver') === role));
+  });
+
+  /** Requests on this workstream that were sent back for the requester to amend. */
+  protected readonly needsRework = computed(() =>
+    this.benefits().filter((b) =>
+      b.approvalStatus === 'Changes Requested' || b.status === 'Closure Changes Requested'));
 
   protected readonly all = ALL;
   protected readonly ownerOptions = [ALL, ...BENEFIT_OWNERS];
@@ -303,7 +328,7 @@ export class ValueBenefits {
   private num(v: string) { return Number(String(v).replace(/[^0-9.-]/g, '')) || 0; }
 
   private patch(id: string, fn: (b: Benefit) => Benefit) {
-    this.benefits.update((rows) => rows.map((b) => (b.id === id ? fn(b) : b)));
+    benefitsFor(this.workstreamId()).update((rows) => rows.map((b) => (b.id === id ? fn(b) : b)));
   }
 
   /** Reporting update — appends to history, never overwrites. */
@@ -346,6 +371,7 @@ export class ValueBenefits {
     this.patch(b.id, (cur) => ({
       ...cur,
       status: 'Closure Pending Approval',
+      pendingWith: 'Portfolio Approver',
       auditLog: [...cur.auditLog, {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
         action: 'Closure Submitted',
@@ -378,12 +404,14 @@ export class ValueBenefits {
         baselineValue: proposed,
         effectiveDate: this.formEffective(),
         targetRealisationDate: this.formTarget(),
-        requestedBy: CURRENT_USER,
+        requestedBy: this.persona().name,
+        requestedOn: this.today(),
         approvedBy: '-',
         approvalDate: '-',
         changeReason: this.formReason().trim(),
         status: 'Pending Approval'
       }],
+      pendingWith: 'Finance Business Partner',
       auditLog: [...cur.auditLog, {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
         action: 'Baseline Change Requested',
@@ -542,7 +570,7 @@ export class ValueBenefits {
       }]
     };
 
-    this.benefits.update((rows) => [...rows, benefit]);
+    benefitsFor(this.workstreamId()).update((rows) => [...rows, benefit]);
     this.closeCreate();
   }
 

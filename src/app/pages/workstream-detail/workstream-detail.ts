@@ -8,7 +8,7 @@ import {
 } from 'ai-dls-kit';
 import { workstreamById } from '../../data/workstreams';
 import { hierarchy } from '../../data/tree';
-import { defaultBenefits } from '../../data/benefitsData';
+import { benefitsFor } from '../../data/benefitsStore';
 import { ValueBenefits } from '../value-benefits/value-benefits';
 import type { NodeStatus } from '../../data/models';
 
@@ -74,10 +74,10 @@ export class WorkstreamDetail {
     return NAV_STATUS[status];
   }
 
-  /** Seeded per workstream, mirroring the React prototype's session store. */
+  /** From the session store, so edits survive navigation. */
   protected readonly benefits = computed(() => {
     const w = this.ws();
-    return w ? defaultBenefits(w) : [];
+    return w ? benefitsFor(w.id)() : [];
   });
 
   protected readonly financialYears = [2024, 2025, 2026, 2027];

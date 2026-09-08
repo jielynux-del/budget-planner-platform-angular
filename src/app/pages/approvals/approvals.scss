@@ -1,0 +1,60 @@
+@use 'ai-dls-kit/tokens/layout' as layout;
+@use 'ai-dls-kit/tokens/type' as type;
+
+:host { display: block; }
+
+.page {
+  @include layout.content-padding;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.page > * { min-width: 0; }
+.page-title { @include type.heading(sm); color: var(--color-text-strong); margin: 0; }
+
+.summary { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 4px; }
+.stat {
+  width: 220px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+}
+.stat-count { @include type.heading(md); color: var(--color-text-strong); }
+.stat-label { @include type.label(sm); color: var(--color-text-subtle); display: flex; align-items: center; gap: 7px; }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.dot--amber { background: var(--color-warning-strong); }
+.dot--purple { background: var(--color-tag-purple); }
+.dot--blue { background: var(--color-primary); }
+
+.scroll { overflow-x: auto; }
+.queue { min-width: 1500px; table-layout: auto; }
+.scroll table th { white-space: nowrap; }
+.scroll ::ng-deep ui-column-header .label { overflow: visible; text-overflow: clip; }
+
+.row-actions { display: flex; gap: 6px; }
+.cell-name { @include type.label(md); color: var(--color-text-strong); }
+.cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
+.empty { @include type.body(sm); color: var(--color-text-subtle); margin: 0; padding: 20px 0; text-align: center; }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 32px;
+  margin: 0;
+
+  .span-2 { grid-column: span 2; }
+  dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
+  dd { @include type.label(md); color: var(--color-text-strong); margin: 0; }
+}
+
+ui-modal-shell ::ng-deep .panel { animation: sheet-up 280ms cubic-bezier(0.16, 0.84, 0.44, 1) both; }
+ui-modal-shell.sheet-closing ::ng-deep .panel { animation: sheet-down 220ms cubic-bezier(0.5, 0, 0.75, 0) both; }
+@keyframes sheet-up { from { transform: translateY(100vh); } to { transform: translateY(0); } }
+@keyframes sheet-down { from { transform: translateY(0); } to { transform: translateY(100vh); } }
+@media (prefers-reduced-motion: reduce) {
+  ui-modal-shell ::ng-deep .panel,
+  ui-modal-shell.sheet-closing ::ng-deep .panel { animation: none; }
+}
