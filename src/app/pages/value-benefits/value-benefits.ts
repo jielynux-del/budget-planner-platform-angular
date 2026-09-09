@@ -1,8 +1,8 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, signal } from '@angular/core';
 import {
   UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
-  UiFilterTabs, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
+  UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
   type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiTagVariant
 } from 'ai-dls-kit';
@@ -44,7 +44,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
   imports: [
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
-    UiFilterTabs, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
+    UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
     Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
@@ -98,9 +98,14 @@ export class ValueBenefits {
   /** A benefit lives on a workstream, so its approvals do too. */
   protected readonly pageTabs = computed<UiFilterTab[]>(() => [
     { key: 'benefits', label: 'Benefits' },
-    { key: 'approvals', label: 'Approvals', count: this.awaitingMe().length || undefined }
+    { key: 'approvals', label: 'Approvals', count: this.outstanding().length || undefined }
   ]);
   protected readonly pageTab = signal('benefits');
+
+  /** Everything on this workstream still waiting on a decision, whoever owns it. */
+  protected readonly outstanding = computed(() =>
+    this.benefits().filter((b) =>
+      b.approvalStatus === 'Pending Approval' || b.status === 'Closure Pending Approval'));
 
   protected readonly filtersOpen = signal(false);
   protected readonly owner = signal(ALL);
@@ -108,11 +113,12 @@ export class ValueBenefits {
   protected readonly realisationFrom = signal('');
   protected readonly realisationTo = signal('');
 
-  protected readonly colName = signal(ALL);
-  protected readonly colType = signal(ALL);
-  protected readonly colOwner = signal(ALL);
-  protected readonly colStatus = signal(ALL);
-  protected readonly colApproval = signal(ALL);
+  /** Column filters are multi-select: empty means no filter on that column. */
+  protected readonly colName = signal<string[]>([]);
+  protected readonly colType = signal<string[]>([]);
+  protected readonly colOwner = signal<string[]>([]);
+  protected readonly colStatus = signal<string[]>([]);
+  protected readonly colApproval = signal<string[]>([]);
 
   /** Summary tile filter — one lifecycle status, or the "all" sentinel. */
   protected readonly statusTile = signal(ALL);
@@ -151,7 +157,10 @@ export class ValueBenefits {
 
   protected closeMenu() { this.openMenuId.set(null); }
 
-  protected readonly nameOptions = computed(() => [ALL, ...this.benefits().map((b) => b.name)]);
+  protected readonly nameOptions = computed(() => this.benefits().map((b) => b.name));
+  protected readonly typeChoices = ['Financial', 'Non-Financial'];
+  protected readonly statusChoices = [...BENEFIT_STATUSES];
+  protected readonly approvalChoices = ['Approved', 'Pending Approval', 'Changes Requested', 'Rejected'];
 
   protected readonly filtered = computed<Benefit[]>(() =>
     this.benefits().filter((b) =>
@@ -160,11 +169,11 @@ export class ValueBenefits {
       (this.statusTile() === ALL || b.status === this.statusTile()) &&
       (!this.realisationFrom() || b.targetRealisationDate >= this.realisationFrom()) &&
       (!this.realisationTo() || b.targetRealisationDate <= this.realisationTo()) &&
-      (this.colName() === ALL || b.name === this.colName()) &&
-      (this.colType() === ALL || b.type === this.colType()) &&
-      (this.colOwner() === ALL || b.owner === this.colOwner()) &&
-      (this.colStatus() === ALL || b.status === this.colStatus()) &&
-      (this.colApproval() === ALL || b.approvalStatus === this.colApproval())
+      (!this.colName().length || this.colName().includes(b.name)) &&
+      (!this.colType().length || this.colType().includes(b.type)) &&
+      (!this.colOwner().length || this.colOwner().includes(b.owner)) &&
+      (!this.colStatus().length || this.colStatus().includes(b.status)) &&
+      (!this.colApproval().length || this.colApproval().includes(b.approvalStatus))
     )
   );
 
@@ -186,6 +195,38 @@ export class ValueBenefits {
   protected readonly activeFilterCount = computed(() =>
     [this.owner() !== ALL, this.status() !== ALL, !!this.realisationFrom(), !!this.realisationTo()]
       .filter(Boolean).length);
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+
+  /**
+   * ui-popover places its panel once, on open, as position: fixed. Scrolling
+   * the page therefore leaves it behind. Re-anchor it to the trigger for as
+   * long as it is open.
+   */
+  private readonly anchorPopover = () => {
+    if (!this.filtersOpen()) return;
+    const root = this.host.nativeElement as HTMLElement;
+    const panel = root.querySelector<HTMLElement>('ui-popover .ui-popover-panel');
+    const trigger = root.querySelector<HTMLElement>('ui-popover button');
+    if (!panel || !trigger) return;
+    const t = trigger.getBoundingClientRect();
+    const flipUp = t.bottom + 8 + panel.offsetHeight > window.innerHeight;
+    panel.style.top = `${flipUp ? t.top - 8 - panel.offsetHeight : t.bottom + 8}px`;
+    panel.style.left = `${t.right - panel.offsetWidth}px`;
+  };
+
+  constructor() {
+    effect((onCleanup) => {
+      if (!this.filtersOpen()) return;
+      // Capture phase, so an inner scroller counts as well as the window.
+      addEventListener('scroll', this.anchorPopover, true);
+      addEventListener('resize', this.anchorPopover);
+      onCleanup(() => {
+        removeEventListener('scroll', this.anchorPopover, true);
+        removeEventListener('resize', this.anchorPopover);
+      });
+    });
+  }
 
   protected latest(b: Benefit) { return latestUpdate(b); }
 
@@ -462,6 +503,9 @@ export class ValueBenefits {
   protected readonly draftEffective = signal('');
   protected readonly draftTarget = signal('');
   protected readonly draftLines = signal<BenefitRow[]>([]);
+  /** The opening baseline, prefilled from the financial lines but editable. */
+  protected readonly draftBaselineValue = signal('');
+  protected readonly draftBaselineReason = signal('');
 
   protected readonly financialTypes = FINANCIAL_TYPES as unknown as string[];
   protected readonly driverOptions = BENEFIT_DRIVERS;
@@ -484,8 +528,11 @@ export class ValueBenefits {
     })) as UiStepperStep[];
   });
 
-  protected readonly draftBaseline = computed(() =>
-    this.draftFinancial() ? financialTotal(this.draftLines()) : null);
+  protected readonly draftBaseline = computed(() => {
+    if (!this.draftFinancial()) return null;
+    const typed = this.draftBaselineValue().trim();
+    return typed ? this.num(typed) : financialTotal(this.draftLines());
+  });
 
   protected readonly step1Valid = computed(() =>
     this.draftName().trim() !== '' && this.draftOwner() !== '' &&
@@ -501,6 +548,8 @@ export class ValueBenefits {
     this.draftEffective.set('');
     this.draftTarget.set('');
     this.draftLines.set([this.blankLine()]);
+    this.draftBaselineValue.set('');
+    this.draftBaselineReason.set('');
     this.createOpen.set(true);
   }
 
@@ -543,7 +592,7 @@ export class ValueBenefits {
   protected createBenefit() {
     const list = this.benefits();
     const financial = this.draftFinancial();
-    const baseline = financial ? financialTotal(this.draftLines()) : null;
+    const baseline = this.draftBaseline();
     const baselineId = nextBaselineId(list);
     const ref = nextBenefitRef(list);
     const today = new Date().toISOString().slice(0, 10);
@@ -574,7 +623,7 @@ export class ValueBenefits {
         requestedBy: CURRENT_USER,
         approvedBy: CURRENT_USER,
         approvalDate: today,
-        changeReason: 'Original approved baseline captured at benefit creation',
+        changeReason: this.draftBaselineReason().trim() || 'Original approved baseline captured at benefit creation',
         status: 'Approved'
       }],
       reportingHistory: [],

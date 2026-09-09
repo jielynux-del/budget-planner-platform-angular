@@ -87,25 +87,25 @@
         <thead>
           <tr>
             <th style="min-width: 230px">
-              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [first]="true" [filtered]="colName() !== all">
-                <ui-select [options]="nameOptions()" [(value)]="colName" [emptyValue]="all" [searchable]="true" />
+              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [first]="true" [filtered]="!!colName().length">
+                <ui-multi-select class="col-filter" [items]="nameOptions()" [(selected)]="colName" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th>
-              <ui-column-header label="Benefit Type" size="sm" [sortable]="true" [filtered]="colType() !== all">
-                <ui-select [options]="typeOptions" [(value)]="colType" [emptyValue]="all" />
+              <ui-column-header label="Benefit Type" size="sm" [sortable]="true" [filtered]="!!colType().length">
+                <ui-multi-select class="col-filter" [items]="typeChoices" [(selected)]="colType" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th>
-              <ui-column-header label="Benefit Owner" size="sm" [sortable]="true" [filtered]="colOwner() !== all">
-                <ui-select [options]="ownerOptions" [(value)]="colOwner" [emptyValue]="all" [searchable]="true" />
+              <ui-column-header label="Benefit Owner" size="sm" [sortable]="true" [filtered]="!!colOwner().length">
+                <ui-multi-select class="col-filter" [items]="ownerChoices" [(selected)]="colOwner" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
             <th style="min-width: 260px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
             <th>
-              <ui-column-header label="Benefit Status" size="sm" [sortable]="true" [filtered]="colStatus() !== all">
-                <ui-select [options]="statusOptions" [(value)]="colStatus" [emptyValue]="all" />
+              <ui-column-header label="Benefit Status" size="sm" [sortable]="true" [filtered]="!!colStatus().length">
+                <ui-multi-select class="col-filter" [items]="statusChoices" [(selected)]="colStatus" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
@@ -167,8 +167,8 @@
           <tr>
             <th><ui-column-header label="Baseline ID" size="sm" [sortable]="true" [first]="true" /></th>
             <th style="min-width: 230px">
-              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [filtered]="colName() !== all">
-                <ui-select [options]="nameOptions()" [(value)]="colName" [emptyValue]="all" [searchable]="true" />
+              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [filtered]="!!colName().length">
+                <ui-multi-select class="col-filter" [items]="nameOptions()" [(selected)]="colName" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th><ui-column-header label="Original Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
@@ -176,8 +176,8 @@
             <th><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
             <th><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
             <th>
-              <ui-column-header label="Approval Status" size="sm" [sortable]="true" [filtered]="colApproval() !== all">
-                <ui-select [options]="approvalOptions" [(value)]="colApproval" [emptyValue]="all" />
+              <ui-column-header label="Approval Status" size="sm" [sortable]="true" [filtered]="!!colApproval().length">
+                <ui-multi-select class="col-filter" [items]="approvalChoices" [(selected)]="colApproval" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th><ui-column-header label="Approved By" size="sm" [sortable]="true" /></th>
@@ -475,9 +475,19 @@
           <div><dt>Benefit Type</dt><dd>Financial</dd></div>
           <div><dt>Effective Date</dt><dd>{{ draftEffective() || '-' }}</dd></div>
           <div><dt>Target Realisation Date</dt><dd>{{ draftTarget() || '-' }}</dd></div>
-          <div><dt>Original Approved Baseline</dt><dd>{{ money(draftBaseline()) }}</dd></div>
           <div><dt>Baseline ID</dt><dd>Assigned on creation</dd></div>
         </dl>
+
+        <div class="create-grid baseline-block">
+          <div class="filter-field">
+            <span class="filter-label">Original Approved Baseline (S$)</span>
+            <ui-text-input [(value)]="draftBaselineValue" placeholder="0" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Baseline Change Reason</span>
+            <ui-text-input [(value)]="draftBaselineReason" placeholder="Original approved business case baseline" />
+          </div>
+        </div>
         <p class="empty">
           On creation this benefit is baselined and appears in both Benefits Tracking and
           Baseline Management.

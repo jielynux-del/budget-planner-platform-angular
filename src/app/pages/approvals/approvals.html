@@ -11,11 +11,6 @@
       tone="warning"
       [title]="myRework().length + ' item' + (myRework().length === 1 ? '' : 's') + ' sent back to you for rework'"
       [dismissible]="false" />
-  } @else {
-    <ui-info-banner
-      tone="info"
-      title="Nothing is waiting on you"
-      [dismissible]="false" />
   }
 
   <ui-card>

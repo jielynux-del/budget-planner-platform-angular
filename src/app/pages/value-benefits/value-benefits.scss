@@ -141,10 +141,10 @@
 ui-modal-shell ::ng-deep .panel {
   animation: sheet-up 280ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
 }
+// The exact reverse of the opening move — same curve, same duration.
 ui-modal-shell.sheet-closing ::ng-deep .panel {
-  animation: sheet-down 220ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  animation: sheet-down 280ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
 }
-ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms both; }
 
 @keyframes sheet-up {
   from { transform: translateY(100vh); }
@@ -154,11 +154,6 @@ ui-modal-shell.sheet-closing ::ng-deep .overlay { animation: scrim-out 220ms bot
   from { transform: translateY(0); }
   to   { transform: translateY(100vh); }
 }
-@keyframes scrim-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   ui-modal-shell ::ng-deep .panel,
   ui-modal-shell.sheet-closing ::ng-deep .panel,
@@ -202,3 +197,12 @@ ui-modal-shell ::ng-deep table[ui-table] td:not(:last-child) {
 // A figure must never wrap mid-number.
 ui-modal-shell ::ng-deep table[ui-table] .ui-cell-number,
 ui-modal-shell ::ng-deep table[ui-table] th { white-space: nowrap; }
+
+/* The kit rules its panel titles at heading(sm); these read better a step down. */
+ui-table-header ::ng-deep .title { @include type.heading(xs); }
+
+/* A column filter keeps one width whatever is selected — display="count" shows
+   "All" or "2 selected", never the values themselves. */
+.col-filter { width: 132px; }
+
+.baseline-block { margin-top: 16px; }

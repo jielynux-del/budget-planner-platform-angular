@@ -8,6 +8,28 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-09 — Column filters are multi-select; the filter popover follows its trigger
+
+**Decision.** Every column filter is a `ui-multi-select` with `display="count"` at a fixed
+132px, and the page filter popover re-anchors to its trigger while the page scrolls.
+
+**Why.** A column filter that only takes one value cannot answer "show me Tracking Active *and*
+Closure Pending Approval". `display="count"` also keeps the trigger one width whatever is
+selected — a trigger that grows as you pick values shifts the whole header row.
+
+`ui-popover` places its panel once, on open, as `position: fixed`, so scrolling left it behind
+on screen. A scroll and resize listener re-anchors it 8px below the trigger, right-aligned, for
+as long as it is open. **Kit gap:** the popover has no reposition-on-scroll behaviour.
+
+**Also in this round.** The opening baseline is now set in step 3 of Add New Benefit — value and
+change reason — rather than being derived silently from the financial lines. The closing sheet
+animation is the exact reverse of the opening one (same curve, same duration, no scrim fade), so
+it reads as a slide rather than a fade. The Approvals tab carries a count of everything still
+awaiting a decision on that workstream, and the "nothing is waiting on you" banner is gone —
+an empty state does not need announcing.
+
+---
+
 ## 2026-09-08 — Public Sans is loaded by the app, not the kit
 
 **Decision.** `src/index.html` loads Public Sans from Google Fonts.
@@ -135,6 +157,8 @@ Every override, so none of them look like accidents:
 | `z-index: 3` on a sticky cell holding an open menu | frozen cells stack in DOM order, so a later row painted over an earlier row's open menu |
 | `min-height` on the page table's scroller | `overflow-x: auto` also clips vertically, so a short table cut off an open column filter |
 | Vertical dividers + outer border on overlay tables | `table[ui-table]` already paints its own row rule; a full cell border doubled the horizontal ones |
+| `ui-table-header` title dropped to `heading(xs)` | the kit rules panel titles at `heading(sm)`; at this density that reads too large against the compact table beneath it (owner's call) |
+| Filter popover re-anchored on scroll | `ui-popover` positions once on open and does not follow its trigger |
 | Clickable summary figures carrying `boundary-allow` | `ui-summary-card` is display-only, and figures that filter are a standard blotter pattern |
 
 ---
