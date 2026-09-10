@@ -8,6 +8,23 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-10 — A baseline value belongs to any benefit, and row menus flip
+
+**Decision.** The proposed baseline is editable on every Request Baseline Change, whatever the
+benefit's type, and a baseline value now displays wherever one exists rather than only on
+financial benefits. A benefit with no baseline reads "Not set", not "Not applicable".
+
+**Why.** A non-financial benefit can acquire a measurable baseline later — "faster onboarding"
+becomes "median onboarding time under 4 days" once someone agrees the measure. Gating the field
+on `type` made that unreachable. The model already stored `number | null`, so nothing changed
+underneath; only the gate did.
+
+**Also.** Row action menus flip upward when the row sits within 120px of the scroller's bottom.
+`ui-table-card` clips its overflow, so a downward menu on one of the last rows was rendered but
+invisible — which reads as a dead button, and was reported as one.
+
+---
+
 ## 2026-09-09 — Column filters are multi-select; the filter popover follows its trigger
 
 **Decision.** Every column filter is a `ui-multi-select` with `display="count"` at a fixed

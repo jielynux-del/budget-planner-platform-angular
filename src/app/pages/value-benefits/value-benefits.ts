@@ -149,10 +149,24 @@ export class ValueBenefits {
    * held in one signal — only ever one.
    */
   protected readonly openMenuId = signal<string | null>(null);
+  /** The row menu opens upward when the row sits too near the bottom to show it. */
+  protected readonly menuUp = signal(false);
 
   protected toggleMenu(id: string, event: Event) {
     event.stopPropagation();
-    this.openMenuId.set(this.openMenuId() === id ? null : id);
+    if (this.openMenuId() === id) {
+      this.openMenuId.set(null);
+      return;
+    }
+    // ui-table-card clips its overflow, so a downward menu on one of the last
+    // rows is rendered but invisible — which reads as a dead button.
+    const trigger = event.currentTarget as HTMLElement;
+    const scroller = trigger.closest('.vb-scroll');
+    const room = scroller
+      ? scroller.getBoundingClientRect().bottom - trigger.getBoundingClientRect().bottom
+      : Number.POSITIVE_INFINITY;
+    this.menuUp.set(room < 120);
+    this.openMenuId.set(id);
   }
 
   protected closeMenu() { this.openMenuId.set(null); }
@@ -450,7 +464,9 @@ export class ValueBenefits {
     const b = this.actionBenefit();
     if (!b) return;
     const id = nextBaselineId(this.benefits());
-    const proposed = b.type === 'Financial' ? this.num(this.formProposed()) : null;
+    // A proposed baseline is accepted for any benefit — a non-financial one can
+    // acquire a measurable baseline later. Blank means it stays unset.
+    const proposed = this.formProposed().trim() ? this.num(this.formProposed()) : null;
     this.patch(b.id, (cur) => ({
       ...cur,
       baselineId: id,

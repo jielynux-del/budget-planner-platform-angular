@@ -111,6 +111,7 @@
   gap: 2px;
 }
 .row-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 40; }
+.row-menu--up { top: auto; bottom: calc(100% + 4px); }
 
 .cell-name { @include type.label(sm); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }

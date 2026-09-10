@@ -123,7 +123,7 @@
               </td>
               <td>{{ b.type }}</td>
               <td>{{ b.owner }}</td>
-              <td class="ui-cell-number">{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : '-' }}</td>
+              <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
               <td>
                 @if (latest(b); as u) {
                   @if (b.type === 'Financial') {
@@ -149,7 +149,7 @@
                     <ui-icon name="more-vertical" />
                   </button>
                   @if (openMenuId() === b.id) {
-                    <ui-dropdown-menu class="row-menu" role="menu">
+                    <ui-dropdown-menu class="row-menu" [class.row-menu--up]="menuUp()" role="menu">
                       @for (a of rowActions; track a.key) {
                         <button ui-dropdown-item type="button" (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
                       }
@@ -193,8 +193,8 @@
                 <div class="cell-name">{{ b.name }}</div>
                 <div class="cell-meta">{{ b.benefitRef }} · {{ b.type }}</div>
               </td>
-              <td class="ui-cell-number">{{ b.type === 'Financial' ? money(b.originalApprovedBaseline) : '-' }}</td>
-              <td class="ui-cell-number">{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : '-' }}</td>
+              <td class="ui-cell-number">{{ money(b.originalApprovedBaseline) }}</td>
+              <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
               <td>{{ b.effectiveDate }}</td>
               <td>{{ b.targetRealisationDate }}</td>
               <td class="ui-cell-status"><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></td>
@@ -209,7 +209,7 @@
                     <ui-icon name="more-vertical" />
                   </button>
                   @if (openMenuId() === b.id) {
-                    <ui-dropdown-menu class="row-menu" role="menu">
+                    <ui-dropdown-menu class="row-menu" [class.row-menu--up]="menuUp()" role="menu">
                       @for (a of baselineActions; track a.key) {
                         <button ui-dropdown-item type="button" (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
                       }
@@ -246,8 +246,8 @@
       <dl class="detail-grid">
         <div><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
         <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
-        <div><dt>Original Approved Baseline</dt><dd>{{ b.type === 'Financial' ? money(b.originalApprovedBaseline) : 'Not applicable' }}</dd></div>
-        <div><dt>Current Approved Baseline</dt><dd>{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' : 'Not applicable' }}</dd></div>
+        <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? 'Not set' : money(b.originalApprovedBaseline) }}</dd></div>
+        <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' }}</dd></div>
         <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></dd></div>
         <div><dt>Benefit Owner</dt><dd>{{ b.owner }}</dd></div>
         <div><dt>Effective Date</dt><dd>{{ b.effectiveDate }}</dd></div>
@@ -524,8 +524,8 @@
       <dl class="detail-grid">
         <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
         <div><dt>Approval Status</dt><dd><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></dd></div>
-        <div><dt>Baseline Value</dt><dd>{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : 'Not applicable' }}</dd></div>
-        <div><dt>Original Approved Baseline</dt><dd>{{ b.type === 'Financial' ? money(b.originalApprovedBaseline) : 'Not applicable' }}</dd></div>
+        <div><dt>Baseline Value</dt><dd>{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) }}</dd></div>
+        <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? 'Not set' : money(b.originalApprovedBaseline) }}</dd></div>
         <div><dt>Effective Date</dt><dd>{{ b.effectiveDate }}</dd></div>
         <div><dt>Target Realisation Date</dt><dd>{{ b.targetRealisationDate }}</dd></div>
         <div><dt>Approved By</dt><dd>{{ b.approvedBy }}</dd></div>
@@ -677,14 +677,12 @@
         <div class="create-grid">
           <div class="filter-field">
             <span class="filter-label">Current Baseline</span>
-            <div class="readonly">{{ b.type === 'Financial' ? money(b.currentApprovedBaseline) : 'Not applicable' }}</div>
+            <div class="readonly">{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) }}</div>
           </div>
-          @if (b.type === 'Financial') {
-            <div class="filter-field">
-              <span class="filter-label">Proposed Baseline (S$)</span>
-              <ui-text-input [(value)]="formProposed" />
-            </div>
-          }
+          <div class="filter-field">
+            <span class="filter-label">Proposed Baseline (S$)</span>
+            <ui-text-input [(value)]="formProposed" placeholder="0" />
+          </div>
           <div class="filter-field">
             <span class="filter-label">Effective Date</span>
             <ui-date-input [(value)]="formEffective" />
