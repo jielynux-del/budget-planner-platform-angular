@@ -88,10 +88,13 @@ rule carries a one-line why.
     `<ui-icon name="…" />` — never a pasted `<svg>`, never an icon font,
     never a copied path, including inside a `ui-icon-button` or a
     component's icon slot. Three things follow from that:
-    - **`name` is type-checked** against the kit's 569-name catalogue, so
+    - **`name` is type-checked** against the kit's 570-name catalogue, so
       a name the kit does not have is a compile error rather than a blank
-      square. `components/icon.md` lists every name in the catalogue —
-      search it there instead of guessing.
+      square. `components/icon-names.md` lists every name in the catalogue,
+      alphabetically, with an alias table for the synonyms it does not use
+      (`expand` is `maximize`, `trash` is `delete`) — search it there
+      instead of guessing, because the compile error can tell you a name is
+      invalid but never which name you meant.
     - **Two sizes, 16 (default) and 24**, set with `[size]`. DLS redraws
       a glyph for its box, so these are two drawings, not one scaled.
     - **Colour is never on the glyph.** An icon paints in `currentColor`,
@@ -146,6 +149,16 @@ rule carries a one-line why.
     takes NO hover ring (the design ships a "Checked hover" frame).
     Why: an undocumented deviation is indistinguishable from a bug, and
     the next person to open the design file will "fix" it back.
+
+17. **A table that scrolls horizontally needs `min-width: 0` on the page
+    host that contains it.** Give the `<table>` its `min-width`, put
+    `overflow-x: auto` on its wrapper — and then set `min-width: 0` on the
+    flex or grid ancestors between that wrapper and the page. Why: a flex
+    item and a grid track both default to `min-width: auto`, which is the
+    content's own minimum, so a 1800px table does not scroll inside its
+    wrapper — it makes every ancestor 1800px wide and pushes unrelated
+    cards off the right of the screen. Nothing reports it; the table looks
+    right and the rest of the page is simply gone.
 
 ## How to verify
 

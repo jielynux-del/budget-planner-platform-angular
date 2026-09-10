@@ -7,16 +7,28 @@ services and tests stay as they are; only the UI layer changes.
 
 Before touching any code:
 
-1. Confirm the install. `kit-pack/README.md` has the four steps (tarball,
-   two stylesheets in angular.json, imports, Sass mixins). The kit needs
-   Angular 22 — if this project is older, stop and report the version
-   instead of upgrading it yourself.
-2. Read `kit-pack/KIT.md`, `kit-pack/RULES.md` and `kit-pack/TOKENS.md`.
+1. Confirm the framework and the version BEFORE you install anything. The
+   kit is an Angular 22 library and nothing else — confirm this project is
+   Angular, and that it is on v22. If it is not Angular, or is on an older
+   major, STOP and report what you found; do not install the kit and do
+   not upgrade the project yourself. Check `package.json` for
+   `@angular/core`, not the file layout — a `.tsx` file or a React
+   `package.json` settles it immediately. This guard matters because
+   neither failure is loud: `npm install` of the kit into a React project
+   SUCCEEDS, resolving the peer dependencies by pulling in the entire
+   Angular runtime, and the failure only surfaces at render time, silently
+   — `<ui-icon>` in a `.tsx` file is an unknown HTML tag that renders
+   empty, with a clean build and no console error.
+2. Confirm the install. `kit-pack/README.md` has the four steps (tarball,
+   two stylesheets in angular.json, imports, Sass mixins).
+3. Read `kit-pack/KIT.md`, `kit-pack/RULES.md` and `kit-pack/TOKENS.md`.
    Skim `kit-pack/RECIPES.md` so you know what a finished DLS screen
-   looks like, and `kit-pack/components/icon.md` for the icon catalogue —
-   the kit ships 569 named icons, and converting this project's glyphs
-   onto them is a real part of the job (step 3 of the migration).
-3. Inventory the project and write `MIGRATION.md` at the project root
+   looks like, and `kit-pack/components/icon.md` for the icon component —
+   the kit ships 570 named icons, listed alphabetically (with aliases
+   for the synonyms that miss) in `kit-pack/components/icon-names.md`, and
+   converting this project's glyphs onto them is a real part of the job
+   (step 3 of the migration).
+4. Inventory the project and write `MIGRATION.md` at the project root
    BEFORE changing anything:
    - every screen/route, in the order you propose to migrate it (shared
      shell and layout first, then the most-used screen, then the rest);
@@ -32,7 +44,7 @@ Before touching any code:
      `<i class="icon-…">`), SVG sprites/`<use>` references, `.svg` files
      referenced from `<img>` or CSS `background-image`, and any
      third-party icon component. Match each one by what it DEPICTS
-     against the names in `components/icon.md` and record
+     against the names in `components/icon-names.md` and record
      `old → ui-icon name="…"` plus the size (16 or 24). List separately,
      as "no catalogue match", any glyph you cannot map — a product logo,
      an illustration, a bespoke mark — those stay as assets and are the
@@ -109,4 +121,4 @@ plainly: screens migrated, raw elements remaining (with reasons), glyphs
 converted vs. glyphs still drawn by hand (with reasons), and every "X
 needed because the kit is missing Y".
 
-Start with step 3 of the preparation: the inventory.
+Start with step 4 of the preparation: the inventory.

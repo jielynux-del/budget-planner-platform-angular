@@ -15,6 +15,30 @@ options panel (ported from the shared modal use-case & CC pickers).
 
   <ui-multi-select [items]="useCases" [(selected)]="keys" placeholder="Select use case" />
 
+THIS IS A TOOLBAR CONTROL, NOT A COLUMN FILTER. Put it in the table
+toolbar (`ui-table-header`'s control row) alongside the search field, not
+in a `ui-column-header`'s filter slot. Two measurements say so, and both
+are properties of the component rather than of any one table:
+  - The panel's MINIMUM WIDTH is 320px — this component opens
+    `ui-dropdown-menu` with `[minAnchorWidth]="320"`, DLS's "the trigger's
+    own width or 320, whichever is larger". Table columns are routinely
+    narrower than that, so in a column the panel is wider than the cell
+    that owns it and overhangs its neighbours; in the last column it
+    overhangs the card edge. It is not CLIPPED there any more — the panel
+    became `position: fixed` off the anchor's live rect on 7 Sep 2026
+    (`ui-dropdown-menu`'s own "POSITIONING" note), so `ui-table-card`'s
+    `overflow: clip` no longer cuts it off — but a control that has to
+    overhang to open is still in the wrong place.
+  - The 24px column-filter height does not reach it. The header's filter
+    row sizes its projected control through
+    `ui-column-header .filter .ui-select, ui-column-header .filter
+    .ui-date-input` (styles/ui-tables.css, the "DELIBERATE 24px
+    EXCEPTION" block) — two selectors, neither of them this component. A
+    multi-select in that slot keeps its own 32px trigger and pushes the
+    header band past the 64px anatomy every other column is drawn to.
+Filter a column with `ui-select` or `ui-date-input`; filter the TABLE with
+this, from the toolbar, where it opens at its full width.
+
 ── DLS REPLICA (REGISTER.md §16, audited 2 Sep 2026) ────────
 The panel is now the DLS menu-account chrome: `ui-dropdown-menu` at
 `max(320px, 100%)` wide ("320, or the trigger's width, whichever is

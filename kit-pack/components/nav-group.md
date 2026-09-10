@@ -78,7 +78,8 @@ export type UiNavStatus = 'completed' | 'error' | undefined;
 
 ## Slots
 
-_No content projection slots._
+- Default (unnamed) content projection
+- `select="[uiNavStatus]"`
 
 
 ## Example
@@ -121,11 +122,11 @@ From the kit's kitchen sink:
         <code>check</code> in <code>--color-success-strong</code> or
         <code>triangle-exclamation-filled</code> in <code>--color-text-danger</code> (tokens.css has
         no separate <code>--color-danger-strong</code> role; this is the same hex under its
-        text/icon name). Selected sub-item fill is <code>--color-primary-subtle</code> — our
-        white-label analog of DLS's <code>product_alt-subtle</code>. The footer holds two projected
+        text/icon name). Selected sub-item fill is <code>--color-bg-selected</code>, held on hover — the
+        kit's one selected wash, restored in QC wave 4F (owner, 8 Sep 2026: "All selected color … must be
+        the --color-bg-selected"; the §29 round had moved it to <code>--color-primary-subtle</code>). The
+        footer holds two projected
         <code>[ui-nav-footer-item]</code> rows (Print, Settings) above the panel's own Collapse view
-        control, all three now sharing one 12px-padding / 8px-gap rhythm.
-      </p>
 ```
 
 

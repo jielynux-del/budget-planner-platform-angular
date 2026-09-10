@@ -27,11 +27,16 @@ with a negative `outline-offset`, verified by screenshot in the sink —
 Chromium paints this correctly on `<tr>` without a box-shadow fallback).
 Emits `(activate)` on a real click, Enter or Space.
 
-**`selected`** — `--color-primary-subtle` background. DLS's own hex here
-is `#fff2f2` (`background-product-subtle`, a red-tinted wash); this kit's
-white-label seam token resolves to the platform's own subtle-brand tint
-instead (`--color-primary-subtle`, #e5f1fa in this build) — see
-tokens.css for the seam. Not mutually exclusive with `interactive`.
+**`selected`** — `--color-bg-selected` background (#e2f8ef), on hover
+too. Owner's ruling, 8 Sep 2026: "All selected color especially for table
+rows must be the --color-bg-selected." DLS's own hex here is `#fff2f2`
+(`background-product-subtle`); until QC wave 4F this kit mapped that onto
+its white-label brand seam (`--color-primary-subtle`, #e5f1fa), which is
+the wrong token for a selection — the seam is for brand FILLS, and
+`bg-selected` is the one selected wash the kit uses everywhere else
+(ui-select's chosen option, ui-dropdown's selected item, the nav panel's
+active sub-item, the checked radio-chiclet, the date-picker's range).
+Not mutually exclusive with `interactive`.
 
 **`expanded`** — this row is a PARENT whose children are currently shown;
 sets `aria-expanded="true"` (vs `"false"` when the input is bound but

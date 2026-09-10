@@ -75,7 +75,7 @@ tab; ArrowLeft/ArrowRight/Home/End both MOVE focus and ACTIVATE the tab
 `ui-segmented`'s radiogroup — there is no "browse without committing"
 state to preserve).
 
-**On `UiTab.iconPath`.** That input takes a raw SVG path string, and its comment in the Types section below — "this kit has no icon registry" — predates `ui-icon` and the 569-name catalogue, which the kit now ships. Do not read it as licence to hand-draw a glyph (RULES.md #12): prefer a tab with no icon, or ask for the input to be moved onto an icon name.
+**On `UiTab.iconPath`.** That input takes a raw SVG path string, and its comment in the Types section below — "this kit has no icon registry" — predates `ui-icon` and the 570-name catalogue, which the kit now ships. Do not read it as licence to hand-draw a glyph (RULES.md #12): prefer a tab with no icon, or ask for the input to be moved onto an icon name.
 
 ## API
 

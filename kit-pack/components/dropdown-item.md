@@ -74,7 +74,12 @@ spanning the full row.
 
 ## Slots
 
-_No content projection slots._
+- Default (unnamed) content projection
+- `select="[uiDropdownIcon]"`
+- `select="[uiDropdownAvatar]"`
+- `select="[uiDropdownAvatarSecondary]"`
+- `select="[uiDropdownDescription]"`
+- `select="[uiDropdownTrailing]"`
 
 
 ## Example

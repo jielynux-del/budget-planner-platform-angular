@@ -36,8 +36,10 @@ one list even though the last one is not literally this component.
 
 12px padding all round, 8px gap, a 16px leading icon slot
 (`[uiNavFooterIcon]`) and a label/sm 13/500 `--color-text-strong` — same
-hover/selected wash as an item row (`--color-bg-hover` / selected
-`--color-primary-subtle`).
+hover/selected wash as a sub-item row (`--color-bg-hover` / selected
+`--color-bg-selected`, held on hover — owner's 8 Sep 2026 ruling that
+every kit selection paints `bg-selected`; was `--color-primary-subtle`
+before QC wave 4F).
 
 ## API
 

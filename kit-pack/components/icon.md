@@ -8,6 +8,19 @@
 import { UiIcon } from 'ai-dls-kit';
 ```
 
+## Looking for an icon name?
+
+Every name in the catalogue is listed, plain and alphabetical, in
+[icon-names.md](./icon-names.md) — together with an ALIAS TABLE for the
+synonyms people reach for first (`expand`, `trash`, `dashboard`, `people`
+…) and the catalogue name each one actually maps to.
+
+Search that file rather than guessing: `name` is a closed union, so a wrong
+guess is a compile error that says the name is invalid but cannot suggest the
+near miss. The names also appear as the `UiIconName` union in this page's
+`## Types` section further down — that is the same list in TypeScript form,
+harder to skim.
+
 ## Description
 
 DLS icon — the kit's ONE way to draw a glyph (KIT-FIXES B1, 6 Sep 2026).
@@ -49,7 +62,7 @@ Passing `ariaLabel` flips the SVG to `role="img"` with that name and drops
 the `aria-hidden`, for the rare icon that IS the content.
 
 ── Two tiers, and why a consumer never sees them ─────────────────
-The catalogue is 569 names and heading for 598; a name lookup cannot be
+The catalogue is 570 names and heading for 598; a name lookup cannot be
 tree-shaken, so binding them all in one object literal put every glyph in
 every build (349 KB gzipped at 598, for the ~84 this platform draws). So
 the catalogue is split, and the split line is the FIRST PAINT: 3 names are
@@ -91,10 +104,10 @@ rather than describe one.
 
 The catalogue's NAMES — a type, and nothing but a type.
 
-THIS FILE EMITS NO JAVASCRIPT AT ALL. It is 569 string literals in a union
+THIS FILE EMITS NO JAVASCRIPT AT ALL. It is 570 string literals in a union
 and not one runtime binding, so importing it — however many barrels the
 import travels through — cannot put a byte in anyone's bundle. That is the
-whole reason it is separate from ./catalogue.ts, which holds the same 569
+whole reason it is separate from ./catalogue.ts, which holds the same 570
 names as a real array: the TYPE is needed everywhere,
 the ARRAY is needed by exactly one page.
 
@@ -692,6 +705,7 @@ export type UiIconName =
   | 'upload'
   | 'user'
   | 'user-filled'
+  | 'user-x'
   | 'users'
   | 'warning-circle'
   | 'warning-filled';

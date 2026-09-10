@@ -18,8 +18,10 @@ Before writing any UI:
    complete, working composition. `kit-pack/TYPES.md` has every exported
    interface (row shapes, option shapes) you will bind to.
 6. Read `kit-pack/components/icon.md` before you draw a single glyph. The
-   kit ships the whole icon library — 569 named icons — and that file
-   lists every name. You will need it on almost every screen.
+   kit ships the whole icon library — 570 named icons. That file has the
+   component; `kit-pack/components/icon-names.md` has every name in one
+   alphabetical list, and an alias table for the synonyms the catalogue
+   does not use. You will need both on almost every screen.
 
 While building:
 

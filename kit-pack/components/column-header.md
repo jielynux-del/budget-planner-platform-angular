@@ -126,7 +126,13 @@ the cell.
 
 ## Slots
 
-_No content projection slots._
+- Default (unnamed) content projection — The column FILTER — a `ui-select` or `ui-date-input` projected into the header's second row. This is the filterable-table pattern in [RECIPES.md](../RECIPES.md), not an improvisation. The row collapses to nothing when the slot is empty, so a plain header and a filtered one are the same component and the same markup.
+  - **The control is resized to 24px**, not the canonical 32px — 32 at `size="sm"`. This is a deliberate documented exception, recorded in full in `styles/ui-tables.css` under *"Table-header filter control — DELIBERATE 24px EXCEPTION"*: DLS stacks a label row and a filter row into one cell, and at 32 the header band grows tall enough to cost a visible row of table density. Read that comment before "correcting" the height — it has already been reverted to 32 once by someone applying the canonical-height rule out of context.
+  - That override lives in the global stylesheet rather than in the component's own styles because projected content carries the CONSUMER's encapsulation attribute and is out of the component's reach — so the filter only sizes correctly if `styles/ui-tables.css` is loaded (README.md step 2).
+  - Not rendered for `variant="merged"`.
+  - `ui-multi-select` is NOT a candidate for this slot — see [multi-select.md](./multi-select.md).
+- `select="[header-info]"` — Optional 16px info icon after the label — `<ui-icon header-info name="information-circle" [size]="16" />`. The consumer supplies the icon; the header only positions it.
+- `select="[header-checkbox]"` — The select-all checkbox for `variant="checkbox"` — `<ui-checkbox header-checkbox aria-label="Select all" [checked]="…" [indeterminate]="…" (checkedChange)="…" />`. **Pass the kit control, never a raw `<input type="checkbox">`:** this component is a frame that projects whatever it is handed, so a native input here silently ships an un-reskinnable browser checkbox into a DLS table header. The consumer owns the STATE (`[checked]` / `[indeterminate]` in, `(checkedChange)` out); this component owns only the frame. `ui-checkbox` has no `ariaLabel` input, so a label-less select-all carries a plain `aria-label` attribute on the host element.
 
 
 ## Example

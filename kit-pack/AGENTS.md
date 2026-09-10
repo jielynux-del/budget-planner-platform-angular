@@ -11,6 +11,7 @@ That includes the small ones: a checkbox is `ui-checkbox`, never an
 
 Icons are NAMED, never drawn: `<ui-icon name="download" />`, size 16 or 24,
 colour inherited from the surrounding text. Never paste an SVG, an icon font
-or a copied path. `kit-pack/components/icon.md` lists all 569 names.
+or a copied path. `kit-pack/components/icon-names.md` lists all 570 names,
+plus the aliases for synonyms the catalogue does not use.
 
 Before finishing, run `node kit-pack/lint/lint-boundaries.mjs src`.

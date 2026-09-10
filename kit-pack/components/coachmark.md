@@ -161,7 +161,8 @@ export type UiCoachmarkPlacement =
 
 ## Slots
 
-_No content projection slots._
+- Default (unnamed) content projection
+- `select="[uiCoachmarkImage]"`
 
 
 ## Example

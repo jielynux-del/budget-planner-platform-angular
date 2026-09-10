@@ -40,6 +40,18 @@ the consumer projects — a `ui-search-input`, a `ui-filter-tabs`, or a
 filter group; the right `action` side is `[uiTableActions]` (main, gap
 8) + gap 12 + `[uiTableSubActions]` (icon-buttons, gap 8).
 
+SIZE EVERY CONTROL YOU PROJECT INTO THE LEFT SLOT once there is more than
+one of them. That slot is a flex row, so its children share its width by
+their own content: one unconstrained sibling takes the space and the
+others shrink, and a text input's min-content is a few pixels — a search
+field beside an unsized neighbour has been measured collapsing to 26px,
+the magnifier with no box left around it. Give each projected child an
+explicit `flex` basis (or a width) and the row stops negotiating. A
+`ui-search-input` projected as the DIRECT and only child is the one case
+already handled: it takes DLS's 360px from this component's own
+stylesheet. Wrap it in a `<div>`, or stand another control next to it,
+and that rule no longer applies to what actually competes for the width.
+
 ── Layout auto-detection ───────────────────────────────────────────
 DLS's Default/With-filter-group variants put the title and the actions
 on ONE 64px row (no default-slot content); With-search/With-tabs stack

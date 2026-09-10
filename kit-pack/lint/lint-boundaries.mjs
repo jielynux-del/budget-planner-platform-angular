@@ -7,7 +7,8 @@
  *   2. App styles must not declare raw colors — tokens only.
  *
  * Runs as `npm run lint:boundaries` and via `prebuild`. To grant a
- * deliberate exception add `boundary-allow` in a comment on the same line.
+ * deliberate exception add `boundary-allow` in a comment on the same line, or
+ * — for an element whose attributes wrap — on the line IMMEDIATELY above it.
  */
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
@@ -72,6 +73,34 @@ function stripComments(src) {
   return out;
 }
 
+/**
+ * A line that is NOTHING BUT a comment carrying `boundary-allow`.
+ *
+ * The same-line escape cannot annotate a multi-line element: an Angular
+ * template may not carry a comment inside an opening tag, so a `<button>` whose
+ * five bindings are formatted across six lines has nowhere to put the marker —
+ * the only way to grant it an exception was to collapse it onto one unreadable
+ * line, which is a bad trade the linter should not be extorting. So the marker
+ * is also honoured on the line immediately above the reported one.
+ *
+ * The "immediately above" is doing real work — an allow three lines up must not
+ * cover an unrelated violation — and so is "comment-only". Without it,
+ *
+ *     <button class="x" …>          <!-- boundary-allow: legacy -->
+ *     <select>                      ← would inherit the line above's allow
+ *
+ * would silently exempt the select. Requiring the previous line to OPEN with a
+ * comment (`<!--`, `/​*`, `//`, or a `*` continuation) means only a marker
+ * written deliberately on its own line grants anything.
+ */
+const ALLOW_COMMENT_LINE = /^\s*(?:<!--|\/\*|\/\/|\*)/;
+
+function isAllowed(lines, i) {
+  if (lines[i].includes('boundary-allow')) return true;
+  const prev = i > 0 ? lines[i - 1] : '';
+  return prev.includes('boundary-allow') && ALLOW_COMMENT_LINE.test(prev);
+}
+
 function checkFile(path) {
   const isTemplate = path.endsWith('.html');
   const isStyle = path.endsWith('.scss') || path.endsWith('.css');
@@ -82,7 +111,7 @@ function checkFile(path) {
   const lines = raw.split('\n');
   const codeLines = stripComments(raw).split('\n');
   lines.forEach((line, i) => {
-    if (line.includes('boundary-allow')) return;
+    if (isAllowed(lines, i)) return;
     if (isTemplate || isTs) {
       for (const { re, msg } of RAW_CONTROLS) {
         if (re.test(line)) violations.push(`${path}:${i + 1}  ${msg}`);

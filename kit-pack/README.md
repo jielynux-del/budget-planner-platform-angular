@@ -8,11 +8,14 @@ modal titles 16–20px). This is a house decision, not a shortcut — keep it.
 There is no separate "real" library this kit gets swapped for later. The
 kit IS the product: build with it as-is.
 
-**The icon library comes with it.** 569 named DLS icons ship inside the
+**The icon library comes with it.** 570 named DLS icons ship inside the
 package: you write `<ui-icon name="download" />` and never paste an `<svg>`,
 an icon font or a copied path. Names are type-checked, so a glyph the kit
-does not have is a compile error rather than a blank box, and every name is
-listed in `components/icon.md`.
+does not have is a compile error rather than a blank box. Every name is
+listed, plain and alphabetical, in `components/icon-names.md` — with an
+alias table for the synonyms the catalogue does not use (`expand` is
+`maximize`, `trash` is `delete`), because a closed union can tell you a name
+is wrong but never which name you meant.
 
 ## What's in this zip
 
@@ -28,7 +31,7 @@ ai-dls-kit-pack/
 ├── AGENTS.md                 pointer file — drop into any agent-based tool
 ├── KIT.md                  index of every component
 ├── TOKENS.md               every design token, with its value
-│                           (components/icon.md carries the 569 icon names)
+│                           (components/icon-names.md carries the 570 icon names)
 ├── REGISTER.md             background: how the kit was audited against Figma
 ├── components/*.md         one file per component — API, slots, example
 ├── lint/lint-boundaries.mjs   the two-layer-rule linter

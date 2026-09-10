@@ -10,10 +10,13 @@ section or linked from it — see [TYPES.md](./TYPES.md) for the full,
 alphabetical index.
 
 **Foundations comes first for a reason.** `ui-icon` is the kit's only way
-to draw a glyph — 569 named DLS icons, sizes 16 and 24, colour inherited
+to draw a glyph — 570 named DLS icons, sizes 16 and 24, colour inherited
 from the surrounding text — and it appears inside components from every
 other family. Read [components/icon.md](./components/icon.md) before you
-draw one: an icon is named, never hand-drawn (RULES.md #12).
+draw one: an icon is named, never hand-drawn (RULES.md #12). To look a name
+up, or to find what the kit calls the glyph you have in mind, go straight to
+[components/icon-names.md](./components/icon-names.md) — the full alphabetical
+list plus an alias table for the synonyms the catalogue does not use.
 
 ## Foundations
 

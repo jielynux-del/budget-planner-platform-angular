@@ -35,9 +35,11 @@ that a data-only `options` shape cannot carry.
 an optional 16px leading icon slot and an optional trailing tag slot
 (a `ui-tag-info` fits the DLS trailing `tag-info` outline shape — see
 the sink demo). States: hover `--color-bg-hover`; checked = border
-`--color-primary` + bg `--color-primary-subtle` (DLS's `product_alt`
-checked treatment mapped onto this kit's primary seam, same substitution
-`ui-button`'s "Primary" variant makes); focus 2px inner `--color-focus`
+`--color-primary` (DLS's `product_alt` border mapped onto this kit's
+primary seam, same substitution `ui-button`'s "Primary" variant makes)
++ bg `--color-bg-selected` (the kit's one selected wash — owner, 8 Sep
+2026: "Chiclet and date range both use bg-selected too"; the fill was
+`--color-primary-subtle` before QC wave 4F); focus 2px inner `--color-focus`
 ring; error border `--color-danger` + bg `--color-bg-danger-subtlest`;
 read-only / disabled tones mirror `ui-checkbox`'s.
 

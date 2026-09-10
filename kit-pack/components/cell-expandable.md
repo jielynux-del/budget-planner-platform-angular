@@ -82,12 +82,12 @@ From the kit's kitchen sink:
     </tbody>
   </table>
 
-  <h3 id="sink-table-columns">Column customisation</h3>
-  <p class="hint">The gear opens the <code>Table Columns</code> popover — check/uncheck, or drag the handle to reorder.</p>
-  <div class="row ste-toolbar">
-    <ui-table-columns [(columns)]="columns" class="ste-table-columns" />
-  </div>
-  <table ui-table class="ste-table">
+  <h3 id="sink-select-scroll-cell">Select inside a scrolling table cell</h3>
+  <p class="hint">
+    Kit-fixes defect A (7 Sep 2026): <code>ui-dropdown-menu</code> (the panel
+    behind <code>ui-select</code>, <code>ui-multi-select</code>,
+    <code>ui-kebab-menu</code> and <code>ui-breadcrumb</code>'s overflow menu)
+    used to draw its panel with <code>position: absolute</code>, which measured
 ```
 
 _A glyph in this excerpt reached the sink as an inline `<svg>` and is shown

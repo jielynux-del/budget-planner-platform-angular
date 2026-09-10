@@ -27,8 +27,11 @@ buttons are OUTLINED tiny, which in this kit's vocabulary IS
 Selected/today/range fills sit on `--color-primary` — the white-label
 seam standing in for DLS's `product_alt` red (owner ruling carried from
 §7-§20: "`--color-primary` as the seam for every product_alt use (date-
-picker selection, tabs)"). Range-middle uses the lead-added
-`--color-primary-subtle` / `--color-primary-subtle-hover` pair.
+picker selection, tabs)"). Range-middle is `--color-bg-selected`, held
+on hover (owner, 8 Sep 2026: "Chiclet and date range both use
+bg-selected too" — the kit's one selected wash; it was the
+`--color-primary-subtle` / `-hover` pair before QC wave 4F, and no
+`bg-selected-hover` token exists or is minted).
 
 Text is kit `label(sm)` 13px throughout (the DLS "label/sm 14" DLS-side
 quirk this kit does not inherit — same standing ruling as Breadcrumb §6

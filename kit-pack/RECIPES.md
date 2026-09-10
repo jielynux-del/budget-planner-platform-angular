@@ -120,6 +120,9 @@ export class ExceptionsPage {
   @include layout.content-padding;   // 24px top/bottom, 40px left/right (RULES.md #5)
   padding-top: 0;                    // …except the top: ui-page-header owns the 24px
                                      // gap below its own rule, so keeping it here renders 48
+  min-width: 0;                      // if the table inside carries a min-width for horizontal
+                                     // scroll, this is what keeps it scrolling instead of
+                                     // widening every ancestor (RULES.md #17)
 }
 ```
 
@@ -148,10 +151,11 @@ own content.
 ## Icons anywhere in either recipe
 
 `<ui-icon name="…" />`, always — in an icon button, in a component's icon
-slot, beside a label. `name` is checked against the kit's 569-name catalogue
+slot, beside a label. `name` is checked against the kit's 570-name catalogue
 at compile time, `[size]` is 16 (default) or 24, and the glyph takes the
-colour of the text around it. `components/icon.md` lists every name. Never
-paste an `<svg>` into a template (RULES.md #12).
+colour of the text around it. `components/icon-names.md` lists every name,
+and aliases the synonyms that miss (`expand` is `maximize`). Never paste an
+`<svg>` into a template (RULES.md #12).
 
 A status not in `status-tag.md`'s keyword table resolves to `neutral` — pass `variant` explicitly
 for it. Verify with `node kit-pack/lint/lint-boundaries.mjs src` and `npx ng build`.

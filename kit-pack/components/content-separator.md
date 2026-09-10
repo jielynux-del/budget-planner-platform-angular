@@ -64,7 +64,7 @@ the source library.
 
 ## Slots
 
-_No content projection slots._
+- Default (unnamed) content projection
 
 
 ## Example

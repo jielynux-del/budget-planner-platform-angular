@@ -28,6 +28,7 @@ either inlined in that same doc or reachable from here.
 | `UiDateRange` | (no description) | [components/date-picker.md](./components/date-picker.md) |
 | `UiDonutSegment` | One slice. | [components/donut-chart.md](./components/donut-chart.md) |
 | `UiDrawerFooterLayout` | (no description) | [components/drawer.md](./components/drawer.md) |
+| `UiDropdownMenuAlign` | (no description) | [components/dropdown-menu.md](./components/dropdown-menu.md) |
 | `UiDropdownMenuRole` | (no description) | [components/dropdown-menu.md](./components/dropdown-menu.md) |
 | `UiEmptyStateIllustration` | (no description) | [components/empty-state.md](./components/empty-state.md) |
 | `UiFabTone` | (no description) | [components/fab.md](./components/fab.md) |

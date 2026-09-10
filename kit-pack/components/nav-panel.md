@@ -8,6 +8,40 @@
 import { UiNavPanel } from 'ai-dls-kit';
 ```
 
+## Required shell — read this first
+
+This component does NOT occupy space of its own. Its host is
+`display: contents` and the panel frame inside it is `position: absolute`,
+so the shell you place it in MUST do two things: be the containing block, and
+reserve the panel's width on the sibling that holds the page content.
+
+```html
+<div class="shell">
+  <ui-nav-panel [(expanded)]="navExpanded"> … </ui-nav-panel>
+  <div class="content" [class.content-collapsed]="!navExpanded()"> … </div>
+</div>
+```
+
+```scss
+.shell   { position: relative; }            /* or absolute — the containing block */
+.content { position: absolute; inset: 0 0 0 var(--nav-secondary-w);
+           transition: left var(--dur-med) var(--ease-move); }
+.content-collapsed { left: var(--nav-secondary-w-collapsed); }
+```
+
+**Why this is called out rather than left to the layout.** Omit either half
+and the build is clean, the console is silent, and the page is wrong: with no
+positioned ancestor the panel positions against the viewport, and with no
+width reserved the content column starts at x=0 and the panel paints on top of
+it. Nothing in Angular or CSS reports either case.
+
+`--nav-secondary-w` (240px) and `--nav-secondary-w-collapsed` (40px) are
+the two widths; use the tokens rather than the numbers, and mirror
+`expanded` onto the content column as above so collapsing the panel actually
+reclaims the space. Keep the content column's `transition` duration and
+curve IDENTICAL to the panel's own (`nav-panel.scss`) — the two edges read
+as one edge, and any drift shows as a tearing gap mid-animation.
+
 ## Description
 
 Collapsible secondary-nav CHROME (Figma 993:7046) — the absolutely
@@ -102,7 +136,8 @@ bare 24px chevron strip remains, per DLS's 40px-wide collapsed rail.
 
 ## Slots
 
-_No content projection slots._
+- Default (unnamed) content projection
+- `select="[uiNavPanelFooter]"`
 
 
 ## Example

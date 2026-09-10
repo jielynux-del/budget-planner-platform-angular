@@ -2452,6 +2452,33 @@ build clean; full suite 823/826 with the three misses (F16 h3 role in the header
   Medium size, global / advanced filter panels, lazy loading and the
   long-list customisation modal are recorded above and not built.
 
+**Addendum — `border` and the `.ui-inline-tables` container rule (kit-fixes
+7 Sep → QC wave 4E, 8 Sep 2026).** `table[ui-table]` grew `border` on 7 Sep
+(owner: a table standing on its own must carry its own bordered container —
+1px `--color-border-decorative`, panel radius 8, last row's rule dropped). On
+8 Sep the owner found the Hiring Manager's inbox table bare regardless: (a)
+the frame never PAINTED — under `border-collapse: collapse` the host's own
+border joins the collapsed grid and Chromium drew nothing while the computed
+width read 1px; the framed variant now sets `border-collapse: separate;
+border-spacing: 0` (lead); and (b) "the kit should have a rule for table
+saying any table sitting inside inbox as inline cannot be without boundary."
+So the frame is a CONTAINER rule of the kit, not a caller's memory: an
+ancestor carrying the kit-defined class `.ui-inline-tables` frames every
+chassis table inside it by default (`:host-context(.ui-inline-tables)`,
+the identical declarations as `border` via one Sass mixin `chassis-frame`,
+table.scss), unless the table is a `card` (already a boundary) or says
+`[border]="false"` (explicitly framed by other means — `border` is now
+three-valued: omitted / true / false, host class `ui-table-chassis--no-border`
+for the last). The kit never sniffs app selectors; the app opts in — the
+inbox's `.detail-body` carries the class once, and `ui-table`
+passes `[border]="false"` because its frame sits on its horizontal-scroll
+wrapper and its `collapse` is load-bearing. Sink: `#sink-inline-tables`
+(bare / `card` / `[border]=false`) beside `#sink-table-border`. Specs f80 +
+f95 assert PAINT (`border-collapse: separate`, the 1px `rgb(221,227,231)`
+edge, radius 8, and the first `<th>` sitting ≥1px inside the table's box),
+not computed numbers alone. Legacy `.table`-only tables (`app-trade-mini-
+table`) are outside the rule; they frame their own wrapper today.
+
 ---
 
 ### 41. Tabs (page 305:2714) — audited 4 Sep 2026
