@@ -8,6 +8,32 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-10 — Moved to kit v2, and kept the frozen-edge override
+
+**Decision.** The prototype now builds against `ai-dls-kit` v2 (`.kit-versions/ai-dls-kit-v2.tgz`).
+Trialled on `kit-v2-trial`, verified, then merged to `main`. v1's tarball is kept alongside it so
+the swap is reversible with one `npm install` — see `KIT-VERSIONS.md`.
+
+**Why.** v2 absorbs several things we had worked around, and carries no visual change to any screen
+we had already corrected by hand. Diffing the tarballs: `tokens.css` is byte-identical, so the type
+scale, spacing and colour did not move. `ui-tables.css` grew (15.8KB → 24.4KB), dropping the sticky
+cell's `box-shadow` in favour of a painted `::after` divider, and adding `minAnchorWidth` with
+fixed-positioned, flip-aware dropdown panels — which is what makes a multi-select usable inside a
+column header rather than only in the toolbar. Several of our v1 findings landed as kit rules: new
+RULES #17 (`min-width: 0` for horizontally scrolling tables), an `icon-names.md` with our exact
+alias cases (`expand` → `maximize`, `trash` → `delete`), and a comment on the action cell warning
+never to put `display: flex` on a `<td>` — the bug this app hit live.
+
+**Kept anyway.** Our hand-drawn frozen-column edge stays. v2 ships the divider on
+`.ui-td-sticky--first`; our cells carry `.ui-td-sticky`, so v2's `::after` computes to
+`content: none` and our `::before` is still the only thing drawing that 1px. Removing it would
+remove the edge. Verified in the browser, not assumed.
+
+**Still ours.** v2 declares Public Sans but ships no `@font-face`, so the Google Fonts link in
+`src/index.html` remains load-bearing.
+
+---
+
 ## 2026-09-10 — A baseline value belongs to any benefit, and row menus flip
 
 **Decision.** The proposed baseline is editable on every Request Baseline Change, whatever the
