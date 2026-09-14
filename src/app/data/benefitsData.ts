@@ -55,15 +55,15 @@ export function defaultBenefits(ws: Workstream): Benefit[] {
     {
       id: 'bf-1',
       benefitRef: 'B01',
-      name: 'Manual onboarding effort reduction',
+      name: 'Workflow digitisation and regionalisation saving',
       type: 'Financial',
       categories: ['Cost Efficiency'],
-      description: 'Reduction in manual onboarding effort through straight-through processing of client records.',
-      validationSource: 'PC Code PC-4471 · Onboarding Operations cost centre',
+      description: 'Reduction in manual effort through workflow digitisation across cash, trade, corporate loans and reconciliation.',
+      validationSource: 'PC Code PC-4471 · Digital Process cost centre',
       owners: ['Peter Weng Jian TAN', 'Michelle Widjaya CHONG'],
       baselineId: 'BL0003',
-      originalApprovedBaseline: 6700000,
-      currentApprovedBaseline: 7100000,
+      originalApprovedBaseline: 67000000,
+      currentApprovedBaseline: 71000000,
       startDate: '2026-04-01',
       endDate: '2027-12-31',
       baselineDescription: '',
@@ -75,41 +75,41 @@ export function defaultBenefits(ws: Workstream): Benefit[] {
         {
           id: 'fr-1', benefitRef: 'B01', typeOfFinancial: 'Cost Save',
           driver: 'Manual Effort Reduction', measure: 'S$ Value',
-          values: { 2024: 1200000, 2025: 2400000, 2026: 3500000 },
+          values: { 2024: 12000000, 2025: 24000000, 2026: 35000000 },
           comments: 'Based on 42 FTE released across hubs'
         }
       ],
       baselineHistory: [
-        { baselineId: 'BL0001', baselineValue: 6700000, startDate: '2025-01-01', endDate: '2027-12-31', requestedBy: 'madhurimasengar', approvedBy: 'kelvinlimws', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
-        { baselineId: 'BL0002', baselineValue: 6900000, startDate: '2025-07-01', endDate: '2027-12-31', requestedBy: 'tanhuiling', approvedBy: 'kelvinlimws', approvalDate: '2025-06-22', changeReason: 'Two additional onboarding hubs brought into scope', status: 'Approved' },
-        { baselineId: 'BL0003', baselineValue: 7100000, startDate: '2026-04-01', endDate: '2027-12-31', requestedBy: 'tanhuiling', approvedBy: 'kelvinlimws', approvalDate: '2026-03-24', changeReason: 'FTE rate card refreshed following annual salary review', status: 'Approved' }
+        { baselineId: 'BL0001', baselineValue: 67000000, startDate: '2025-01-01', endDate: '2027-12-31', requestedBy: 'madhurimasengar', approvedBy: 'kelvinlimws', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
+        { baselineId: 'BL0002', baselineValue: 69000000, startDate: '2025-07-01', endDate: '2027-12-31', requestedBy: 'tanhuiling', approvedBy: 'kelvinlimws', approvalDate: '2025-06-22', changeReason: 'Two additional onboarding hubs brought into scope', status: 'Approved' },
+        { baselineId: 'BL0003', baselineValue: 71000000, startDate: '2026-04-01', endDate: '2027-12-31', requestedBy: 'tanhuiling', approvedBy: 'kelvinlimws', approvalDate: '2026-03-24', changeReason: 'FTE rate card refreshed following annual salary review', status: 'Approved' }
       ],
       reportingHistory: [
-        { id: 'ru-1', updateDate: '2025-07-14', actualValue: 2900000, progressUpdate: '', variancePct: -13.4, varianceExplanation: 'Realisation behind plan in the first half.', rootCause: 'Straight-through processing release slipped by six weeks.', correctiveAction: 'Release re-planned into H2; hypercare shortened to two weeks.', updatedBy: 'tanhuiling', evidence: 'H1-FY25_benefit_evidence.xlsx' },
-        { id: 'ru-2', updateDate: '2026-01-19', actualValue: 6400000, progressUpdate: '', variancePct: -7.2, varianceExplanation: 'Gap narrowed after the delayed release went live.', rootCause: 'Residual manual handling in two smaller markets.', correctiveAction: 'Market roll-out sequencing agreed with operations leads.', updatedBy: 'tanhuiling', evidence: 'H2-FY25_benefit_evidence.xlsx' },
-        { id: 'ru-3', updateDate: '2026-07-11', actualValue: 7350000, progressUpdate: '', variancePct: 3.5, varianceExplanation: 'Ahead of the revised baseline.', rootCause: 'Adoption in Indonesia exceeded the planned ramp.', correctiveAction: 'None required — monitoring continues.', updatedBy: 'priyankanair', evidence: 'H1-FY26_benefit_evidence.xlsx' }
+        { id: 'ru-1', updateDate: '2025-07-14', actualValue: 29000000, progressUpdate: '', variancePct: -13.4, varianceExplanation: 'Realisation behind plan in the first half.', rootCause: 'Straight-through processing release slipped by six weeks.', correctiveAction: 'Release re-planned into H2; hypercare shortened to two weeks.', updatedBy: 'tanhuiling', evidence: 'H1-FY25_benefit_evidence.xlsx' },
+        { id: 'ru-2', updateDate: '2026-01-19', actualValue: 64000000, progressUpdate: '', variancePct: -7.2, varianceExplanation: 'Gap narrowed after the delayed release went live.', rootCause: 'Residual manual handling in two smaller markets.', correctiveAction: 'Market roll-out sequencing agreed with operations leads.', updatedBy: 'tanhuiling', evidence: 'H2-FY25_benefit_evidence.xlsx' },
+        { id: 'ru-3', updateDate: '2026-07-11', actualValue: 73500000, progressUpdate: '', variancePct: 3.5, varianceExplanation: 'Ahead of the revised baseline.', rootCause: 'Adoption in Indonesia exceeded the planned ramp.', correctiveAction: 'None required — monitoring continues.', updatedBy: 'priyankanair', evidence: 'H1-FY26_benefit_evidence.xlsx' }
       ],
       auditLog: [
         { id: 'ba-1', date: '2024-12-18', user: 'madhurimasengar', action: 'Baseline Created', comments: 'BL0001 created with the approved business case.' },
         { id: 'ba-2', date: '2025-06-22', user: 'kelvinlimws', action: 'Baseline Change Approved', comments: 'BL0002 approved — scope extension to two hubs.' },
-        { id: 'ba-3', date: '2025-07-14', user: 'tanhuiling', action: 'Benefit Updated', comments: 'Actuals reported — S$2,900,000.' },
-        { id: 'ba-4', date: '2026-01-19', user: 'tanhuiling', action: 'Benefit Updated', comments: 'Actuals reported — S$6,400,000.' },
+        { id: 'ba-3', date: '2025-07-14', user: 'tanhuiling', action: 'Benefit Updated', comments: 'Actuals reported — S$29,000,000.' },
+        { id: 'ba-4', date: '2026-01-19', user: 'tanhuiling', action: 'Benefit Updated', comments: 'Actuals reported — S$64,000,000.' },
         { id: 'ba-5', date: '2026-03-24', user: 'kelvinlimws', action: 'Baseline Change Approved', comments: 'BL0003 approved — rate card refresh.' },
-        { id: 'ba-6', date: '2026-07-11', user: 'priyankanair', action: 'Benefit Updated', comments: 'Actuals reported — S$7,350,000.' }
+        { id: 'ba-6', date: '2026-07-11', user: 'priyankanair', action: 'Benefit Updated', comments: 'Actuals reported — S$73,500,000.' }
       ]
     },
     {
       id: 'bf-2',
       benefitRef: 'B02',
-      name: 'Digital adoption revenue uplift',
+      name: 'Cross-border payment revenue uplift',
       type: 'Financial',
       categories: ['Revenue Growth'],
-      description: 'Incremental revenue from funded accounts opened through digital journeys.',
-      validationSource: 'GL Account 41020 — Digital Channels fee income',
+      description: 'Incremental revenue from the enterprise payments hub and expanded cross-border corridors.',
+      validationSource: 'GL Account 41020 — Cross-border payment fee income',
       owners: ['Peter Weng Jian TAN', 'Michelle Widjaya CHONG'],
       baselineId: 'BL0005',
-      originalApprovedBaseline: 3180000,
-      currentApprovedBaseline: 3180000,
+      originalApprovedBaseline: 31800000,
+      currentApprovedBaseline: 31800000,
       startDate: '2026-10-01',
       endDate: '2028-06-30',
       baselineDescription: '',
@@ -121,32 +121,32 @@ export function defaultBenefits(ws: Workstream): Benefit[] {
         {
           id: 'fr-2', benefitRef: 'B02', typeOfFinancial: 'Revenue Uplift',
           driver: 'Digital Adoption', measure: 'S$ Value',
-          values: { 2024: 450000, 2025: 980000, 2026: 1750000 },
+          values: { 2024: 4500000, 2025: 9800000, 2026: 17500000 },
           comments: 'Incremental funded accounts'
         }
       ],
       baselineHistory: [
-        { baselineId: 'BL0004', baselineValue: 3180000, startDate: '2025-01-01', endDate: '2028-06-30', requestedBy: 'madhurimasengar', approvedBy: 'kelvinlimws', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
-        { baselineId: 'BL0005', baselineValue: 2740000, startDate: '2026-10-01', endDate: '2028-06-30', requestedBy: 'arjunmehta', approvedBy: '-', approvalDate: '-', changeReason: 'Funded-account conversion running below the business case assumption', status: 'Pending Approval' }
+        { baselineId: 'BL0004', baselineValue: 31800000, startDate: '2025-01-01', endDate: '2028-06-30', requestedBy: 'madhurimasengar', approvedBy: 'kelvinlimws', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
+        { baselineId: 'BL0005', baselineValue: 27400000, startDate: '2026-10-01', endDate: '2028-06-30', requestedBy: 'arjunmehta', approvedBy: '-', approvalDate: '-', changeReason: 'Funded-account conversion running below the business case assumption', status: 'Pending Approval' }
       ],
       reportingHistory: [
-        { id: 'ru-4', updateDate: '2026-01-22', actualValue: 1290000, progressUpdate: '', variancePct: -59.4, varianceExplanation: 'Uplift materially behind baseline.', rootCause: 'Campaign spend deferred to the following financial year.', correctiveAction: 'Marketing plan re-phased; baseline change requested.', updatedBy: 'arjunmehta', evidence: 'H2-FY25_revenue_uplift.pdf' },
-        { id: 'ru-5', updateDate: '2026-07-09', actualValue: 2410000, progressUpdate: '', variancePct: -24.2, varianceExplanation: 'Improving but still short of the approved baseline.', rootCause: 'Conversion rate on digital journeys below assumption.', correctiveAction: 'Baseline change BL0005 raised and pending approval.', updatedBy: 'arjunmehta', evidence: 'H1-FY26_revenue_uplift.pdf' }
+        { id: 'ru-4', updateDate: '2026-01-22', actualValue: 12900000, progressUpdate: '', variancePct: -59.4, varianceExplanation: 'Uplift materially behind baseline.', rootCause: 'Campaign spend deferred to the following financial year.', correctiveAction: 'Marketing plan re-phased; baseline change requested.', updatedBy: 'arjunmehta', evidence: 'H2-FY25_revenue_uplift.pdf' },
+        { id: 'ru-5', updateDate: '2026-07-09', actualValue: 24100000, progressUpdate: '', variancePct: -24.2, varianceExplanation: 'Improving but still short of the approved baseline.', rootCause: 'Conversion rate on digital journeys below assumption.', correctiveAction: 'Baseline change BL0005 raised and pending approval.', updatedBy: 'arjunmehta', evidence: 'H1-FY26_revenue_uplift.pdf' }
       ],
       auditLog: [
         { id: 'ba-7', date: '2024-12-18', user: 'madhurimasengar', action: 'Baseline Created', comments: 'BL0004 created with the approved business case.' },
-        { id: 'ba-8', date: '2026-01-22', user: 'arjunmehta', action: 'Benefit Updated', comments: 'Actuals reported — S$1,290,000.' },
-        { id: 'ba-9', date: '2026-07-09', user: 'arjunmehta', action: 'Benefit Updated', comments: 'Actuals reported — S$2,410,000.' },
+        { id: 'ba-8', date: '2026-01-22', user: 'arjunmehta', action: 'Benefit Updated', comments: 'Actuals reported — S$12,900,000.' },
+        { id: 'ba-9', date: '2026-07-09', user: 'arjunmehta', action: 'Benefit Updated', comments: 'Actuals reported — S$24,100,000.' },
         { id: 'ba-10', date: '2026-08-02', user: 'arjunmehta', action: 'Baseline Change Requested', comments: 'BL0005 submitted for approval — conversion assumption revised.' }
       ]
     },
     {
       id: 'bf-3',
       benefitRef: 'B03',
-      name: 'Faster client onboarding experience',
+      name: 'Faster client onboarding and stronger controls',
       type: 'Non-Financial',
-      categories: ['Customer Experience'],
-      description: 'Shorter, simpler onboarding journey for corporate clients across all markets.',
+      categories: ['Customer Experience', 'Risk & Control'],
+      description: 'Faster onboarding, improved KYC/CDD controls and higher relationship manager productivity.',
       validationSource: 'Onboarding is tracked in CBG Business Headcount',
       owners: ['Peter Weng Jian TAN', 'Michelle Widjaya CHONG'],
       baselineId: 'BL0006',
@@ -178,11 +178,11 @@ export function defaultBenefits(ws: Workstream): Benefit[] {
     {
       id: 'bf-4',
       benefitRef: 'B04',
-      name: 'Increased cross-border capability',
+      name: 'Tokenisation and digital asset capability',
       type: 'Non-Financial',
       categories: ['Cross-Border Capability'],
-      description: 'Ability to onboard and service clients across additional regional corridors.',
-      validationSource: 'GL Account 52310 — Cross-Border Clearing',
+      description: 'Strategic digital asset capability — tokenisation readiness, improved client journey and enhanced risk management.',
+      validationSource: 'Quarterly platform capability review, Digital Assets forum',
       owners: ['James Robert WHITFIELD', 'Priya Lakshmi NAIR'],
       baselineId: 'BL0007',
       originalApprovedBaseline: null,
@@ -212,15 +212,15 @@ export function defaultBenefits(ws: Workstream): Benefit[] {
     {
       id: 'bf-5',
       benefitRef: 'B05',
-      name: 'Legacy platform decommissioning saving',
+      name: 'Vendor exit and access simplification',
       type: 'Financial',
-      categories: ['Cost Efficiency'],
-      description: 'Run-cost saving from retiring the legacy onboarding estate.',
-      validationSource: 'PC Code PC-8802 · Platform Engineering',
+      categories: ['Cost Efficiency', 'Risk & Control'],
+      description: 'Run-cost saving from exiting the incumbent authentication vendor and consolidating access management.',
+      validationSource: 'PC Code PC-8802 · Identity & Access Management',
       owners: ['Sunil RAMESH'],
       baselineId: 'BL0009',
-      originalApprovedBaseline: 980000,
-      currentApprovedBaseline: 890000,
+      originalApprovedBaseline: 9800000,
+      currentApprovedBaseline: 8900000,
       startDate: '2025-07-01',
       endDate: '2026-06-30',
       baselineDescription: '',
@@ -232,33 +232,33 @@ export function defaultBenefits(ws: Workstream): Benefit[] {
         {
           id: 'fr-3', benefitRef: 'B05', typeOfFinancial: 'Cost Save',
           driver: 'Platform Decommissioning', measure: 'S$ Value',
-          values: { 2024: 0, 2025: 430000, 2026: 460000 },
+          values: { 2024: 0, 2025: 4300000, 2026: 4600000 },
           comments: 'Hosting and licence exit'
         }
       ],
       baselineHistory: [
-        { baselineId: 'BL0008', baselineValue: 980000, startDate: '2025-01-01', endDate: '2026-06-30', requestedBy: 'madhurimasengar', approvedBy: 'yuriatantono', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
-        { baselineId: 'BL0009', baselineValue: 890000, startDate: '2025-07-01', endDate: '2026-06-30', requestedBy: 'yuriatantono', approvedBy: 'yuriatantono', approvalDate: '2025-06-11', changeReason: 'One application retained for regulatory reporting', status: 'Approved' }
+        { baselineId: 'BL0008', baselineValue: 9800000, startDate: '2025-01-01', endDate: '2026-06-30', requestedBy: 'madhurimasengar', approvedBy: 'yuriatantono', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
+        { baselineId: 'BL0009', baselineValue: 8900000, startDate: '2025-07-01', endDate: '2026-06-30', requestedBy: 'yuriatantono', approvedBy: 'yuriatantono', approvalDate: '2025-06-11', changeReason: 'One application retained for regulatory reporting', status: 'Approved' }
       ],
       reportingHistory: [
-        { id: 'ru-11', updateDate: '2026-01-12', actualValue: 430000, progressUpdate: '', variancePct: -51.7, varianceExplanation: 'Half-year realisation in line with the decommissioning schedule.', rootCause: 'Phased shutdown — remaining estate live until Q4.', correctiveAction: 'None required.', updatedBy: 'yuriatantono', evidence: 'H2-FY25_decom_saving.xlsx' },
-        { id: 'ru-12', updateDate: '2026-06-30', actualValue: 905000, progressUpdate: '', variancePct: 1.7, varianceExplanation: 'Final realised value marginally above baseline.', rootCause: 'Hosting exit completed two weeks early.', correctiveAction: 'None — benefit closed.', updatedBy: 'yuriatantono', evidence: 'H1-FY26_decom_saving.xlsx' }
+        { id: 'ru-11', updateDate: '2026-01-12', actualValue: 4300000, progressUpdate: '', variancePct: -51.7, varianceExplanation: 'Half-year realisation in line with the decommissioning schedule.', rootCause: 'Phased shutdown — remaining estate live until Q4.', correctiveAction: 'None required.', updatedBy: 'yuriatantono', evidence: 'H2-FY25_decom_saving.xlsx' },
+        { id: 'ru-12', updateDate: '2026-06-30', actualValue: 9050000, progressUpdate: '', variancePct: 1.7, varianceExplanation: 'Final realised value marginally above baseline.', rootCause: 'Hosting exit completed two weeks early.', correctiveAction: 'None — benefit closed.', updatedBy: 'yuriatantono', evidence: 'H1-FY26_decom_saving.xlsx' }
       ],
       auditLog: [
         { id: 'ba-19', date: '2024-12-18', user: 'madhurimasengar', action: 'Baseline Created', comments: 'BL0008 created with the approved business case.' },
         { id: 'ba-20', date: '2025-06-11', user: 'yuriatantono', action: 'Baseline Change Approved', comments: 'BL0009 approved — one application retained.' },
-        { id: 'ba-21', date: '2026-06-30', user: 'yuriatantono', action: 'Benefit Updated', comments: 'Final actuals reported — S$905,000.' },
-        { id: 'ba-22', date: '2026-07-02', user: 'yuriatantono', action: 'Closure Submitted', comments: 'Final realised value S$905,000 submitted for approval.' },
+        { id: 'ba-21', date: '2026-06-30', user: 'yuriatantono', action: 'Benefit Updated', comments: 'Final actuals reported — S$9,050,000.' },
+        { id: 'ba-22', date: '2026-07-02', user: 'yuriatantono', action: 'Closure Submitted', comments: 'Final realised value S$9,050,000 submitted for approval.' },
         { id: 'ba-23', date: '2026-07-15', user: 'chanwaikit', action: 'Closure Approved', comments: 'Benefit closed. Realisation confirmed by Group Finance.' }
       ]
     },
     {
       id: 'bf-6',
       benefitRef: 'B06',
-      name: 'Improved operational resilience',
+      name: 'Engineering automation and resilience uplift',
       type: 'Non-Financial',
       categories: ['Operational Resilience'],
-      description: 'Reduced single points of failure in the client onboarding chain.',
+      description: 'Faster delivery, reduced tech debt, improved recovery time and stronger operational excellence.',
       validationSource: 'Service desk ticket volumes, ITSM monthly report',
       owners: ['Anand KRISHNAMURTHY', 'Sarah Jane MCALLISTER'],
       baselineId: 'BL0010',

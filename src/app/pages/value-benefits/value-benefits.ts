@@ -563,6 +563,7 @@ export class ValueBenefits {
     this.benefits().find((b) => b.id === this.actionId()) ?? null);
 
   protected readonly formActual = signal('');
+  protected readonly formValidationSource = signal('');
   protected readonly formProgress = signal('');
   protected readonly formExplanation = signal('');
   protected readonly formRootCause = signal('');
@@ -578,6 +579,7 @@ export class ValueBenefits {
     event.stopPropagation();
     this.closeMenu();
     this.formActual.set('');
+    this.formValidationSource.set(b.validationSource);
     this.formProgress.set('');
     this.formExplanation.set('');
     this.formRootCause.set('');
@@ -624,8 +626,13 @@ export class ValueBenefits {
     const pct = financial && b.currentApprovedBaseline
       ? Math.round(((actual! - b.currentApprovedBaseline) / b.currentApprovedBaseline) * 1000) / 10
       : null;
+    const sourceMoved = this.formValidationSource().trim() !== b.validationSource;
     this.patch(b.id, (cur) => ({
       ...cur,
+      // Applied directly rather than raised for approval: this is where the
+      // reporter says which system the actuals came from, so gating it would
+      // block the actuals report itself.
+      validationSource: this.formValidationSource().trim(),
       reportingHistory: [...cur.reportingHistory, {
         id: `ru-${Date.now()}`,
         updateDate: this.today(),
@@ -638,11 +645,19 @@ export class ValueBenefits {
         updatedBy: CURRENT_USER,
         evidence: ''
       }],
-      auditLog: [...cur.auditLog, {
-        id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
-        action: 'Benefit Updated',
-        comments: financial ? `Actuals reported — ${this.money(actual)}.` : 'Progress update recorded.'
-      }]
+      auditLog: [
+        ...cur.auditLog,
+        {
+          id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
+          action: 'Benefit Updated',
+          comments: financial ? `Actuals reported — ${this.money(actual)}.` : 'Progress update recorded.'
+        },
+        ...(sourceMoved ? [{
+          id: `ba-${Date.now() + 1}`, date: this.today(), user: CURRENT_USER,
+          action: 'Validation Source Changed',
+          comments: `Validation source set to "${this.formValidationSource().trim() || '-'}".`
+        }] : [])
+      ]
     }));
     this.closeAction();
   }

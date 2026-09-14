@@ -28,7 +28,7 @@ export class Approvals {
 
   protected readonly persona = currentPersona;
   protected readonly all = ALL;
-  protected readonly kindOptions = [ALL, 'Baseline Change', 'Benefit Closure'];
+  protected readonly kindOptions = [ALL, 'Baseline Change', 'Benefit Update', 'Benefit Closure'];
   protected readonly stateOptions = [ALL, 'Pending Approval', 'Changes Requested'];
 
   protected readonly kind = signal(ALL);
@@ -144,6 +144,29 @@ export class Approvals {
           : kind === 'rework' ? 'Baseline Change Returned'
           : 'Baseline Change Rejected',
         `${item.reference} ${kind === 'approve' ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
+          (note ? ` ${note}` : ''));
+      }
+
+      if (item.kind === 'Benefit Update') {
+        const upd = b.pendingUpdate;
+        if (!upd) return b;
+        const approved = kind === 'approve';
+        // Only an approval writes the requested values onto the benefit; a
+        // rework keeps the request alive so the requester can amend it.
+        const applied = approved
+          ? upd.fields.reduce<Record<string, unknown>>((acc, f) => { acc[f.key] = f.value; return acc; }, {})
+          : {};
+        return this.audit({
+          ...b,
+          ...applied,
+          pendingUpdate: kind === 'rework'
+            ? { ...upd, status: 'Changes Requested' as const, decisionNote: note }
+            : undefined
+        } as Benefit,
+        approved ? 'Benefit Update Approved'
+          : kind === 'rework' ? 'Benefit Update Returned'
+          : 'Benefit Update Rejected',
+        `${upd.fields.length} field${upd.fields.length > 1 ? 's' : ''} ${approved ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
           (note ? ` ${note}` : ''));
       }
 

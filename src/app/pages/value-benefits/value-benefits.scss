@@ -275,14 +275,24 @@ ui-table-header ::ng-deep .title { @include type.heading(xs); }
   gap: 8px;
 }
 
-/* Bottom-centred, above the overlays it confirms. */
+/* Bottom-centred, above the overlays it confirms.
+
+   `ui-snackbar`'s host carries no `display` of its own, so on its own it lays
+   out as an INLINE box with no width and the flex row inside it collapses to
+   roughly one word per line. Making the wrapper a flex container fixes that
+   without reaching into the component: a flex item is blockified whatever its
+   own `display` says, so the host gets a real box and fills the stated width. */
 .vb-snackbar {
   position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: 1200;
+  display: flex;
+  width: min(560px, calc(100vw - 48px));
 }
+
+.vb-snackbar ui-snackbar { flex: 1 1 auto; min-width: 0; }
 
 @media (max-width: 900px) {
   .entity-section { grid-template-columns: minmax(0, 1fr); gap: 16px; }

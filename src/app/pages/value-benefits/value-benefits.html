@@ -866,6 +866,12 @@
               <ui-textarea [(value)]="formProgress" placeholder="e.g. Cross-border integration completed in 4 countries" />
             </div>
           }
+          <div class="filter-field span-2">
+            <span class="filter-label">Validation Source</span>
+            <ui-text-input
+              [(value)]="formValidationSource"
+              placeholder="e.g. PC Code PC-4471, GL Account 41020, or where the actuals are reported" />
+          </div>
         </div>
         <p class="empty">Saving adds a new entry to the reporting history. Nothing already reported is changed.</p>
       </ui-card>

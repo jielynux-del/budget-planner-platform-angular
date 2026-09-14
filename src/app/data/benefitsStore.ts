@@ -25,7 +25,7 @@ export interface ApprovalItem {
   workstreamId: string;
   workstreamName: string;
   /** What is being decided. */
-  kind: 'Baseline Change' | 'Benefit Closure';
+  kind: 'Baseline Change' | 'Benefit Closure' | 'Benefit Update';
   reference: string;
   requestedBy: string;
   requestedOn: string;
@@ -61,6 +61,24 @@ export function approvalQueue(): ApprovalItem[] {
           pendingWith: b.pendingWith ?? 'Finance Business Partner',
           state: b.approvalStatus,
           detail: latestBaseline?.changeReason ?? ''
+        });
+      }
+
+      const upd = b.pendingUpdate;
+      if (upd && (upd.status === 'Pending Approval' || upd.status === 'Changes Requested')) {
+        items.push({
+          benefit: b,
+          workstreamId: ws.id,
+          workstreamName: ws.name,
+          kind: 'Benefit Update',
+          reference: b.benefitRef,
+          requestedBy: upd.requestedBy,
+          requestedOn: upd.requestedOn,
+          // Descriptive changes are a portfolio governance matter, so they do
+          // not share the baseline queue's approver.
+          pendingWith: 'Portfolio Approver',
+          state: upd.status,
+          detail: upd.fields.map((f) => `${f.label}: ${f.from || '-'} → ${f.to || '-'}`).join('; ')
         });
       }
 
