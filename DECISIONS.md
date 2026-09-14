@@ -8,6 +8,35 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — Session close: what this round changed
+
+A single working session covering the Value/Benefits detail overlay end to end. Grouped here so
+the individual entries below can be read as detail rather than a list of unrelated edits.
+
+**The record.** Benefit owner became a multi-select of named people with BUs derived from them;
+category became multi-select; Effective/Target Realisation Date became Start/End date throughout;
+Validation Source was added. Seed data was re-themed onto the platform investment table and scaled
+to its magnitude, de-identified — the source table names internal systems and this prototype is
+on a public URL.
+
+**The flows.** Create became three freely navigable tab pages with no step counter, its financial
+year columns derived from the benefit's own dates. A new benefit's baseline now goes to Finance
+for approval instead of being self-approved. Update benefit became an overlay-level mode behind a
+sticky bar, raising ONE request covering the whole benefit — fields and staged reporting lines
+together, nothing written until a decision is made.
+
+**What we got wrong first, and fixed.** Content nested in `@if` is not projected into named
+slots, so header and footer buttons silently rendered in the overlay body. The green "current
+baseline" row was the kit's `selected` wash, which read as approved next to a red delta pill — now
+a grey `Current` tag. And the date field took three attempts because its computed styles matched
+the other inputs exactly the whole time; the value is drawn by the browser, in fixed-width
+segments the input's own font never reaches.
+
+**Still true at close.** Both gates clean, deployed and verified on production, and the kit
+feedback file carries five findings from this round.
+
+---
+
 ## 2026-09-14 — Audit entries carry a snapshot
 
 **Decision.** Each audit entry stores the benefit as it stood when the entry was written, shown
@@ -421,6 +450,17 @@ Stated rather than hidden, per RULES.md #8:
 - **No supporting-evidence upload.** Every form in the original spec had one; the kit ships
   `ui-file-drop` / `ui-upload-file` for it.
 - **No reporting cadence.** Nothing tracks when an update is due, so no benefit can be overdue.
+- **Snapshots start from this build.** Audit entries written before the snapshot field existed
+  have none, and one cannot be reconstructed — the descriptive fields are not versioned. Those
+  rows read "Not captured". Seeded entries are stamped at seed time, so the demo has content.
+- **`Update Pending Approval` is a display state, not a stored one.** `displayStatus()` derives
+  it from a live `pendingUpdate`; `status` continues to hold the lifecycle value. Anything
+  reading `benefit.status` directly will not see it.
+- **Validation Source is governed two ways.** Through Update benefit it needs approval; through
+  the Update Benefit (reporting) flow it applies directly, because gating it there would block
+  the actuals report it belongs to. A real inconsistency, accepted on purpose.
+- **Benefit owners are a fixed roster of 14 invented people.** There is no directory lookup, and
+  the BU mapping lives in `people.ts` rather than coming from anywhere authoritative.
 - **`ui-status-tag` has five variants against seven workstream statuses**, so two pairs share a
   colour. `UiNavStatus` has two against the tree's five.
 - **The kit's token set is the neutral theme**, not DLS colours — `tokens.css` says so itself.
