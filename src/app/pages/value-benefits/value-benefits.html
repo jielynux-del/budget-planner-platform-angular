@@ -851,7 +851,11 @@
           </thead>
           <tbody>
             @for (h of baselineChain(b); track h.baselineId) {
-              <tr ui-table-row [selected]="h.isCurrent">
+              <!-- No row wash for the current baseline: the kit's `selected`
+                   state means "the reader picked this row", and its green read
+                   as approved/good next to a delta pill that can be red. The
+                   Status cell says it in words instead. -->
+              <tr ui-table-row>
                 <td class="cell-name">{{ h.baselineId }}</td>
                 <td class="ui-cell-number">{{ money(h.baselineValue) }}</td>
                 <td class="ui-cell-number">
@@ -869,7 +873,12 @@
                 <td>{{ h.requestedBy }}</td>
                 <td>{{ h.approvedBy }}</td>
                 <td>{{ h.approvalDate }}</td>
-                <td class="ui-cell-status"><ui-status-tag [status]="h.status" [variant]="approvalVariant(h.status)" /></td>
+                <td class="ui-cell-status">
+                  <ui-status-tag [status]="h.status" [variant]="approvalVariant(h.status)" />
+                  @if (h.isCurrent) {
+                    <ui-status-tag class="current-tag" status="Current" variant="neutral" />
+                  }
+                </td>
                 <td>{{ h.changeReason }}</td>
               </tr>
             }

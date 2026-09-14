@@ -8,6 +8,20 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — "Current" is a label, not a row colour
+
+**Decision.** The current baseline is marked with a grey `Current` tag beneath its approval
+status in the Status column. The green row wash is gone.
+
+**Why.** The row used the kit's `selected` state, which paints `--color-bg-selected` (#e2f8ef).
+That state means "the reader picked this row" — nothing in a baseline history is selectable —
+and its green read as approved or good. In one real case the current baseline was a REDUCTION,
+so a green row carried a red delta pill: two colour systems disagreeing inside one row. Saying
+it in words removes the ambiguity and leaves the only colours in the row as the ones that carry
+real meaning — the delta pill and the approval tag.
+
+---
+
 ## 2026-09-14 — Overlay chrome, and three kit specificity fights
 
 **Decision.** The pending-approval banner moved from inside Benefit Details up to overlay level

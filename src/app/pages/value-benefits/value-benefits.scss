@@ -440,3 +440,11 @@ ui-date-input ::ng-deep input.ui-date-input { @include type.body(sm); }
 /* Read-only rows are a record to scan rather than a form to fill, so they
    carry more air between them than the edit grid does. */
 .entity-section-body .detail-grid { gap: 22px 28px; }
+
+/* "Current" sits under the approval status, not beside it: the two say
+   different things — whether the change was approved, and whether this is the
+   baseline in force today — and stacking keeps the Status column narrow. */
+.current-tag {
+  display: block;
+  margin-top: 4px;
+}
