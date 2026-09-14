@@ -331,10 +331,179 @@ export class ValueBenefits {
   private static readonly EXIT_MS = 220;
 
   /** Row click opens the benefit; the audit icon opens just its history. */
-  protected openDetail(b: Benefit) { this.detailId.set(b.id); }
+  protected openDetail(b: Benefit) {
+    this.detailId.set(b.id);
+    this.summaryEdit.set(false);
+  }
+
+  /* ---------------- Benefit Summary edit mode ---------------- */
+
+  /**
+   * Only the summary section enters edit mode; Reporting History and Baseline
+   * History stay read-only, since both are append-only records rather than
+   * editable state.
+   */
+  protected readonly summaryEdit = signal(false);
+
+  protected readonly editName = signal('');
+  protected readonly editOwners = signal<string[]>([]);
+  protected readonly editCategories = signal<string[]>([]);
+  protected readonly editDescription = signal('');
+  protected readonly editValidationSource = signal('');
+  protected readonly editStart = signal('');
+  protected readonly editEnd = signal('');
+  protected readonly editType = signal('Financial');
+  protected readonly editStatus = signal('Tracking Active');
+  protected readonly editBaseline = signal('');
+  protected readonly editReason = signal('');
+
+  /** Derived from the owners being edited — never typed in. */
+  protected readonly editBusinessUnits = computed(() =>
+    businessUnitsFor(this.editOwners()));
+
+  protected startSummaryEdit(b: Benefit) {
+    this.editName.set(b.name);
+    this.editOwners.set([...b.owners]);
+    this.editCategories.set([...b.categories]);
+    this.editDescription.set(b.description);
+    this.editValidationSource.set(b.validationSource);
+    this.editStart.set(b.startDate);
+    this.editEnd.set(b.endDate);
+    this.editType.set(b.type);
+    this.editStatus.set(b.status);
+    this.editBaseline.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
+    this.editReason.set('');
+    this.summaryEdit.set(true);
+  }
+
+  protected cancelSummaryEdit() { this.summaryEdit.set(false); }
+
+  /** The baseline figure changed, so a baseline approval is needed too. */
+  protected readonly baselineChanged = computed(() => {
+    const b = this.detail();
+    if (!b) return false;
+    const typed = this.editBaseline().trim();
+    const next = typed === '' ? null : this.num(typed);
+    return next !== b.currentApprovedBaseline;
+  });
+
+  /**
+   * Saves an edit as REQUESTS, not as changes: the benefit keeps its approved
+   * values until someone decides. Descriptive fields raise one request to the
+   * Portfolio Approver; a changed baseline raises a separate BaselineRecord for
+   * Finance. The two are independent and can be decided by different people.
+   */
+  protected saveSummaryEdit(b: Benefit) {
+    const today = new Date().toISOString().slice(0, 10);
+    const changes: BenefitFieldChange[] = [];
+    const add = (key: string, label: string, from: string, to: string, value: unknown) => {
+      if (from !== to) changes.push({ key, label, from, to, value });
+    };
+
+    add('name', 'Benefit Name', b.name, this.editName().trim(), this.editName().trim());
+    add('owners', 'Benefit Owner', b.owners.join(', '), this.editOwners().join(', '), this.editOwners());
+    add('categories', 'Benefit Category', b.categories.join(', '), this.editCategories().join(', '), this.editCategories());
+    add('description', 'Benefit Description', b.description, this.editDescription().trim(), this.editDescription().trim());
+    add('validationSource', 'Validation Source', b.validationSource, this.editValidationSource().trim(), this.editValidationSource().trim());
+    add('startDate', 'Start date', b.startDate, this.editStart(), this.editStart());
+    add('endDate', 'End date', b.endDate, this.editEnd(), this.editEnd());
+    add('type', 'Benefit Type', b.type, this.editType(), this.editType());
+    add('status', 'Benefit Status', b.status, this.editStatus(), this.editStatus());
+
+    const baselineMoved = this.baselineChanged();
+    if (!changes.length && !baselineMoved) {
+      this.summaryEdit.set(false);
+      return;
+    }
+
+    const typed = this.editBaseline().trim();
+    const proposed = typed === '' ? null : this.num(typed);
+    const newBaselineId = baselineMoved ? nextBaselineId(this.benefits()) : null;
+
+    benefitsFor(this.workstreamId()).update((rows) =>
+      rows.map((r) => {
+        if (r.id !== b.id) return r;
+        const audit = [...r.auditLog];
+        if (changes.length) {
+          audit.push({
+            id: `ba-${Date.now()}`,
+            date: today,
+            user: CURRENT_USER,
+            action: 'Benefit Update Requested',
+            comments: `${changes.length} field${changes.length > 1 ? 's' : ''} submitted for approval — ${changes.map((c) => c.label).join(', ')}.`
+          });
+        }
+        if (newBaselineId) {
+          audit.push({
+            id: `ba-${Date.now() + 1}`,
+            date: today,
+            user: CURRENT_USER,
+            action: 'Baseline Change Requested',
+            comments: `${newBaselineId} submitted for approval — ${this.editReason().trim() || 'baseline revised'}.`
+          });
+        }
+        return {
+          ...r,
+          pendingUpdate: changes.length
+            ? {
+                id: `up-${Date.now()}`,
+                fields: changes,
+                requestedBy: CURRENT_USER,
+                requestedOn: today,
+                status: 'Pending Approval' as const
+              }
+            : r.pendingUpdate,
+          approvalStatus: newBaselineId ? ('Pending Approval' as const) : r.approvalStatus,
+          pendingWith: newBaselineId ? 'Finance Business Partner' : r.pendingWith,
+          baselineHistory: newBaselineId
+            ? [...r.baselineHistory, {
+                baselineId: newBaselineId,
+                baselineValue: proposed,
+                startDate: this.editStart(),
+                endDate: this.editEnd(),
+                requestedBy: CURRENT_USER,
+                requestedOn: today,
+                approvedBy: '-',
+                approvalDate: '-',
+                changeReason: this.editReason().trim() || 'Baseline revised through benefit edit',
+                status: 'Pending Approval' as const
+              }]
+            : r.baselineHistory,
+          auditLog: audit
+        };
+      }));
+
+    this.summaryEdit.set(false);
+    this.toast.set(
+      changes.length && baselineMoved
+        ? 'Benefit update and baseline change submitted for approval'
+        : baselineMoved
+          ? 'Baseline change submitted for approval'
+          : 'Benefit update submitted for approval');
+  }
   protected openAudit(b: Benefit) { this.auditId.set(b.id); }
 
+  /**
+   * Closes any open kit dropdown before an overlay is torn down.
+   *
+   * v2 portals a `ui-dropdown-menu` panel to `document.body` — which is what
+   * makes a multi-select usable inside a table column — but that puts it
+   * outside Angular's view tree, so destroying the modal that owns the control
+   * does NOT remove the panel. Closing with Escape leaves it orphaned on the
+   * page; closing with Cancel does not, because the click itself reaches the
+   * panel's outside-click handler first.
+   *
+   * So we take that same path deliberately: a pointerdown on the document lets
+   * each open panel close ITSELF through its own handler. Removing the nodes
+   * here instead would mean this app deleting DOM the kit owns.
+   */
+  private dismissOverlays() {
+    document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  }
+
   protected closeDetail() {
+    this.dismissOverlays();
     this.closingDetail.set(true);
     setTimeout(() => { this.detailId.set(null); this.closingDetail.set(false); }, ValueBenefits.EXIT_MS);
   }
@@ -345,6 +514,7 @@ export class ValueBenefits {
   }
 
   protected closeCreate() {
+    this.dismissOverlays();
     this.closingCreate.set(true);
     setTimeout(() => { this.createOpen.set(false); this.closingCreate.set(false); }, ValueBenefits.EXIT_MS);
   }

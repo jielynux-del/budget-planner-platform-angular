@@ -249,20 +249,135 @@
       Download
     </button>
 
-    <ui-card title="Benefit Summary">
-      <dl class="detail-grid">
-        <div><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
-        <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
-        <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? 'Not set' : money(b.originalApprovedBaseline) }}</dd></div>
-        <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' }}</dd></div>
-        <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></dd></div>
-        <div><dt>Benefit Owner</dt><dd>{{ b.owners.join(", ") }}</dd></div>
-        <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
-        <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
-      </dl>
+    <ui-card>
+      <div class="entity-section">
+        <aside class="entity-section-head">
+          <h3 class="entity-section-title">Benefit Summary</h3>
+          <p class="entity-section-note">
+            The definition of this benefit. Changes are submitted for approval and
+            take effect once approved.
+          </p>
+          @if (!summaryEdit() && persona().canRequest) {
+            <button
+              ui-icon-button
+              variant="ghost"
+              size="small"
+              type="button"
+              aria-label="Edit benefit summary"
+              (click)="startSummaryEdit(b)">
+              <ui-icon name="edit" />
+            </button>
+          }
+        </aside>
+
+        <div class="entity-section-body">
+          @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
+            <ui-info-banner
+              tone="warning"
+              [message]="'An update to ' + b.pendingUpdate.fields.length + ' field(s) is pending approval. The values below are the approved ones.'" />
+          }
+
+          @if (!summaryEdit()) {
+            <dl class="detail-grid">
+              <div><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
+              <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
+              <div><dt>Benefit Category</dt><dd>{{ b.categories.join(', ') || emptyValue }}</dd></div>
+              <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></dd></div>
+              <div><dt>Benefit Owner</dt><dd>{{ b.owners.join(', ') || emptyValue }}</dd></div>
+              <div><dt>BUs Involved</dt><dd>{{ businessUnits(b.owners) || emptyValue }}</dd></div>
+              <div class="span-2"><dt>Benefit Description</dt><dd>{{ b.description || emptyValue }}</dd></div>
+              <div><dt>Validation Source</dt><dd>{{ b.validationSource || emptyValue }}</dd></div>
+              <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
+              <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' }}</dd></div>
+              @if (b.type === 'Non-Financial' && b.baselineDescription) {
+                <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
+              }
+              <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
+              <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
+            </dl>
+          } @else {
+            <div class="create-grid">
+              <div class="filter-field">
+                <span class="filter-label">Benefit Name</span>
+                <ui-text-input [(value)]="editName" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Benefit Type</span>
+                <ui-select [options]="typeChoices" [(value)]="editType" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Benefit Category</span>
+                <ui-multi-select [items]="categoryOptions" [(selected)]="editCategories" placeholder="Please select" display="count" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Benefit Status</span>
+                <ui-select [options]="statusChoices" [(value)]="editStatus" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Benefit Owner</span>
+                <ui-multi-select [items]="ownerChoices" [(selected)]="editOwners" placeholder="Please select" display="count" />
+              </div>
+              <!-- Derived from the owners; never editable. -->
+              <div class="filter-field">
+                <span class="filter-label">BUs Involved</span>
+                <p class="readonly-field">{{ businessUnits(editOwners()) || 'Select a benefit owner' }}</p>
+              </div>
+              <div class="filter-field span-2">
+                <span class="filter-label">Benefit Description</span>
+                <ui-textarea [(value)]="editDescription" />
+              </div>
+              <div class="filter-field span-2">
+                <span class="filter-label">Validation Source</span>
+                <ui-text-input [(value)]="editValidationSource" placeholder="e.g. PC Code PC-4471, GL Account 41020" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">
+                  Start date
+                  <span class="hint" [uiTooltip]="startDateHint" tabindex="0"><ui-icon name="circle-information" [size]="16" /></span>
+                </span>
+                <ui-date-input [(value)]="editStart" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">
+                  End date
+                  <span class="hint" [uiTooltip]="endDateHint" tabindex="0"><ui-icon name="circle-information" [size]="16" /></span>
+                </span>
+                <ui-date-input [(value)]="editEnd" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Current Approved Baseline (S$)</span>
+                <ui-text-input [(value)]="editBaseline" placeholder="0" />
+              </div>
+              @if (baselineChanged()) {
+                <div class="filter-field">
+                  <span class="filter-label">Baseline Change Reason</span>
+                  <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
+                </div>
+              }
+            </div>
+
+            <ui-info-banner
+              tone="info"
+              [message]="baselineChanged()
+                ? 'This raises two approvals: the benefit update goes to the Portfolio Approver, the baseline change to Finance.'
+                : 'Changes are submitted to the Portfolio Approver and take effect once approved.'" />
+
+            <div class="edit-actions">
+              <button ui-button variant="secondary" size="small" type="button" (click)="cancelSummaryEdit()">Cancel</button>
+              <button ui-button variant="primary" size="small" type="button" (click)="saveSummaryEdit(b)">Submit for Approval</button>
+            </div>
+          }
+        </div>
+      </div>
     </ui-card>
 
-    <ui-card title="Reporting History">
+    <ui-card>
+      <div class="entity-section">
+        <aside class="entity-section-head">
+          <h3 class="entity-section-title">Reporting History</h3>
+          <p class="entity-section-note">Every update reported against this benefit. Appended, never edited.</p>
+        </aside>
+        <div class="entity-section-body">
       @if (!b.reportingHistory.length) {
         <p class="empty">Nothing has been reported for this benefit yet.</p>
       } @else {
@@ -284,8 +399,8 @@
             <tbody>
               @for (r of b.reportingHistory; track r.id) {
                 <tr ui-table-row>
-                  <td>{{ r.updateDate }}</td>
-                  <td>{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
+                  <td class="cell-nowrap">{{ r.updateDate }}</td>
+                  <td [class.cell-nowrap]="b.type === 'Financial'">{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
                   @if (b.type === 'Financial') {
                     <td class="ui-cell-number">
                       <ui-pill [label]="variance(r.variancePct)" [color]="varianceColour(r.variancePct)" [dot]="false" />
@@ -301,9 +416,17 @@
           </table>
         </div>
       }
+        </div>
+      </div>
     </ui-card>
 
-    <ui-card title="Baseline History">
+    <ui-card>
+      <div class="entity-section">
+        <aside class="entity-section-head">
+          <h3 class="entity-section-title">Baseline History</h3>
+          <p class="entity-section-note">Each baseline this benefit has held, and why it moved.</p>
+        </aside>
+        <div class="entity-section-body">
       <div class="vb-scroll">
         <table ui-table size="sm">
           <thead>
@@ -320,17 +443,19 @@
           <tbody>
             @for (h of b.baselineHistory; track h.baselineId) {
               <tr ui-table-row>
-                <td class="cell-name">{{ h.baselineId }}</td>
-                <td class="ui-cell-number">{{ money(h.baselineValue) }}</td>
-                <td>{{ h.startDate }}</td>
+                <td class="cell-name cell-nowrap">{{ h.baselineId }}</td>
+                <td class="ui-cell-number cell-nowrap">{{ money(h.baselineValue) }}</td>
+                <td class="cell-nowrap">{{ h.startDate }}</td>
                 <td>{{ h.requestedBy }}</td>
                 <td>{{ h.approvedBy }}</td>
-                <td>{{ h.approvalDate }}</td>
+                <td class="cell-nowrap">{{ h.approvalDate }}</td>
                 <td>{{ h.changeReason }}</td>
               </tr>
             }
           </tbody>
         </table>
+      </div>
+        </div>
       </div>
     </ui-card>
   </ui-modal-shell>
@@ -465,7 +590,7 @@
           @if (!datesSet()) {
             <ui-info-banner
               tone="warning"
-              text="Set a start and end date on Benefit Details — the years below follow that range." />
+              message="Set a start and end date on Benefit Details — the years below follow that range." />
           }
           <div class="vb-scroll">
             <table ui-table size="sm">
@@ -587,7 +712,7 @@
       @if (!createValid()) {
         <ui-info-banner
           tone="warning"
-          text="Benefit name, at least one owner, and both dates are needed before this benefit can be created." />
+          message="Benefit name, at least one owner, and both dates are needed before this benefit can be created." />
       }
     }
 
@@ -810,4 +935,11 @@
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitBaselineChange()">Submit Request</button>
     }
   </ui-modal-shell>
+}
+
+<!-- ── Confirmation snackbar ──────────────────────────────────────────── -->
+@if (toast(); as message) {
+  <div class="vb-snackbar">
+    <ui-snackbar tone="success" [message]="message" (dismissed)="dismissToast()" />
+  </div>
 }

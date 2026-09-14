@@ -207,3 +207,87 @@ ui-table-header ::ng-deep .title { @include type.heading(xs); }
 .col-filter { width: 132px; }
 
 .baseline-block { margin-top: 16px; }
+
+/* ── Section layout: title column left, content right ────────────────
+   Follows the reference Edit Entity screens — the section's name and its
+   explanatory note sit in a fixed left column, the fields in the rest of
+   the width. A grid rather than flex so every section on a page lines its
+   content up on the same axis regardless of how long its title runs. */
+.entity-section {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.entity-section-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.entity-section-title {
+  @include type.heading(2xs);
+  color: var(--color-text-strong);
+  margin: 0;
+}
+
+.entity-section-note {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 0;
+}
+
+.entity-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* The body holds tables that scroll horizontally; without this the grid
+     track resolves to their scroll width and stretches the overlay. */
+  min-width: 0;
+}
+
+.detail-grid .span-2 { grid-column: span 2; }
+
+/* A derived value is shown, not input — same metrics as a field's value so
+   it sits on the baseline of the real controls beside it. */
+.readonly-field {
+  @include type.label(sm);
+  color: var(--color-text-strong);
+  margin: 0;
+  padding: 8px 0;
+  min-height: 32px;
+}
+
+/* The tooltip anchor beside a field label. */
+.filter-label .hint {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+  color: var(--color-icon-decorative);
+  cursor: help;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Bottom-centred, above the overlays it confirms. */
+.vb-snackbar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+}
+
+@media (max-width: 900px) {
+  .entity-section { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+
+/* A date or a figure carries no break opportunity a reader would accept —
+   "S$2,90 / 0,000" reads as two numbers. Prose columns still wrap. */
+.cell-nowrap { white-space: nowrap; }
