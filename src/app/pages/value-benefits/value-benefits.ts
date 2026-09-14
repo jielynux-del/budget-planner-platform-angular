@@ -524,8 +524,13 @@ export class ValueBenefits {
 
     this.summaryEdit.set(false);
     this.draftUpdates.set([]);
+
+    // The overlay closes first, then the confirmation appears against the
+    // table — so the snackbar is not sitting over the record it is about, and
+    // "View benefit" has somewhere to take the reader back to.
     this.toastBenefitId.set(b.id);
-    this.toast.set('Benefit has been submitted for approval');
+    this.closeDetail();
+    setTimeout(() => this.toast.set('Benefit has been submitted for approval'), ValueBenefits.EXIT_MS);
   }
   protected openAudit(b: Benefit) { this.auditId.set(b.id); }
 

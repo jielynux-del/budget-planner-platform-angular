@@ -309,12 +309,24 @@ ui-table-header ::ng-deep .title { @include type.heading(xs); }
 
 
 /* ── Focus overlay chrome ────────────────────────────────────────────
-   Every overlay title prints at heading/xs; the kit's own modal title
-   sits a step up, which is too loud against the compact section titles
-   beneath it. ::ng-deep because the title is inside the shell's template. */
-ui-modal-shell ::ng-deep .modal-title,
-ui-modal-shell ::ng-deep .title {
+   The shell prints its title at 20/600. Matched here to the dashboard's own
+   table headings (heading/xs, 16/600) so an overlay reads as the same level
+   of thing as the table it opened from. The class is `.panel-title`. */
+ui-modal-shell ::ng-deep .panel-title {
   @include type.heading(xs);
+}
+
+/* The kit's date input prints its value at body/md (14px) where ui-text-input
+   and ui-textarea print at body/sm (13) — the one control in a form that looks
+   a size out. The kit's own rule is `.ui-date-input[_ngcontent-…]`, so the
+   class has to be named here too or it wins on specificity. */
+ui-date-input ::ng-deep input.ui-date-input { @include type.body(sm); }
+
+/* An information mark beside a label is a hint, not a control: at the kit's
+   16px it competes with the label it annotates. */
+.filter-label .hint ui-icon {
+  width: 12px;
+  height: 12px;
 }
 
 /* A section of text fields is read in two columns whatever the viewport
@@ -393,18 +405,37 @@ ui-modal-shell ::ng-deep .title {
    and leading as the prose around it, heavier face. */
 .baseline-link { @include type.body(sm, $bold: true); }
 
-/* Square the remove cell so the 16px glyph sits in the middle of it. */
+/* The remove control is a quiet affordance on one staged row, so it sits
+   smaller than a primary icon button and centred in its own cell. */
 .rl-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+
+  ui-icon { width: 14px; height: 14px; }
 }
 
-td.ui-cell-actions:has(.rl-remove) { text-align: center; }
+/* The action cell carries asymmetric horizontal padding, which pulls a
+   centred child off the column's middle. Zeroing it lets text-align do the
+   centring properly. NOT `display: flex` on the <td> — that drops the cell
+   out of table layout, which is the kit's own documented trap. */
+/* Deliberately NOT `.ui-cell-actions`: that class sets its horizontal padding
+   with !important, which pulls a centred child 8px off the column's middle and
+   cannot be overridden without escalating. This cell holds one small control,
+   so it takes its own centring instead. */
+/* `.vb-scroll` in the selector is load-bearing: the table component also sets
+   `tbody td:last-child { padding-right: … }`, which ties on specificity and
+   wins on source order without an extra ancestor. */
+.vb-scroll td.rl-remove-cell {
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+}
 
-/* The kit's date input inherits the page font; inside our own dialog it was
-   picking up the browser default for the native control. */
-.rl-dialog ui-date-input input { font: inherit; }
+
 
 /* Read-only rows are a record to scan rather than a form to fill, so they
    carry more air between them than the edit grid does. */

@@ -8,6 +8,40 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — Overlay chrome, and three kit specificity fights
+
+**Decision.** The pending-approval banner moved from inside Benefit Details up to overlay level
+and is no longer dismissable: it describes the whole record, not one section, and it is the
+reason the values below cannot be trusted as current. The overlay title now matches the
+dashboard's own table headings (heading/xs, 16/600) rather than the shell's 20/600 default.
+
+Submitting closes the overlay first, then raises the confirmation against the table, so the
+snackbar is not sitting over the record it is about and "View benefit" has somewhere to return
+to.
+
+**Field pairing.** Benefit Name spans the row; Category sits beside Status, Owner beside BUs
+Involved, and Description beside Validation Source — the last pair both textareas, since a
+validation source is often a sentence rather than a code.
+
+**Three kit overrides that each needed a specificity fix.** Recorded because the pattern repeats
+and the failures are silent — the rule is simply ignored:
+
+1. `ui-date-input` prints its value at body/md (14px) where `ui-text-input` and `ui-textarea`
+   print at body/sm (13). Its own rule is `.ui-date-input[_ngcontent-…]`, so the override has to
+   name the class too: `ui-date-input ::ng-deep input.ui-date-input`.
+2. `.ui-cell-actions` sets horizontal padding with `!important`, which pulls a centred child 8px
+   off the column's middle. Rather than escalating, the remove cell simply does not use that
+   class.
+3. The table component sets `tbody td:last-child { padding-right: … }`, which ties on
+   specificity with a plain `td.my-class` and wins on source order. The override carries
+   `.vb-scroll` as an extra ancestor to outrank it.
+
+Both (1) and (2) are going back to the kit author — a control that is a size out from its
+siblings, and a padding that cannot be overridden without `!important`, are worth fixing at
+source.
+
+---
+
 ## 2026-09-14 — One review covers the whole benefit
 
 **Decision.** Any change made through Update benefit — a field, a reporting line, or both —

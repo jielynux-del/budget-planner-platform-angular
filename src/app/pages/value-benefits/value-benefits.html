@@ -245,6 +245,13 @@
     [class.sheet-closing]="closingDetail()"
     (closed)="closeDetail()">
 
+    @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
+      <ui-info-banner
+        tone="warning"
+        [dismissible]="false"
+        message="This benefit is pending approval. The values shown are the approved ones." />
+    }
+
     <!-- Projected into the shell's named slots, so these must stay at the top
          level of the template: Angular matches ng-content selectors statically,
          and anything nested in an @if falls through to the default slot instead
@@ -282,38 +289,32 @@
         </aside>
 
         <div class="entity-section-body">
-          @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
-            <ui-info-banner
-              tone="warning"
-              [message]="'This benefit is pending approval. The values below are the approved ones.'" />
-          }
-
           @if (!summaryEdit()) {
             <dl class="detail-grid">
-              <div><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
-              <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></dd></div>
+              <div class="span-2"><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
               <div><dt>Benefit Category</dt><dd>{{ b.categories.join(', ') || emptyValue }}</dd></div>
+              <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></dd></div>
               <div><dt>Benefit Owner</dt><dd>{{ b.owners.join(', ') || emptyValue }}</dd></div>
               <div><dt>BUs Involved</dt><dd>{{ businessUnits(b.owners) || emptyValue }}</dd></div>
+              <div><dt>Benefit Description</dt><dd>{{ b.description || emptyValue }}</dd></div>
               <div><dt>Validation Source</dt><dd>{{ b.validationSource || emptyValue }}</dd></div>
-              <div class="span-2"><dt>Benefit Description</dt><dd>{{ b.description || emptyValue }}</dd></div>
               <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
               <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
             </dl>
           } @else {
             <div class="create-grid">
-              <div class="filter-field">
+              <div class="filter-field span-2">
                 <span class="filter-label">Benefit Name</span>
                 <ui-text-input [(value)]="editName" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Benefit Category</span>
+                <ui-multi-select [items]="categoryOptions" [(selected)]="editCategories" placeholder="Please select" display="count" />
               </div>
               <!-- Status moves through the lifecycle and its approvals, never by hand. -->
               <div class="filter-field">
                 <span class="filter-label">Benefit Status</span>
                 <p class="readonly-field"><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></p>
-              </div>
-              <div class="filter-field">
-                <span class="filter-label">Benefit Category</span>
-                <ui-multi-select [items]="categoryOptions" [(selected)]="editCategories" placeholder="Please select" display="count" />
               </div>
               <div class="filter-field">
                 <span class="filter-label">Benefit Owner</span>
@@ -325,12 +326,12 @@
                 <p class="readonly-field">{{ businessUnits(editOwners()) || 'Select a benefit owner' }}</p>
               </div>
               <div class="filter-field">
-                <span class="filter-label">Validation Source</span>
-                <ui-text-input [(value)]="editValidationSource" placeholder="e.g. PC Code PC-4471, GL Account 41020" />
-              </div>
-              <div class="filter-field span-2">
                 <span class="filter-label">Benefit Description</span>
                 <ui-textarea [(value)]="editDescription" />
+              </div>
+              <div class="filter-field">
+                <span class="filter-label">Validation Source</span>
+                <ui-textarea [(value)]="editValidationSource" placeholder="e.g. PC Code PC-4471, GL Account 41020, or where the actuals are reported" />
               </div>
               <div class="filter-field">
                 <span class="filter-label">
@@ -357,8 +358,15 @@
         <aside class="entity-section-head">
           <h3 class="entity-section-title">Baseline</h3>
           <p class="entity-section-note">
-            The figure this benefit is measured against. Read-only here — a baseline moves
-            through Request Baseline Change.
+            The figure this benefit is measured against. To update baseline, request baseline
+            change under the
+            <a
+              ui-link
+              variant="product"
+              class="baseline-link"
+              [href]="baselineManagementUrl()"
+              target="_blank"
+              rel="noopener">Baseline Management Page</a>.
           </p>
         </aside>
 
@@ -435,7 +443,7 @@
                     <td>{{ r.correctiveAction || emptyValue }}</td>
                   }
                   <td>{{ r.updatedBy }}</td>
-                  <td class="ui-cell-actions">
+                  <td class="rl-remove-cell">
                     <button
                       ui-icon-button
                       variant="ghost"
