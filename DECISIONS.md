@@ -8,6 +8,75 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — Owners are people, and an edit is a request
+
+**Decision.** Benefit owner is a multi-select of named individuals; the BUs involved are
+DERIVED from the roster (`src/app/data/people.ts`) and never stored on the benefit. Benefit
+category is multi-select too. Both print "first + N more" in the table with the full list in a
+kit tooltip, so neither column has to widen.
+
+**Why derived, not stored.** A stored "BUs involved" can drift: reassign an owner and the field
+keeps yesterday's answer unless something remembers to update it. `businessUnitsFor()` is the
+only way that value is ever produced, so it cannot disagree with who is actually assigned.
+
+**Effective Date / Target Realisation Date are gone**, replaced by Start date and End date
+throughout — data model, wizard, tables, overlays and CSV export. Each carries a tooltip saying
+what it means, because "start" and "end" alone are ambiguous for a benefit that is tracked over
+one window and realised at the end of another.
+
+**The create flow is tabs, not a stepper.** Three freely navigable pages — Benefit Details,
+Baseline Definition, Review — with no step counter. Consequences worth recording:
+
+- Validation moved off page 1 onto the whole form (`createValid`), because a user can now reach
+  Review without having visited Benefit Details.
+- With-financial-impact moved to Baseline Definition as a radio, so page 1 can no longer branch
+  its category options on it. The two category lists are therefore merged into one — and a
+  benefit can legitimately carry categories from both sides now that the field is multi-select.
+- The Financial and Stat Impact table's year columns are derived from Start/End date rather
+  than a fixed 2024–2026 window. Until both dates are set it falls back to the current year
+  alone, so the table still renders instead of collapsing to no columns.
+
+**A new benefit is no longer self-approved.** Creation raises the opening baseline as Pending
+Approval with Finance, and confirms with a snackbar. This is what the approver personas need in
+order to have anything to decide on a freshly created benefit.
+
+**An edit to the Benefit Summary is a REQUEST, not a write.** The table keeps showing approved
+values until someone decides — the same rule the baseline workflow already followed. One edit
+can raise two independent approvals: descriptive fields go to the Portfolio Approver as a
+single request carrying a field-level diff, and a moved baseline raises its own BaselineRecord
+for Finance. Either can be decided without the other.
+
+**Deliberate exception.** Validation Source is also editable in the Update Benefit flow, where
+it applies directly rather than through approval. Gating it there would block the actuals
+report it belongs to. The same field is therefore governed differently depending on the door
+you come through — recorded here because it is a real inconsistency, accepted on purpose.
+
+---
+
+## 2026-09-14 — Two more kit v2 findings, both worked around in-app
+
+**`ui-dropdown-menu` is portalled to `document.body` and can be orphaned.** v2 renders the
+dropdown panel as a fixed-position child of `<body>` — which is what makes a multi-select usable
+inside a table column — but that puts it outside Angular's view tree. Destroying the modal that
+owns the control does NOT remove the panel. Reproduce: open Add New Benefit, open the Benefit
+Owner picker, press Escape. The modal closes and the panel is left floating over the page.
+Closing with Cancel does not do it, because that click reaches the panel's own outside-click
+handler first.
+
+*Worked around* by `dismissOverlays()`, which dispatches a document-level pointerdown before an
+overlay is torn down, letting each open panel close itself through its own handler. Deleting the
+nodes directly would mean this app removing DOM the kit owns.
+
+**`ui-snackbar`'s host has no `display`.** It lays out as an inline box with zero width, and the
+flex row inside it collapses to roughly one word per line. Not visible in the kitchen sink,
+where the surrounding layout happens to give it a box. *Worked around* by making our wrapper a
+flex container: a flex item is blockified whatever its own `display` says, so the host gets a
+real box without us restyling the component.
+
+Both are going back to the kit author.
+
+---
+
 ## 2026-09-10 — Moved to kit v2, and kept the frozen-edge override
 
 **Decision.** The prototype now builds against `ai-dls-kit` v2 (`.kit-versions/ai-dls-kit-v2.tgz`).
