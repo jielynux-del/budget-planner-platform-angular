@@ -143,7 +143,7 @@
                 }
               </td>
               <td>{{ b.validationSource || '-' }}</td>
-              <td class="ui-cell-status"><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></td>
+              <td class="ui-cell-status"><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></td>
               <td>{{ b.startDate }}</td>
               <td>{{ b.endDate }}</td>
               <td>{{ latest(b)?.updateDate ?? '-' }}</td>
@@ -275,10 +275,9 @@
     <ui-card>
       <div class="entity-section">
         <aside class="entity-section-head">
-          <h3 class="entity-section-title">Benefit Summary</h3>
+          <h3 class="entity-section-title">Benefit Details</h3>
           <p class="entity-section-note">
-            The definition of this benefit. Changes are submitted for approval and
-            take effect once approved.
+            What this benefit is and who owns it. Changes are submitted for approval.
           </p>
         </aside>
 
@@ -286,24 +285,18 @@
           @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
             <ui-info-banner
               tone="warning"
-              [message]="'An update to ' + b.pendingUpdate.fields.length + ' field(s) is pending approval. The values below are the approved ones.'" />
+              [message]="'This benefit is pending approval. The values below are the approved ones.'" />
           }
 
           @if (!summaryEdit()) {
             <dl class="detail-grid">
               <div><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
-              <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
+              <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></dd></div>
               <div><dt>Benefit Category</dt><dd>{{ b.categories.join(', ') || emptyValue }}</dd></div>
-              <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></dd></div>
               <div><dt>Benefit Owner</dt><dd>{{ b.owners.join(', ') || emptyValue }}</dd></div>
               <div><dt>BUs Involved</dt><dd>{{ businessUnits(b.owners) || emptyValue }}</dd></div>
-              <div class="span-2"><dt>Benefit Description</dt><dd>{{ b.description || emptyValue }}</dd></div>
               <div><dt>Validation Source</dt><dd>{{ b.validationSource || emptyValue }}</dd></div>
-              <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
-              <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' }}</dd></div>
-              @if (b.type === 'Non-Financial' && b.baselineDescription) {
-                <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
-              }
+              <div class="span-2"><dt>Benefit Description</dt><dd>{{ b.description || emptyValue }}</dd></div>
               <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
               <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
             </dl>
@@ -313,17 +306,14 @@
                 <span class="filter-label">Benefit Name</span>
                 <ui-text-input [(value)]="editName" />
               </div>
+              <!-- Status moves through the lifecycle and its approvals, never by hand. -->
               <div class="filter-field">
-                <span class="filter-label">Benefit Type</span>
-                <ui-select [options]="typeChoices" [(value)]="editType" />
+                <span class="filter-label">Benefit Status</span>
+                <p class="readonly-field"><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></p>
               </div>
               <div class="filter-field">
                 <span class="filter-label">Benefit Category</span>
                 <ui-multi-select [items]="categoryOptions" [(selected)]="editCategories" placeholder="Please select" display="count" />
-              </div>
-              <div class="filter-field">
-                <span class="filter-label">Benefit Status</span>
-                <ui-select [options]="statusChoices" [(value)]="editStatus" />
               </div>
               <div class="filter-field">
                 <span class="filter-label">Benefit Owner</span>
@@ -334,13 +324,13 @@
                 <span class="filter-label">BUs Involved</span>
                 <p class="readonly-field">{{ businessUnits(editOwners()) || 'Select a benefit owner' }}</p>
               </div>
+              <div class="filter-field">
+                <span class="filter-label">Validation Source</span>
+                <ui-text-input [(value)]="editValidationSource" placeholder="e.g. PC Code PC-4471, GL Account 41020" />
+              </div>
               <div class="filter-field span-2">
                 <span class="filter-label">Benefit Description</span>
                 <ui-textarea [(value)]="editDescription" />
-              </div>
-              <div class="filter-field span-2">
-                <span class="filter-label">Validation Source</span>
-                <ui-text-input [(value)]="editValidationSource" placeholder="e.g. PC Code PC-4471, GL Account 41020" />
               </div>
               <div class="filter-field">
                 <span class="filter-label">
@@ -356,24 +346,32 @@
                 </span>
                 <ui-date-input [(value)]="editEnd" />
               </div>
-              <div class="filter-field">
-                <span class="filter-label">Current Approved Baseline (S$)</span>
-                <ui-text-input [(value)]="editBaseline" placeholder="0" />
-              </div>
-              @if (baselineChanged()) {
-                <div class="filter-field">
-                  <span class="filter-label">Baseline Change Reason</span>
-                  <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
-                </div>
-              }
             </div>
-
-            <ui-info-banner
-              tone="info"
-              [message]="baselineChanged()
-                ? 'This raises two approvals: the benefit update goes to the Portfolio Approver, the baseline change to Finance.'
-                : 'Changes are submitted to the Portfolio Approver and take effect once approved.'" />
           }
+        </div>
+      </div>
+    </ui-card>
+
+    <ui-card>
+      <div class="entity-section">
+        <aside class="entity-section-head">
+          <h3 class="entity-section-title">Baseline</h3>
+          <p class="entity-section-note">
+            The figure this benefit is measured against. Read-only here — a baseline moves
+            through Request Baseline Change.
+          </p>
+        </aside>
+
+        <div class="entity-section-body">
+          <dl class="detail-grid">
+            <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
+            <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
+            <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
+            <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) }}</dd></div>
+            @if (b.type === 'Non-Financial' && b.baselineDescription) {
+              <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
+            }
+          </dl>
         </div>
       </div>
     </ui-card>
@@ -443,9 +441,10 @@
                       variant="ghost"
                       size="small"
                       type="button"
+                      class="rl-remove"
                       aria-label="Remove this line"
                       (click)="removeReportingLine(r.id)">
-                      <ui-icon name="delete" />
+                      <ui-icon name="delete" [size]="16" />
                     </button>
                   </td>
                 </tr>
@@ -469,8 +468,15 @@
         <aside class="entity-section-head">
           <h3 class="entity-section-title">Baseline History</h3>
           <p class="entity-section-note">
-            Each baseline this benefit has held, and why it moved. View only — a baseline
-            moves through Request Baseline Change, never by editing this record.
+            Each baseline this benefit has held, and why it moved. To update baseline,
+            request baseline change under the
+            <a
+              ui-link
+              variant="product"
+              class="baseline-link"
+              [href]="baselineManagementUrl()"
+              target="_blank"
+              rel="noopener">Baseline Management Page</a>.
           </p>
         </aside>
         <div class="entity-section-body">
@@ -1051,6 +1057,11 @@
 <!-- ── Confirmation snackbar ──────────────────────────────────────────── -->
 @if (toast(); as message) {
   <div class="vb-snackbar">
-    <ui-snackbar tone="success" [message]="message" (dismissed)="dismissToast()" />
+    <ui-snackbar
+      tone="success"
+      [message]="message"
+      [actionLabel]="toastBenefitId() ? 'View benefit' : ''"
+      (action)="viewToastBenefit()"
+      (dismissed)="dismissToast()" />
   </div>
 }

@@ -294,6 +294,11 @@ ui-table-header ::ng-deep .title { @include type.heading(xs); }
 
 .vb-snackbar ui-snackbar { flex: 1 1 auto; min-width: 0; }
 
+/* The bar inside sizes to its content, which leaves a one-line confirmation
+   plus an action button wrapping over several lines. Filling the stated
+   width keeps every confirmation the same shape. */
+.vb-snackbar ui-snackbar ::ng-deep .snackbar { width: 100%; }
+
 @media (max-width: 900px) {
   .entity-section { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 }
@@ -382,3 +387,25 @@ ui-modal-shell ::ng-deep .title {
   align-self: flex-start;
   margin-top: 4px;
 }
+
+/* The kit's product link prints at body/sm regular. This one is the section
+   note's call to action, so it takes DLS's body/sm-bold variant — same size
+   and leading as the prose around it, heavier face. */
+.baseline-link { @include type.body(sm, $bold: true); }
+
+/* Square the remove cell so the 16px glyph sits in the middle of it. */
+.rl-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+td.ui-cell-actions:has(.rl-remove) { text-align: center; }
+
+/* The kit's date input inherits the page font; inside our own dialog it was
+   picking up the browser default for the native control. */
+.rl-dialog ui-date-input input { font: inherit; }
+
+/* Read-only rows are a record to scan rather than a form to fill, so they
+   carry more air between them than the edit grid does. */
+.entity-section-body .detail-grid { gap: 22px 28px; }

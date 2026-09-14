@@ -222,6 +222,12 @@ export interface BenefitUpdateRequest {
   id: string;
   /** Only the changed fields, old and new, for the approver's diff. */
   fields: BenefitFieldChange[];
+  /**
+   * Reporting lines staged in the same edit. They are part of the SAME review:
+   * a change anywhere in the benefit puts the whole benefit up for approval,
+   * so a line is not in the history until the request is approved.
+   */
+  reportingLines: BenefitUpdate[];
   requestedBy: string;
   requestedOn: string;
   status: BaselineApprovalStatus;

@@ -1,10 +1,10 @@
-import { Component, ElementRef, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
 import {
   UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
   UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
-  UiRadioChiclet, UiRadioChicletGroup, UiSnackbar, UiTabs, UiTooltipDirective,
+  UiLink, UiRadioChiclet, UiRadioChicletGroup, UiSnackbar, UiTabs, UiTooltipDirective,
   type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiTab, type UiTagVariant
 } from 'ai-dls-kit';
 import {
@@ -23,6 +23,7 @@ import { Approvals } from '../approvals/approvals';
 const ALL = 'All';
 
 const LIFECYCLE_VARIANT: Record<string, UiTagVariant> = {
+  'Update Pending Approval': 'amber',
   'Tracking Active': 'neutral',
   'Closure Pending Approval': 'amber',
   'Closed': 'green'
@@ -47,7 +48,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
     UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiInfoBanner,
-    UiTabs, UiTooltipDirective, UiSnackbar, UiRadioChicletGroup, UiRadioChiclet,
+    UiTabs, UiTooltipDirective, UiSnackbar, UiRadioChicletGroup, UiRadioChiclet, UiLink,
     Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
@@ -57,6 +58,8 @@ const STATUS_DOT: Record<string, UiPillColor> = {
 export class ValueBenefits {
   readonly seeded = input.required<Benefit[]>({ alias: 'benefits' });
   readonly workstreamId = input.required<string>();
+  /** Which sub-tab to open on, so a link can land on Baseline Management. */
+  readonly initialView = input<string>('tracking');
 
   /** The session store's list for this workstream, so edits persist. */
   protected readonly benefits = computed(() => benefitsFor(this.workstreamId())());
@@ -96,7 +99,7 @@ export class ValueBenefits {
     { key: 'tracking', label: 'Benefits Tracking' },
     { key: 'baseline', label: 'Baseline Management' }
   ];
-  protected readonly view = signal('tracking');
+  protected readonly view = linkedSignal(() => this.initialView());
 
   /** A benefit lives on a workstream, so its approvals do too. */
   protected readonly pageTabs = computed<UiFilterTab[]>(() => [
@@ -253,6 +256,14 @@ export class ValueBenefits {
   }
 
   protected latest(b: Benefit) { return latestUpdate(b); }
+
+  /**
+   * Deep link to this workstream's Baseline Management sub-tab. A real
+   * destination rather than a link back to the workstream, so the reader
+   * lands where the sentence says they will.
+   */
+  protected readonly baselineManagementUrl = computed(() =>
+    `/workstreams/${this.workstreamId()}?tab=value-benefits&view=baseline`);
 
   /**
    * The owner column stays narrow, so it prints the first name and a count.
@@ -477,96 +488,44 @@ export class ValueBenefits {
     add('status', 'Benefit Status', b.status, this.editStatus(), this.editStatus());
 
     const staged = this.draftUpdates();
-    const baselineMoved = this.baselineChanged();
-    if (!changes.length && !baselineMoved && !staged.length) {
+    if (!changes.length && !staged.length) {
       this.summaryEdit.set(false);
       return;
     }
 
-    const typed = this.editBaseline().trim();
-    const proposed = typed === '' ? null : this.num(typed);
-    const newBaselineId = baselineMoved ? nextBaselineId(this.benefits()) : null;
-
     benefitsFor(this.workstreamId()).update((rows) =>
       rows.map((r) => {
         if (r.id !== b.id) return r;
-        const audit = [...r.auditLog];
-        for (const u of staged) {
-          audit.push({
-            id: `ba-${Date.now()}-${u.id}`,
-            date: today,
-            user: CURRENT_USER,
-            action: 'Benefit Updated',
-            comments: r.type === 'Financial'
-              ? `Actuals reported — ${this.money(u.actualValue)}.`
-              : 'Progress update recorded.'
-          });
-        }
-        if (changes.length) {
-          audit.push({
+        const parts: string[] = [];
+        if (changes.length) parts.push(`${changes.length} field${changes.length > 1 ? 's' : ''} (${changes.map((c) => c.label).join(', ')})`);
+        if (staged.length) parts.push(`${staged.length} reporting line${staged.length > 1 ? 's' : ''}`);
+        return {
+          ...r,
+          // Nothing is written yet. A change anywhere in the benefit puts the
+          // WHOLE benefit up for review, so the reporting lines travel with the
+          // field changes and only reach the history on approval.
+          pendingUpdate: {
+            id: `up-${Date.now()}`,
+            fields: changes,
+            reportingLines: staged,
+            requestedBy: CURRENT_USER,
+            requestedOn: today,
+            status: 'Pending Approval' as const
+          },
+          auditLog: [...r.auditLog, {
             id: `ba-${Date.now()}`,
             date: today,
             user: CURRENT_USER,
             action: 'Benefit Update Requested',
-            comments: `${changes.length} field${changes.length > 1 ? 's' : ''} submitted for approval — ${changes.map((c) => c.label).join(', ')}.`
-          });
-        }
-        if (newBaselineId) {
-          audit.push({
-            id: `ba-${Date.now() + 1}`,
-            date: today,
-            user: CURRENT_USER,
-            action: 'Baseline Change Requested',
-            comments: `${newBaselineId} submitted for approval — ${this.editReason().trim() || 'baseline revised'}.`
-          });
-        }
-        return {
-          ...r,
-          // Appended, not staged for approval: a reporting line is the
-          // reporter's own statement of where the benefit has got to, and
-          // the history it joins is append-only.
-          reportingHistory: [...r.reportingHistory, ...staged],
-          pendingUpdate: changes.length
-            ? {
-                id: `up-${Date.now()}`,
-                fields: changes,
-                requestedBy: CURRENT_USER,
-                requestedOn: today,
-                status: 'Pending Approval' as const
-              }
-            : r.pendingUpdate,
-          approvalStatus: newBaselineId ? ('Pending Approval' as const) : r.approvalStatus,
-          pendingWith: newBaselineId ? 'Finance Business Partner' : r.pendingWith,
-          baselineHistory: newBaselineId
-            ? [...r.baselineHistory, {
-                baselineId: newBaselineId,
-                baselineValue: proposed,
-                startDate: this.editStart(),
-                endDate: this.editEnd(),
-                requestedBy: CURRENT_USER,
-                requestedOn: today,
-                approvedBy: '-',
-                approvalDate: '-',
-                changeReason: this.editReason().trim() || 'Baseline revised through benefit edit',
-                status: 'Pending Approval' as const
-              }]
-            : r.baselineHistory,
-          auditLog: audit
+            comments: `Submitted for approval — ${parts.join(' and ')}.`
+          }]
         };
       }));
 
     this.summaryEdit.set(false);
     this.draftUpdates.set([]);
-    if (!changes.length && !baselineMoved) {
-      this.toast.set(`${staged.length} reporting line${staged.length > 1 ? 's' : ''} added`);
-      return;
-    }
-    this.toast.set(
-      changes.length && baselineMoved
-        ? 'Benefit update and baseline change submitted for approval'
-        : baselineMoved
-          ? 'Baseline change submitted for approval'
-          : 'Benefit update submitted for approval');
+    this.toastBenefitId.set(b.id);
+    this.toast.set('Benefit has been submitted for approval');
   }
   protected openAudit(b: Benefit) { this.auditId.set(b.id); }
 
@@ -1026,10 +985,30 @@ export class ValueBenefits {
    * applies to invented infrastructure as much as to invented UI.
    */
   protected readonly toast = signal<string | null>(null);
+  /** The benefit the confirmation's "View benefit" action reopens, if any. */
+  protected readonly toastBenefitId = signal<string | null>(null);
 
   private toastTimer?: ReturnType<typeof setTimeout>;
 
-  protected dismissToast() { this.toast.set(null); }
+  protected dismissToast() { this.toast.set(null); this.toastBenefitId.set(null); }
+
+  protected viewToastBenefit() {
+    const id = this.toastBenefitId();
+    if (id) this.detailId.set(id);
+    this.dismissToast();
+  }
+
+  /**
+   * What the Benefit Status column and the summary show.
+   *
+   * Derived rather than written onto `status`: the lifecycle status still means
+   * where the benefit is in its life (tracking, closing, closed), and a pending
+   * edit is a separate fact about it. Writing 'pending' over the lifecycle value
+   * would lose what to restore once a decision is made.
+   */
+  protected displayStatus(b: Benefit): string {
+    return b.pendingUpdate?.status === 'Pending Approval' ? 'Update Pending Approval' : b.status;
+  }
 
   /** Downloads the open benefit as CSV — summary, reporting history and audit log. */
   protected download(b: Benefit) {

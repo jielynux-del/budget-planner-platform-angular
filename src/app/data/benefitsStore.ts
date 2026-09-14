@@ -78,7 +78,12 @@ export function approvalQueue(): ApprovalItem[] {
           // not share the baseline queue's approver.
           pendingWith: 'Portfolio Approver',
           state: upd.status,
-          detail: upd.fields.map((f) => `${f.label}: ${f.from || '-'} → ${f.to || '-'}`).join('; ')
+          detail: [
+            ...upd.fields.map((f) => `${f.label}: ${f.from || '-'} → ${f.to || '-'}`),
+            ...(upd.reportingLines?.length
+              ? [`${upd.reportingLines.length} new reporting line${upd.reportingLines.length > 1 ? 's' : ''}`]
+              : [])
+          ].join('; ')
         });
       }
 

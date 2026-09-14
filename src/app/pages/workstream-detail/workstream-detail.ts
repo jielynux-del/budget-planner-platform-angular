@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -49,10 +49,20 @@ export class WorkstreamDetail {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly params = toSignal(this.route.paramMap);
+  private readonly query = toSignal(this.route.queryParamMap);
 
   protected readonly tree = hierarchy;
   protected readonly ws = computed(() => workstreamById(this.params()?.get('id') ?? ''));
-  protected readonly activeTab = signal('work-profile');
+  /**
+   * Deep-linkable: `?tab=value-benefits&view=baseline` opens straight onto
+   * Baseline Management, which is what the Baseline History link needs in
+   * order to open a real destination rather than just the workstream.
+   */
+  protected readonly activeTab = linkedSignal(() =>
+    this.query()?.get('tab') ?? 'work-profile');
+  /** 'baseline' opens Value/Benefits on the Baseline Management sub-tab. */
+  protected readonly initialView = computed(() => this.query()?.get('view') ?? 'tracking');
+
   /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
   protected readonly panelExpanded = signal(true);
 

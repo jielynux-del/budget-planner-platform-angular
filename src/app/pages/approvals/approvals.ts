@@ -159,6 +159,11 @@ export class Approvals {
         return this.audit({
           ...b,
           ...applied,
+          // The staged reporting lines join the history only on approval —
+          // they were part of the same review as the field changes.
+          reportingHistory: approved
+            ? [...b.reportingHistory, ...(upd.reportingLines ?? [])]
+            : b.reportingHistory,
           pendingUpdate: kind === 'rework'
             ? { ...upd, status: 'Changes Requested' as const, decisionNote: note }
             : undefined
@@ -166,7 +171,7 @@ export class Approvals {
         approved ? 'Benefit Update Approved'
           : kind === 'rework' ? 'Benefit Update Returned'
           : 'Benefit Update Rejected',
-        `${upd.fields.length} field${upd.fields.length > 1 ? 's' : ''} ${approved ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
+        `${this.updateSummary(upd)} ${approved ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
           (note ? ` ${note}` : ''));
       }
 
@@ -187,6 +192,15 @@ export class Approvals {
 
     this.version.update((v) => v + 1);
     this.closeDecision();
+  }
+
+  /** What the request covers, for the audit line and the queue's detail cell. */
+  private updateSummary(upd: NonNullable<Benefit['pendingUpdate']>) {
+    const parts: string[] = [];
+    if (upd.fields.length) parts.push(`${upd.fields.length} field${upd.fields.length > 1 ? 's' : ''}`);
+    const lines = upd.reportingLines?.length ?? 0;
+    if (lines) parts.push(`${lines} reporting line${lines > 1 ? 's' : ''}`);
+    return parts.join(' and ') || 'No changes';
   }
 
   protected stateVariant(state: string): UiTagVariant {

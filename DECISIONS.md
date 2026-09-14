@@ -8,6 +8,33 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — One review covers the whole benefit
+
+**Decision.** Any change made through Update benefit — a field, a reporting line, or both —
+raises ONE request covering the whole benefit. A reporting line is no longer appended on save;
+it travels inside `pendingUpdate.reportingLines` and joins the history only when the request is
+approved.
+
+**Why.** The earlier split (fields approved, reporting lines applied immediately) meant the same
+button did two different things depending on what you touched, and a reader could not tell from
+the record which parts had been reviewed. One request, one decision, one audit line.
+
+**Pending status is DERIVED, not written.** `displayStatus()` returns 'Update Pending Approval'
+while a request is live, leaving `status` holding the lifecycle value (tracking / closing /
+closed). Writing 'pending' over `status` would lose what to restore once a decision is made.
+
+**The summary is split in two.** Benefit Details carries what the benefit is and who owns it;
+Baseline carries benefit type, baseline ID and both baseline figures. Everything in Baseline is
+read-only in this flow — those values move through Request Baseline Change, which has its own
+reason and its own approver. Benefit Status is never editable anywhere.
+
+**Baseline Management is deep-linkable.** `?tab=value-benefits&view=baseline` opens the detail
+page on that sub-tab, so the Baseline History note can link to a real destination rather than
+back to the workstream. Both the tab and the sub-tab read their initial value from the query
+string through `linkedSignal`.
+
+---
+
 ## 2026-09-14 — Update benefit is an overlay mode, not a section affordance
 
 **Decision.** The edit affordance moved out of the Benefit Summary section and up to the
