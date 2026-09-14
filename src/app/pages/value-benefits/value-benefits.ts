@@ -14,7 +14,7 @@ import {
 import {
   BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, FINANCIAL_TYPES
 } from '../../data/lookups';
-import type { Benefit, BenefitFieldChange, BenefitRow } from '../../data/models';
+import type { Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate } from '../../data/models';
 import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
 import { benefitsFor } from '../../data/benefitsStore';
 import { currentPersona } from '../../data/personas';
@@ -373,10 +373,76 @@ export class ValueBenefits {
     this.editStatus.set(b.status);
     this.editBaseline.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
     this.editReason.set('');
+    this.draftUpdates.set([]);
     this.summaryEdit.set(true);
   }
 
-  protected cancelSummaryEdit() { this.summaryEdit.set(false); }
+  protected cancelSummaryEdit() {
+    this.summaryEdit.set(false);
+    this.draftUpdates.set([]);
+    this.closeReportingDialog();
+  }
+
+  /* ---------------- Reporting lines added during an edit ---------------- */
+
+  /**
+   * Lines staged in this editing session. Held apart from the benefit's
+   * reportingHistory because that history is append-only and already reported:
+   * a staged line can still be removed, a reported one never can.
+   */
+  protected readonly draftUpdates = signal<BenefitUpdate[]>([]);
+
+  protected readonly reportingDialogOpen = signal(false);
+  protected readonly rlDate = signal('');
+  protected readonly rlActual = signal('');
+  protected readonly rlProgress = signal('');
+  protected readonly rlExplanation = signal('');
+  protected readonly rlRootCause = signal('');
+  protected readonly rlCorrective = signal('');
+
+  protected openReportingDialog() {
+    this.rlDate.set(this.today());
+    this.rlActual.set('');
+    this.rlProgress.set('');
+    this.rlExplanation.set('');
+    this.rlRootCause.set('');
+    this.rlCorrective.set('');
+    this.reportingDialogOpen.set(true);
+  }
+
+  protected closeReportingDialog() { this.reportingDialogOpen.set(false); }
+
+  /** A staged line needs a date and the one figure its benefit type reports. */
+  protected readonly reportingLineValid = computed(() => {
+    const b = this.detail();
+    if (!b || !this.rlDate()) return false;
+    return b.type === 'Financial'
+      ? this.rlActual().trim() !== ''
+      : this.rlProgress().trim() !== '';
+  });
+
+  protected addReportingLine(b: Benefit) {
+    const financial = b.type === 'Financial';
+    const actual = financial ? this.num(this.rlActual()) : null;
+    const base = b.currentApprovedBaseline;
+    this.draftUpdates.update((rows) => [...rows, {
+      id: `ru-draft-${Date.now()}`,
+      updateDate: this.rlDate(),
+      actualValue: actual,
+      progressUpdate: financial ? '' : this.rlProgress().trim(),
+      variancePct: financial && base ? Math.round(((actual! - base) / base) * 1000) / 10 : null,
+      varianceExplanation: this.rlExplanation().trim(),
+      rootCause: this.rlRootCause().trim(),
+      correctiveAction: this.rlCorrective().trim(),
+      updatedBy: CURRENT_USER,
+      evidence: ''
+    }]);
+    this.closeReportingDialog();
+  }
+
+  protected removeReportingLine(id: string) {
+    this.draftUpdates.update((rows) => rows.filter((r) => r.id !== id));
+  }
 
   /** The baseline figure changed, so a baseline approval is needed too. */
   protected readonly baselineChanged = computed(() => {
@@ -410,8 +476,9 @@ export class ValueBenefits {
     add('type', 'Benefit Type', b.type, this.editType(), this.editType());
     add('status', 'Benefit Status', b.status, this.editStatus(), this.editStatus());
 
+    const staged = this.draftUpdates();
     const baselineMoved = this.baselineChanged();
-    if (!changes.length && !baselineMoved) {
+    if (!changes.length && !baselineMoved && !staged.length) {
       this.summaryEdit.set(false);
       return;
     }
@@ -424,6 +491,17 @@ export class ValueBenefits {
       rows.map((r) => {
         if (r.id !== b.id) return r;
         const audit = [...r.auditLog];
+        for (const u of staged) {
+          audit.push({
+            id: `ba-${Date.now()}-${u.id}`,
+            date: today,
+            user: CURRENT_USER,
+            action: 'Benefit Updated',
+            comments: r.type === 'Financial'
+              ? `Actuals reported — ${this.money(u.actualValue)}.`
+              : 'Progress update recorded.'
+          });
+        }
         if (changes.length) {
           audit.push({
             id: `ba-${Date.now()}`,
@@ -444,6 +522,10 @@ export class ValueBenefits {
         }
         return {
           ...r,
+          // Appended, not staged for approval: a reporting line is the
+          // reporter's own statement of where the benefit has got to, and
+          // the history it joins is append-only.
+          reportingHistory: [...r.reportingHistory, ...staged],
           pendingUpdate: changes.length
             ? {
                 id: `up-${Date.now()}`,
@@ -474,6 +556,11 @@ export class ValueBenefits {
       }));
 
     this.summaryEdit.set(false);
+    this.draftUpdates.set([]);
+    if (!changes.length && !baselineMoved) {
+      this.toast.set(`${staged.length} reporting line${staged.length > 1 ? 's' : ''} added`);
+      return;
+    }
     this.toast.set(
       changes.length && baselineMoved
         ? 'Benefit update and baseline change submitted for approval'

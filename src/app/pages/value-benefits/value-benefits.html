@@ -241,12 +241,35 @@
   <ui-modal-shell
     [title]="b.name"
     [subtitle]="b.benefitRef + ' · ' + b.type + ' · ' + ownerLabel(b.owners)"
+    [hasFooterSlot]="summaryEdit()"
     [class.sheet-closing]="closingDetail()"
     (closed)="closeDetail()">
 
-    <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
+    <!-- Projected into the shell's named slots, so these must stay at the top
+         level of the template: Angular matches ng-content selectors statically,
+         and anything nested in an @if falls through to the default slot instead
+         — which puts a header button in the body. Visibility is bound instead. -->
+    <button
+      ui-modal-actions
+      ui-button
+      variant="secondary"
+      size="small"
+      type="button"
+      [style.display]="summaryEdit() ? 'none' : null"
+      (click)="download(b)">
       <ui-icon name="download" />
       Download
+    </button>
+    <button
+      ui-modal-actions
+      ui-button
+      variant="secondary"
+      size="small"
+      type="button"
+      [style.display]="summaryEdit() || !persona().canRequest ? 'none' : null"
+      (click)="startSummaryEdit(b)">
+      <ui-icon name="edit" />
+      Update benefit
     </button>
 
     <ui-card>
@@ -257,17 +280,6 @@
             The definition of this benefit. Changes are submitted for approval and
             take effect once approved.
           </p>
-          @if (!summaryEdit() && persona().canRequest) {
-            <button
-              ui-icon-button
-              variant="ghost"
-              size="small"
-              type="button"
-              aria-label="Edit benefit summary"
-              (click)="startSummaryEdit(b)">
-              <ui-icon name="edit" />
-            </button>
-          }
         </aside>
 
         <div class="entity-section-body">
@@ -361,11 +373,6 @@
               [message]="baselineChanged()
                 ? 'This raises two approvals: the benefit update goes to the Portfolio Approver, the baseline change to Finance.'
                 : 'Changes are submitted to the Portfolio Approver and take effect once approved.'" />
-
-            <div class="edit-actions">
-              <button ui-button variant="secondary" size="small" type="button" (click)="cancelSummaryEdit()">Cancel</button>
-              <button ui-button variant="primary" size="small" type="button" (click)="saveSummaryEdit(b)">Submit for Approval</button>
-            </div>
           }
         </div>
       </div>
@@ -378,7 +385,7 @@
           <p class="entity-section-note">Every update reported against this benefit. Appended, never edited.</p>
         </aside>
         <div class="entity-section-body">
-      @if (!b.reportingHistory.length) {
+      @if (!b.reportingHistory.length && !draftUpdates().length && !summaryEdit()) {
         <p class="empty">Nothing has been reported for this benefit yet.</p>
       } @else {
         <div class="vb-scroll">
@@ -393,7 +400,10 @@
                   <th><ui-column-header label="Root Cause" size="sm" /></th>
                   <th><ui-column-header label="Corrective Action" size="sm" /></th>
                 }
-                <th><ui-column-header label="Updated By" size="sm" [last]="true" /></th>
+                <th><ui-column-header label="Updated By" size="sm" [last]="!summaryEdit()" /></th>
+                @if (summaryEdit()) {
+                  <th style="width: 56px"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -405,16 +415,50 @@
                     <td class="ui-cell-number">
                       <ui-pill [label]="variance(r.variancePct)" [color]="varianceColour(r.variancePct)" [dot]="false" />
                     </td>
-                    <td>{{ r.varianceExplanation || '-' }}</td>
-                    <td>{{ r.rootCause || '-' }}</td>
-                    <td>{{ r.correctiveAction || '-' }}</td>
+                    <td>{{ r.varianceExplanation || emptyValue }}</td>
+                    <td>{{ r.rootCause || emptyValue }}</td>
+                    <td>{{ r.correctiveAction || emptyValue }}</td>
                   }
                   <td>{{ r.updatedBy }}</td>
+                  <!-- Already reported: there is nothing to withdraw. -->
+                  @if (summaryEdit()) { <td></td> }
+                </tr>
+              }
+              @for (r of draftUpdates(); track r.id) {
+                <tr ui-table-row>
+                  <td class="cell-nowrap">{{ r.updateDate }}</td>
+                  <td [class.cell-nowrap]="b.type === 'Financial'">{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
+                  @if (b.type === 'Financial') {
+                    <td class="ui-cell-number">
+                      <ui-pill [label]="variance(r.variancePct)" [color]="varianceColour(r.variancePct)" [dot]="false" />
+                    </td>
+                    <td>{{ r.varianceExplanation || emptyValue }}</td>
+                    <td>{{ r.rootCause || emptyValue }}</td>
+                    <td>{{ r.correctiveAction || emptyValue }}</td>
+                  }
+                  <td>{{ r.updatedBy }}</td>
+                  <td class="ui-cell-actions">
+                    <button
+                      ui-icon-button
+                      variant="ghost"
+                      size="small"
+                      type="button"
+                      aria-label="Remove this line"
+                      (click)="removeReportingLine(r.id)">
+                      <ui-icon name="delete" />
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
+        @if (summaryEdit()) {
+          <button ui-button variant="plain" size="small" type="button" class="add-row" (click)="openReportingDialog()">
+            <ui-icon name="plus-circle" />
+            Add new
+          </button>
+        }
       }
         </div>
       </div>
@@ -424,7 +468,10 @@
       <div class="entity-section">
         <aside class="entity-section-head">
           <h3 class="entity-section-title">Baseline History</h3>
-          <p class="entity-section-note">Each baseline this benefit has held, and why it moved.</p>
+          <p class="entity-section-note">
+            Each baseline this benefit has held, and why it moved. View only — a baseline
+            moves through Request Baseline Change, never by editing this record.
+          </p>
         </aside>
         <div class="entity-section-body">
       <div class="vb-scroll">
@@ -458,6 +505,23 @@
         </div>
       </div>
     </ui-card>
+
+    <button
+      ui-modal-footer-start
+      ui-button
+      variant="secondary"
+      size="small"
+      type="button"
+      [style.display]="summaryEdit() ? null : 'none'"
+      (click)="cancelSummaryEdit()">Cancel</button>
+    <button
+      ui-modal-footer
+      ui-button
+      variant="primary"
+      size="small"
+      type="button"
+      [style.display]="summaryEdit() ? null : 'none'"
+      (click)="saveSummaryEdit(b)">Submit for approval</button>
   </ui-modal-shell>
 }
 
@@ -941,6 +1005,47 @@
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitBaselineChange()">Submit Request</button>
     }
   </ui-modal-shell>
+}
+
+<!-- ── Add a reporting line: a small dialog over the benefit overlay ──── -->
+@if (reportingDialogOpen() && detail(); as b) {
+  <div class="rl-scrim" (click)="closeReportingDialog()"></div>
+  <div class="rl-dialog" role="dialog" aria-modal="true" aria-label="Add reporting line">
+    <h2 class="rl-title">Add Reporting Line</h2>
+    <div class="rl-body">
+      <div class="filter-field">
+        <span class="filter-label">Update Date</span>
+        <ui-date-input [(value)]="rlDate" />
+      </div>
+      @if (b.type === 'Financial') {
+        <div class="filter-field">
+          <span class="filter-label">Actual Benefit Value (S$)</span>
+          <ui-text-input [(value)]="rlActual" placeholder="0" />
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">Variance Explanation</span>
+          <ui-textarea [(value)]="rlExplanation" placeholder="Why the actual differs from the baseline" />
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">Root Cause</span>
+          <ui-textarea [(value)]="rlRootCause" />
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">Corrective Action</span>
+          <ui-textarea [(value)]="rlCorrective" />
+        </div>
+      } @else {
+        <div class="filter-field">
+          <span class="filter-label">Progress Update</span>
+          <ui-textarea [(value)]="rlProgress" placeholder="e.g. Rolled out to four markets" />
+        </div>
+      }
+    </div>
+    <div class="rl-actions">
+      <button ui-button variant="secondary" size="small" type="button" (click)="closeReportingDialog()">Cancel</button>
+      <button ui-button variant="primary" size="small" type="button" [disabled]="!reportingLineValid()" (click)="addReportingLine(b)">Add</button>
+    </div>
+  </div>
 }
 
 <!-- ── Confirmation snackbar ──────────────────────────────────────────── -->

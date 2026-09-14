@@ -8,6 +8,39 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — Update benefit is an overlay mode, not a section affordance
+
+**Decision.** The edit affordance moved out of the Benefit Summary section and up to the
+overlay header, beside Download, as a secondary "Update benefit" button. Clicking it puts the
+whole overlay into edit mode, with a sticky footer carrying Cancel and Submit for approval.
+
+**Baseline History stays view-only even in edit mode.** A baseline moves through Request
+Baseline Change, which is an approval flow with a reason and an approver. Letting it be typed
+over in an edit form would route around that.
+
+**Reporting History gains rows in edit mode.** "Add new" under the table opens a small dialog of
+plain input fields — no table-shaped editing — and Add appends the line. A line staged in this
+session can be removed; a line already reported cannot, because the history is append-only and
+those lines are already someone's statement of record.
+
+Staged lines append on Submit rather than waiting on the approval that governs the descriptive
+fields. A reporting line is the reporter's own account of where the benefit has got to, and it
+is additive — there is nothing for an approver to accept or reject in the way there is for a
+changed owner or a moved baseline.
+
+**Two layout rules.** Overlay titles print at heading/xs, a step down from the kit's modal
+default, so they sit properly against the compact section titles beneath them. And a section of
+text fields is held to two columns: four short inputs across reads as a form to fill in rather
+than a record to check. Tables are exempt — they take their column count from their data.
+
+**Angular content projection is static.** Both button groups were first written inside `@if`
+blocks and silently landed in the overlay BODY rather than the header and footer slots:
+`ng-content select=...` matches top-level nodes only, so anything nested in a control-flow block
+falls through to the default slot. They are now projected unconditionally with their visibility
+bound instead. Worth knowing before adding another slotted control.
+
+---
+
 ## 2026-09-14 — Owners are people, and an edit is a request
 
 **Decision.** Benefit owner is a multi-select of named individuals; the BUs involved are

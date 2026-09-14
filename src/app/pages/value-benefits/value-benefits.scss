@@ -301,3 +301,84 @@ ui-table-header ::ng-deep .title { @include type.heading(xs); }
 /* A date or a figure carries no break opportunity a reader would accept —
    "S$2,90 / 0,000" reads as two numbers. Prose columns still wrap. */
 .cell-nowrap { white-space: nowrap; }
+
+
+/* ── Focus overlay chrome ────────────────────────────────────────────
+   Every overlay title prints at heading/xs; the kit's own modal title
+   sits a step up, which is too loud against the compact section titles
+   beneath it. ::ng-deep because the title is inside the shell's template. */
+ui-modal-shell ::ng-deep .modal-title,
+ui-modal-shell ::ng-deep .title {
+  @include type.heading(xs);
+}
+
+/* A section of text fields is read in two columns whatever the viewport
+   gives it — a four-across row of short inputs reads as a form to fill in
+   rather than a record to check. Tables are exempt: they set their own
+   column count from their data. */
+.entity-section-body .create-grid,
+.entity-section-body .detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .entity-section-body .create-grid,
+  .entity-section-body .detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Add-a-reporting-line dialog ──────────────────────────────────────
+   Its own small dialog rather than a second ui-modal-shell: the shell is a
+   full-viewport focus overlay, and nesting one inside another would replace
+   the benefit record the user is working against instead of sitting over it. */
+.rl-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-scrim, rgba(16, 24, 32, 0.48));
+  z-index: 1300;
+}
+
+.rl-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1301;
+  width: min(520px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-level1);
+  border: 1px solid var(--color-border-decorative);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 12px 32px rgba(16, 24, 32, 0.18);
+}
+
+.rl-title {
+  @include type.heading(xs);
+  color: var(--color-text-strong);
+  margin: 0;
+  padding: 20px 24px 12px;
+}
+
+.rl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px 20px;
+  overflow-y: auto;
+}
+
+.rl-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border-decorative);
+}
+
+/* Sits under the table it appends to, aligned with the first column rather
+   than centred, so it reads as the table's next row. */
+.add-row {
+  align-self: flex-start;
+  margin-top: 4px;
+}
