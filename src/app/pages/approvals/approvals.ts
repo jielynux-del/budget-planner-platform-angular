@@ -134,8 +134,8 @@ export class Approvals {
           approvalStatus: approved ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected',
           // Only an approval promotes the proposed value to the current baseline.
           currentApprovedBaseline: approved ? history[idx].baselineValue : b.currentApprovedBaseline,
-          effectiveDate: approved ? history[idx].effectiveDate : b.effectiveDate,
-          targetRealisationDate: approved ? history[idx].targetRealisationDate : b.targetRealisationDate,
+          startDate: approved ? history[idx].startDate : b.startDate,
+          endDate: approved ? history[idx].endDate : b.endDate,
           approvedBy: approved ? this.persona().name : '-',
           approvalDate: approved ? this.today() : '-',
           pendingWith: approved || kind === 'reject' ? undefined : b.pendingWith

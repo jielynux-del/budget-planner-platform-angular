@@ -2,18 +2,20 @@ import { Component, ElementRef, computed, effect, inject, input, signal } from '
 import {
   UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
-  UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiStepper, UiTable, UiTableCard,
+  UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
-  type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiStepperStep, type UiTagVariant
+  UiRadioChiclet, UiRadioChicletGroup, UiSnackbar, UiTabs, UiTooltipDirective,
+  type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiTab, type UiTagVariant
 } from 'ai-dls-kit';
 import {
   BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, financialTotal, latestUpdate,
   nextBaselineId, nextBenefitRef
 } from '../../data/benefitsData';
 import {
-  BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, BENEFIT_OWNERS, FINANCIAL_TYPES
+  BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, FINANCIAL_TYPES
 } from '../../data/lookups';
-import type { Benefit, BenefitRow } from '../../data/models';
+import type { Benefit, BenefitFieldChange, BenefitRow } from '../../data/models';
+import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
 import { benefitsFor } from '../../data/benefitsStore';
 import { currentPersona } from '../../data/personas';
 import { Approvals } from '../approvals/approvals';
@@ -44,7 +46,8 @@ const STATUS_DOT: Record<string, UiPillColor> = {
   imports: [
     UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
-    UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiStepper, UiInfoBanner,
+    UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiInfoBanner,
+    UiTabs, UiTooltipDirective, UiSnackbar, UiRadioChicletGroup, UiRadioChiclet,
     Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
@@ -81,9 +84,9 @@ export class ValueBenefits {
       b.approvalStatus === 'Changes Requested' || b.status === 'Closure Changes Requested'));
 
   protected readonly all = ALL;
-  protected readonly ownerOptions = [ALL, ...BENEFIT_OWNERS];
-  /** The wizard picks a real owner, so it must not offer the filter's All sentinel. */
-  protected readonly ownerChoices = BENEFIT_OWNERS;
+  protected readonly ownerOptions = [ALL, ...PEOPLE_NAMES];
+  /** The wizard picks real people, so it must not offer the filter's All sentinel. */
+  protected readonly ownerChoices = PEOPLE_NAMES;
   protected readonly statusOptions = [ALL, ...BENEFIT_STATUSES];
   protected readonly typeOptions = [ALL, 'Financial', 'Non-Financial'];
   protected readonly approvalOptions = [ALL, 'Approved', 'Pending Approval', 'Rejected'];
@@ -178,14 +181,14 @@ export class ValueBenefits {
 
   protected readonly filtered = computed<Benefit[]>(() =>
     this.benefits().filter((b) =>
-      (this.owner() === ALL || b.owner === this.owner()) &&
+      (this.owner() === ALL || b.owners.includes(this.owner())) &&
       (this.status() === ALL || b.status === this.status()) &&
       (this.statusTile() === ALL || b.status === this.statusTile()) &&
-      (!this.realisationFrom() || b.targetRealisationDate >= this.realisationFrom()) &&
-      (!this.realisationTo() || b.targetRealisationDate <= this.realisationTo()) &&
+      (!this.realisationFrom() || b.endDate >= this.realisationFrom()) &&
+      (!this.realisationTo() || b.endDate <= this.realisationTo()) &&
       (!this.colName().length || this.colName().includes(b.name)) &&
       (!this.colType().length || this.colType().includes(b.type)) &&
-      (!this.colOwner().length || this.colOwner().includes(b.owner)) &&
+      (!this.colOwner().length || b.owners.some((o) => this.colOwner().includes(o))) &&
       (!this.colStatus().length || this.colStatus().includes(b.status)) &&
       (!this.colApproval().length || this.colApproval().includes(b.approvalStatus))
     )
@@ -240,9 +243,48 @@ export class ValueBenefits {
         removeEventListener('resize', this.anchorPopover);
       });
     });
+
+    // A confirmation clears itself; the snackbar stays dismissible meanwhile.
+    effect((onCleanup) => {
+      if (!this.toast()) return;
+      this.toastTimer = setTimeout(() => this.toast.set(null), 6000);
+      onCleanup(() => clearTimeout(this.toastTimer));
+    });
   }
 
   protected latest(b: Benefit) { return latestUpdate(b); }
+
+  /**
+   * The owner column stays narrow, so it prints the first name and a count.
+   * The full list is the tooltip's job — `ownerTooltip` below.
+   */
+  protected ownerLabel(owners: readonly string[]) {
+    if (!owners.length) return '-';
+    if (owners.length === 1) return owners[0];
+    return `${owners[0]} + ${owners.length - 1} more`;
+  }
+
+  /** Null for a single owner: there is nothing the column isn't already showing. */
+  protected ownerTooltip(owners: readonly string[]) {
+    if (owners.length < 2) return null;
+    return { title: `Benefit Owners (${owners.length})`, lines: [...owners] };
+  }
+
+  protected businessUnits(owners: readonly string[]) {
+    return businessUnitsFor(owners).join(', ');
+  }
+
+  /** Same treatment as owners — categories are multi-select now. */
+  protected categoryLabel(categories: readonly string[]) {
+    if (!categories.length) return '-';
+    if (categories.length === 1) return categories[0];
+    return `${categories[0]} + ${categories.length - 1} more`;
+  }
+
+  protected categoryTooltip(categories: readonly string[]) {
+    if (categories.length < 2) return null;
+    return { title: `Categories (${categories.length})`, lines: [...categories] };
+  }
 
   protected money(n: number | null) {
     return n === null ? '-' : 'S$' + Math.round(n).toLocaleString();
@@ -358,8 +400,8 @@ export class ValueBenefits {
   protected readonly formOutcome = signal('');
   protected readonly formComments = signal('');
   protected readonly formProposed = signal('');
-  protected readonly formEffective = signal('');
-  protected readonly formTarget = signal('');
+  protected readonly formStart = signal('');
+  protected readonly formEnd = signal('');
   protected readonly formReason = signal('');
 
   protected openAction(kind: 'update' | 'closure' | 'change', b: Benefit, event: Event) {
@@ -375,8 +417,8 @@ export class ValueBenefits {
       : latestUpdate(b)?.progressUpdate ?? '');
     this.formComments.set('');
     this.formProposed.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
-    this.formEffective.set(b.effectiveDate);
-    this.formTarget.set(b.targetRealisationDate);
+    this.formStart.set(b.startDate);
+    this.formEnd.set(b.endDate);
     this.formReason.set('');
     this.actionKind.set(kind);
     this.actionId.set(b.id);
@@ -476,8 +518,8 @@ export class ValueBenefits {
       baselineHistory: [...cur.baselineHistory, {
         baselineId: id,
         baselineValue: proposed,
-        effectiveDate: this.formEffective(),
-        targetRealisationDate: this.formTarget(),
+        startDate: this.formStart(),
+        endDate: this.formEnd(),
         requestedBy: this.persona().name,
         requestedOn: this.today(),
         approvedBy: '-',
@@ -503,21 +545,27 @@ export class ValueBenefits {
       return b.type === 'Financial' ? this.formActual().trim() !== '' : this.formProgress().trim() !== '';
     }
     if (this.actionKind() === 'closure') return this.formOutcome().trim() !== '';
-    return this.formReason().trim() !== '' && this.formEffective() !== '' && this.formTarget() !== '';
+    return this.formReason().trim() !== '' && this.formStart() !== '' && this.formEnd() !== '';
   });
 
   /* ---------------- Add New Benefit ---------------- */
 
   protected readonly createOpen = signal(false);
-  protected readonly step = signal(1);
 
   protected readonly draftName = signal('');
-  protected readonly draftOwner = signal('');
-  protected readonly draftCategory = signal('');
+  protected readonly draftOwners = signal<string[]>([]);
+  protected readonly draftCategories = signal<string[]>([]);
   protected readonly draftDescription = signal('');
+  protected readonly draftValidationSource = signal('');
+  /** The prose baseline a non-financial benefit carries instead of a figure. */
+  protected readonly draftBaselineDescription = signal('');
+
+  /** Derived, never edited — RULES #8: a field the user cannot set is read-only. */
+  protected readonly draftBusinessUnits = computed(() =>
+    businessUnitsFor(this.draftOwners()));
   protected readonly draftFinancial = signal(true);
-  protected readonly draftEffective = signal('');
-  protected readonly draftTarget = signal('');
+  protected readonly draftStart = signal('');
+  protected readonly draftEnd = signal('');
   protected readonly draftLines = signal<BenefitRow[]>([]);
   /** The opening baseline, prefilled from the financial lines but editable. */
   protected readonly draftBaselineValue = signal('');
@@ -526,23 +574,40 @@ export class ValueBenefits {
   protected readonly financialTypes = FINANCIAL_TYPES as unknown as string[];
   protected readonly driverOptions = BENEFIT_DRIVERS;
   protected readonly measureOptions = BENEFIT_MEASURES;
-  protected readonly years = [2024, 2025, 2026];
-
-  protected readonly categoryOptions = computed(() =>
-    this.draftFinancial() ? BENEFIT_CATEGORIES : NON_FINANCIAL_CATEGORIES);
-
-  protected readonly lastStep = computed(() => (this.draftFinancial() ? 3 : 1));
-
-  protected readonly steps = computed<UiStepperStep[]>(() => {
-    const labels = this.draftFinancial()
-      ? ['Key Benefits', 'Financial and Stat Impact', 'Total Investments & Benefits']
-      : ['Key Benefits'];
-    return labels.map((label, i) => ({
-      key: String(i + 1),
-      label,
-      status: this.step() === i + 1 ? 'current' : this.step() > i + 1 ? 'completed' : 'pending'
-    })) as UiStepperStep[];
+  /**
+   * The financial table's columns are the years the benefit actually spans, so
+   * they follow Start/End date rather than a fixed window. Falls back to the
+   * current year alone until both dates are set, which keeps the table
+   * rendering instead of collapsing to no columns.
+   */
+  protected readonly years = computed(() => {
+    const from = Number(this.draftStart().slice(0, 4));
+    const to = Number(this.draftEnd().slice(0, 4));
+    if (!from || !to || to < from) return [new Date().getFullYear()];
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
   });
+
+  /**
+   * One combined list. The with-financial-impact question moved to page 2, so
+   * page 1 can no longer branch its category options on an answer the user has
+   * not given yet — and a benefit can legitimately carry categories from both
+   * sides now that the field is multi-select.
+   */
+  protected readonly categoryOptions = [
+    ...BENEFIT_CATEGORIES,
+    ...NON_FINANCIAL_CATEGORIES.filter((c) => !BENEFIT_CATEGORIES.includes(c))
+  ];
+
+  /**
+   * Page tabs, not a stepper: the three pages are freely navigable, so there is
+   * no current/completed/pending state to carry and no step counter to show.
+   */
+  protected readonly wizardTabs: UiTab[] = [
+    { key: 'details', label: 'Benefit Details' },
+    { key: 'baseline', label: 'Baseline Definition' },
+    { key: 'review', label: 'Review' }
+  ];
+  protected readonly wizardTab = signal('details');
 
   protected readonly draftBaseline = computed(() => {
     if (!this.draftFinancial()) return null;
@@ -550,19 +615,41 @@ export class ValueBenefits {
     return typed ? this.num(typed) : financialTotal(this.draftLines());
   });
 
-  protected readonly step1Valid = computed(() =>
-    this.draftName().trim() !== '' && this.draftOwner() !== '' &&
-    this.draftEffective() !== '' && this.draftTarget() !== '');
+  /** The kit's sentinel for a value that genuinely has none — RULES #7. */
+  protected readonly emptyValue = '-';
+
+  protected readonly startDateHint = {
+    title: 'Start date',
+    lines: ['The date where this benefit begins tracking.']
+  };
+  protected readonly endDateHint = {
+    title: 'End date',
+    lines: ['The date where this benefit is targeted to be realised.']
+  };
+
+  /** Both dates set — the financial table's year columns depend on them. */
+  protected readonly datesSet = computed(() =>
+    this.draftStart() !== '' && this.draftEnd() !== '');
+
+  /**
+   * Create is gated on the whole form, not one page: with freely navigable
+   * tabs a user can reach Review without having visited Benefit Details.
+   */
+  protected readonly createValid = computed(() =>
+    this.draftName().trim() !== '' && this.draftOwners().length > 0 &&
+    this.draftStart() !== '' && this.draftEnd() !== '');
 
   protected openCreate() {
-    this.step.set(1);
+    this.wizardTab.set('details');
     this.draftName.set('');
-    this.draftOwner.set('');
-    this.draftCategory.set('');
+    this.draftOwners.set([]);
+    this.draftCategories.set([]);
+    this.draftValidationSource.set('');
+    this.draftBaselineDescription.set('');
     this.draftDescription.set('');
     this.draftFinancial.set(true);
-    this.draftEffective.set('');
-    this.draftTarget.set('');
+    this.draftStart.set('');
+    this.draftEnd.set('');
     this.draftLines.set([this.blankLine()]);
     this.draftBaselineValue.set('');
     this.draftBaselineReason.set('');
@@ -595,13 +682,11 @@ export class ValueBenefits {
   }
 
   protected lineTotal(row: BenefitRow) {
-    return this.years.reduce((s, y) => s + (row.values[y] ?? 0), 0);
+    return this.years().reduce((s, y) => s + (row.values[y] ?? 0), 0);
   }
 
   protected setFinancial(on: boolean) {
     this.draftFinancial.set(on);
-    this.draftCategory.set('');
-    this.step.set(1);
   }
 
   /** Creates the benefit, its opening baseline and its first audit entry. */
@@ -618,29 +703,33 @@ export class ValueBenefits {
       benefitRef: ref,
       name: this.draftName().trim(),
       type: financial ? 'Financial' : 'Non-Financial',
-      category: this.draftCategory(),
+      categories: this.draftCategories(),
       description: this.draftDescription().trim(),
-      owner: this.draftOwner(),
+      validationSource: this.draftValidationSource().trim(),
+      owners: this.draftOwners(),
       baselineId,
       originalApprovedBaseline: baseline,
       currentApprovedBaseline: baseline,
-      effectiveDate: this.draftEffective(),
-      targetRealisationDate: this.draftTarget(),
-      approvalStatus: 'Approved',
-      approvedBy: CURRENT_USER,
-      approvalDate: today,
+      startDate: this.draftStart(),
+      endDate: this.draftEnd(),
+      baselineDescription: financial ? '' : this.draftBaselineDescription().trim(),
+      approvalStatus: 'Pending Approval',
+      approvedBy: '-',
+      approvalDate: '-',
       status: 'Tracking Active',
+      pendingWith: 'Finance Business Partner',
       financialRows: financial ? this.draftLines().map((r) => ({ ...r, benefitRef: ref })) : [],
       baselineHistory: [{
         baselineId,
         baselineValue: baseline,
-        effectiveDate: this.draftEffective(),
-        targetRealisationDate: this.draftTarget(),
+        startDate: this.draftStart(),
+        endDate: this.draftEnd(),
         requestedBy: CURRENT_USER,
-        approvedBy: CURRENT_USER,
-        approvalDate: today,
-        changeReason: this.draftBaselineReason().trim() || 'Original approved baseline captured at benefit creation',
-        status: 'Approved'
+        requestedOn: today,
+        approvedBy: '-',
+        approvalDate: '-',
+        changeReason: this.draftBaselineReason().trim() || 'Original baseline captured at benefit creation',
+        status: 'Pending Approval'
       }],
       reportingHistory: [],
       auditLog: [{
@@ -648,13 +737,27 @@ export class ValueBenefits {
         date: today,
         user: CURRENT_USER,
         action: 'Baseline Created',
-        comments: `${baselineId} created — ${financial ? this.money(baseline) : 'non-financial benefit'}.`
+        comments: `${baselineId} submitted for approval — ${financial ? this.money(baseline) : 'non-financial benefit'}.`
       }]
     };
 
     benefitsFor(this.workstreamId()).update((rows) => [...rows, benefit]);
     this.closeCreate();
+    this.toast.set('Benefit has been created and baseline is pending approval');
   }
+
+  /* ---------------- Snackbar ---------------- */
+
+  /**
+   * One transient confirmation at a time. Held as a signal rather than pushed
+   * into a service because nothing outside this page raises one yet — RULES #8
+   * applies to invented infrastructure as much as to invented UI.
+   */
+  protected readonly toast = signal<string | null>(null);
+
+  private toastTimer?: ReturnType<typeof setTimeout>;
+
+  protected dismissToast() { this.toast.set(null); }
 
   /** Downloads the open benefit as CSV — summary, reporting history and audit log. */
   protected download(b: Benefit) {
@@ -665,13 +768,13 @@ export class ValueBenefits {
       ['Benefit Name', b.name].map(q).join(','),
       ['Benefit Ref', b.benefitRef].map(q).join(','),
       ['Benefit Type', b.type].map(q).join(','),
-      ['Benefit Owner', b.owner].map(q).join(','),
+      ['Benefit Owner', b.owners.join('; ')].map(q).join(','),
       ['Original Approved Baseline', this.money(b.originalApprovedBaseline)].map(q).join(','),
       ['Current Approved Baseline', this.money(b.currentApprovedBaseline)].map(q).join(','),
       ['Baseline ID', b.baselineId].map(q).join(','),
       ['Benefit Status', b.status].map(q).join(','),
-      ['Effective Date', b.effectiveDate].map(q).join(','),
-      ['Target Realisation Date', b.targetRealisationDate].map(q).join(','),
+      ['Start Date', b.startDate].map(q).join(','),
+      ['End Date', b.endDate].map(q).join(','),
       '', 'Reporting History', '',
       ['Update Date', 'Value / Progress', 'Variance %', 'Variance Explanation', 'Root Cause', 'Corrective Action', 'Updated By'].map(q).join(',')
     ];

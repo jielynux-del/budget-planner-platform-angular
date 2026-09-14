@@ -180,8 +180,8 @@ export type BenefitLifecycleStatus =
 export interface BaselineRecord {
   baselineId: string;              // BL0001, BL0002, ...
   baselineValue: number | null;    // null for non-financial benefits
-  effectiveDate: string;
-  targetRealisationDate: string;
+  startDate: string;
+  endDate: string;
   requestedBy: string;
   /** When it was raised — a queue needs an age, not just an outcome date. */
   requestedOn?: string;
@@ -207,6 +207,40 @@ export interface BenefitUpdate {
   evidence: string;
 }
 
+/**
+ * A requested change to a benefit's descriptive fields, awaiting approval.
+ *
+ * Held SEPARATELY from the benefit rather than written onto it: until an
+ * approver accepts, the table must still show the approved values (the same
+ * rule the baseline workflow follows). `fields` carries only what actually
+ * changed, so an approver sees a diff rather than a full record.
+ *
+ * A baseline change made in the same edit raises its own BaselineRecord — the
+ * two approvals are independent and can be decided by different people.
+ */
+export interface BenefitUpdateRequest {
+  id: string;
+  /** Only the changed fields, old and new, for the approver's diff. */
+  fields: BenefitFieldChange[];
+  requestedBy: string;
+  requestedOn: string;
+  status: BaselineApprovalStatus;
+  decisionNote?: string;
+  approvedBy?: string;
+  approvalDate?: string;
+}
+
+export interface BenefitFieldChange {
+  /** Property on Benefit that this change applies to. */
+  key: string;
+  /** Human label for the approver's diff — e.g. 'Benefit Owner'. */
+  label: string;
+  from: string;
+  to: string;
+  /** The value to write on approval, typed as the field expects. */
+  value: unknown;
+}
+
 export interface AuditEntry {
   id: string;
   date: string;
@@ -225,16 +259,27 @@ export interface Benefit {
   benefitRef: string;              // B01, B02, ...
   name: string;
   type: BenefitType;
-  category: string;
+  /** Several people may own one benefit; the BUs involved derive from them. */
+  categories: string[];
   description: string;
-  owner: string;
+  owners: string[];
+  /**
+   * Where the actuals for this benefit are read from — a PC code, a GL
+   * account, or a sentence naming the report that carries it. Free text
+   * because the source is not always a coded system.
+   */
+  validationSource: string;
 
   // Baseline. The original is immutable; the current one moves through workflow.
   baselineId: string;
   originalApprovedBaseline: number | null;
   currentApprovedBaseline: number | null;
-  effectiveDate: string;
-  targetRealisationDate: string;
+  /** Where tracking begins. */
+  startDate: string;
+  /** Where the benefit is targeted to be realised. */
+  endDate: string;
+  /** Non-financial benefits state their baseline in prose, not a figure. */
+  baselineDescription: string;
   approvalStatus: BaselineApprovalStatus;
   approvedBy: string;
   approvalDate: string;
@@ -242,6 +287,12 @@ export interface Benefit {
   status: BenefitLifecycleStatus;
   /** Which approver role a live request is sitting with, if any. */
   pendingWith?: string;
+
+  /**
+   * A live edit to the descriptive fields, awaiting the Portfolio Approver.
+   * Absent when there is nothing outstanding.
+   */
+  pendingUpdate?: BenefitUpdateRequest;
 
   /** Year-phased financial lines captured at definition (financial benefits). */
   financialRows: BenefitRow[];

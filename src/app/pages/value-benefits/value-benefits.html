@@ -103,13 +103,14 @@
             </th>
             <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
             <th style="min-width: 260px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
+            <th style="min-width: 180px"><ui-column-header label="Validation Source" size="sm" /></th>
             <th>
               <ui-column-header label="Benefit Status" size="sm" [sortable]="true" [filtered]="!!colStatus().length">
                 <ui-multi-select class="col-filter" [items]="statusChoices" [(selected)]="colStatus" placeholder="All" display="count" />
               </ui-column-header>
             </th>
-            <th><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
-            <th><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Start date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="End date" size="sm" [sortable]="true" /></th>
             <th><ui-column-header label="Last Updated" size="sm" [sortable]="true" /></th>
             <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
           </tr>
@@ -119,10 +120,15 @@
             <tr ui-table-row interactive (activate)="openDetail(b)">
               <td>
                 <div class="cell-name">{{ b.name }}</div>
-                <div class="cell-meta">{{ b.benefitRef }} · {{ b.category }}</div>
+                <div class="cell-meta">
+                  {{ b.benefitRef }} ·
+                  <span [uiTooltip]="categoryTooltip(b.categories)" tabindex="0">{{ categoryLabel(b.categories) }}</span>
+                </div>
               </td>
               <td>{{ b.type }}</td>
-              <td>{{ b.owner }}</td>
+              <td>
+                <span [uiTooltip]="ownerTooltip(b.owners)" tabindex="0">{{ ownerLabel(b.owners) }}</span>
+              </td>
               <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
               <td>
                 @if (latest(b); as u) {
@@ -136,9 +142,10 @@
                   <span class="cell-meta">Not yet reported</span>
                 }
               </td>
+              <td>{{ b.validationSource || '-' }}</td>
               <td class="ui-cell-status"><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></td>
-              <td>{{ b.effectiveDate }}</td>
-              <td>{{ b.targetRealisationDate }}</td>
+              <td>{{ b.startDate }}</td>
+              <td>{{ b.endDate }}</td>
               <td>{{ latest(b)?.updateDate ?? '-' }}</td>
               <td class="ui-cell-actions ui-td-sticky">
                 <div class="row-actions">
@@ -173,8 +180,8 @@
             </th>
             <th><ui-column-header label="Original Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
             <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-            <th><ui-column-header label="Effective Date" size="sm" [sortable]="true" /></th>
-            <th><ui-column-header label="Target Realisation Date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="Start date" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="End date" size="sm" [sortable]="true" /></th>
             <th>
               <ui-column-header label="Approval Status" size="sm" [sortable]="true" [filtered]="!!colApproval().length">
                 <ui-multi-select class="col-filter" [items]="approvalChoices" [(selected)]="colApproval" placeholder="All" display="count" />
@@ -195,8 +202,8 @@
               </td>
               <td class="ui-cell-number">{{ money(b.originalApprovedBaseline) }}</td>
               <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
-              <td>{{ b.effectiveDate }}</td>
-              <td>{{ b.targetRealisationDate }}</td>
+              <td>{{ b.startDate }}</td>
+              <td>{{ b.endDate }}</td>
               <td class="ui-cell-status"><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></td>
               <td>{{ b.approvedBy }}</td>
               <td>{{ b.approvalDate }}</td>
@@ -233,7 +240,7 @@
 @if (detail(); as b) {
   <ui-modal-shell
     [title]="b.name"
-    [subtitle]="b.benefitRef + ' · ' + b.type + ' · ' + b.owner"
+    [subtitle]="b.benefitRef + ' · ' + b.type + ' · ' + ownerLabel(b.owners)"
     [class.sheet-closing]="closingDetail()"
     (closed)="closeDetail()">
 
@@ -249,9 +256,9 @@
         <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? 'Not set' : money(b.originalApprovedBaseline) }}</dd></div>
         <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) + ' (' + b.baselineId + ')' }}</dd></div>
         <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="b.status" [variant]="lifecycleVariant(b.status)" /></dd></div>
-        <div><dt>Benefit Owner</dt><dd>{{ b.owner }}</dd></div>
-        <div><dt>Effective Date</dt><dd>{{ b.effectiveDate }}</dd></div>
-        <div><dt>Target Realisation Date</dt><dd>{{ b.targetRealisationDate }}</dd></div>
+        <div><dt>Benefit Owner</dt><dd>{{ b.owners.join(", ") }}</dd></div>
+        <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
+        <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
       </dl>
     </ui-card>
 
@@ -303,7 +310,7 @@
             <tr>
               <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
               <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
-              <th><ui-column-header label="Effective Date" size="sm" /></th>
+              <th><ui-column-header label="Start date" size="sm" /></th>
               <th><ui-column-header label="Requested By" size="sm" /></th>
               <th><ui-column-header label="Approved By" size="sm" /></th>
               <th><ui-column-header label="Approval Date" size="sm" /></th>
@@ -315,7 +322,7 @@
               <tr ui-table-row>
                 <td class="cell-name">{{ h.baselineId }}</td>
                 <td class="ui-cell-number">{{ money(h.baselineValue) }}</td>
-                <td>{{ h.effectiveDate }}</td>
+                <td>{{ h.startDate }}</td>
                 <td>{{ h.requestedBy }}</td>
                 <td>{{ h.approvedBy }}</td>
                 <td>{{ h.approvalDate }}</td>
@@ -377,133 +384,222 @@
 @if (createOpen()) {
   <ui-modal-shell
     title="Add New Benefit"
-    [subtitle]="'Step ' + step() + ' of ' + lastStep()"
     [hasTabsSlot]="true"
     [hasFooterSlot]="true"
     [class.sheet-closing]="closingCreate()"
     (closed)="closeCreate()">
 
-    <ui-stepper ui-modal-tabs [steps]="steps()" [current]="'' + step()" orientation="horizontal" />
+    <ui-tabs ui-modal-tabs [tabs]="wizardTabs" [(active)]="wizardTab" />
 
-    @if (step() === 1) {
-      <ui-card title="Key Benefits">
+    @if (wizardTab() === 'details') {
+      <ui-card title="Benefit Details">
         <div class="create-grid">
           <div class="filter-field">
             <span class="filter-label">Benefit Name</span>
             <ui-text-input [(value)]="draftName" placeholder="e.g. Manual onboarding effort reduction" />
           </div>
           <div class="filter-field">
-            <span class="filter-label">Benefit Owner</span>
-            <ui-select [options]="ownerChoices" [(value)]="draftOwner" placeholder="Please select" [searchable]="true" />
+            <span class="filter-label">Benefit Category</span>
+            <ui-multi-select
+              [items]="categoryOptions"
+              [(selected)]="draftCategories"
+              placeholder="Please select"
+              display="count" />
           </div>
           <div class="filter-field span-2">
-            <span class="filter-label">Key Benefits Description</span>
+            <span class="filter-label">Benefit Description</span>
             <ui-textarea [(value)]="draftDescription" placeholder="What this benefit delivers" />
           </div>
           <div class="filter-field">
-            <span class="filter-label">Benefit Category</span>
-            <ui-select [options]="categoryOptions()" [(value)]="draftCategory" placeholder="Please select" />
+            <span class="filter-label">Benefit Owner</span>
+            <ui-multi-select
+              [items]="ownerChoices"
+              [(selected)]="draftOwners"
+              placeholder="Please select"
+              display="count" />
+          </div>
+          <!-- Derived from the owners; never editable. -->
+          <div class="filter-field">
+            <span class="filter-label">BUs Involved</span>
+            <p class="readonly-field">{{ businessUnits(draftOwners()) || 'Select a benefit owner' }}</p>
           </div>
           <div class="filter-field">
-            <span class="filter-label">With Financial Impact?</span>
-            <ui-checkbox
-              [checked]="draftFinancial()"
-              (checkedChange)="setFinancial($event)"
-              [description]="draftFinancial() ? 'Financial benefit' : 'Non-financial benefit'" />
+            <span class="filter-label">
+              Start date
+              <span class="hint" [uiTooltip]="startDateHint" tabindex="0"><ui-icon name="circle-information" [size]="16" /></span>
+            </span>
+            <ui-date-input [(value)]="draftStart" />
           </div>
           <div class="filter-field">
-            <span class="filter-label">Effective Date</span>
-            <ui-date-input [(value)]="draftEffective" />
+            <span class="filter-label">
+              End date
+              <span class="hint" [uiTooltip]="endDateHint" tabindex="0"><ui-icon name="circle-information" [size]="16" /></span>
+            </span>
+            <ui-date-input [(value)]="draftEnd" />
           </div>
-          <div class="filter-field">
-            <span class="filter-label">Target Realisation Date</span>
-            <ui-date-input [(value)]="draftTarget" />
+          <div class="filter-field span-2">
+            <span class="filter-label">Validation Source</span>
+            <ui-text-input
+              [(value)]="draftValidationSource"
+              placeholder="e.g. PC Code PC-4471, GL Account 41020, or where the actuals are reported" />
           </div>
         </div>
-        @if (!draftFinancial()) {
-          <p class="empty">
-            Non-financial benefit — no baseline value, variance or actuals are captured.
-            Realisation is tracked through periodic progress updates instead.
-          </p>
-        }
       </ui-card>
     }
 
-    @if (step() === 2) {
-      <ui-card title="Financial and Stat Impact">
-        <div class="vb-scroll">
-          <table ui-table size="sm">
-            <thead>
-              <tr>
-                <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
-                <th><ui-column-header label="Drivers" size="sm" /></th>
-                <th><ui-column-header label="Measure" size="sm" /></th>
-                @for (y of years; track y) {
-                  <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
-                }
-                <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of draftLines(); track row.id) {
-                <tr ui-table-row>
-                  <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
-                  <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" /></td>
-                  <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" /></td>
-                  @for (y of years; track y) {
-                    <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setLineValue(row.id, y, $event)" placeholder="0" /></td>
+    @if (wizardTab() === 'baseline') {
+      <ui-card title="Baseline Definition">
+        <div class="filter-field">
+          <span class="filter-label">With financial impact?</span>
+          <ui-radio-chiclet-group
+            [value]="draftFinancial() ? 'yes' : 'no'"
+            (valueChange)="setFinancial($event === 'yes')">
+            <ui-radio-chiclet value="yes" label="Yes" />
+            <ui-radio-chiclet value="no" label="No" />
+          </ui-radio-chiclet-group>
+        </div>
+      </ui-card>
+
+      @if (draftFinancial()) {
+        <ui-card title="Financial and Stat Impact">
+          @if (!datesSet()) {
+            <ui-info-banner
+              tone="warning"
+              text="Set a start and end date on Benefit Details — the years below follow that range." />
+          }
+          <div class="vb-scroll">
+            <table ui-table size="sm">
+              <thead>
+                <tr>
+                  <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                  <th><ui-column-header label="Drivers" size="sm" /></th>
+                  <th><ui-column-header label="Measure" size="sm" /></th>
+                  @for (y of years(); track y) {
+                    <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
                   }
-                  <td class="ui-cell-number cell-name">{{ money(lineTotal(row)) }}</td>
+                  <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <button ui-button variant="secondary" size="small" type="button" class="add-line" (click)="addLine()">
-          <ui-icon name="plus" />
-          Add Benefit Line
-        </button>
-      </ui-card>
+              </thead>
+              <tbody>
+                @for (row of draftLines(); track row.id) {
+                  <tr ui-table-row>
+                    <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
+                    <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" /></td>
+                    <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" /></td>
+                    @for (y of years(); track y) {
+                      <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setLineValue(row.id, y, $event)" placeholder="0" /></td>
+                    }
+                    <td class="ui-cell-number cell-name">{{ money(lineTotal(row)) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <button ui-button variant="secondary" size="small" type="button" class="add-line" (click)="addLine()">
+            <ui-icon name="plus" />
+            Add Benefit Line
+          </button>
+
+          <div class="create-grid baseline-block">
+            <div class="filter-field">
+              <span class="filter-label">Original Approved Baseline (S$)</span>
+              <ui-text-input [(value)]="draftBaselineValue" placeholder="0" />
+            </div>
+            <div class="filter-field">
+              <span class="filter-label">Baseline Change Reason</span>
+              <ui-text-input [(value)]="draftBaselineReason" placeholder="Original baseline captured at benefit creation" />
+            </div>
+          </div>
+        </ui-card>
+      } @else {
+        <ui-card title="Baseline Description">
+          <div class="filter-field">
+            <span class="filter-label">Baseline description</span>
+            <ui-textarea
+              [(value)]="draftBaselineDescription"
+              placeholder="Describe the starting position this benefit is measured against" />
+          </div>
+        </ui-card>
+      }
     }
 
-    @if (step() === 3) {
-      <ui-card title="Total Investments &amp; Benefits">
+    @if (wizardTab() === 'review') {
+      <ui-card title="Benefit Details">
         <dl class="detail-grid">
-          <div><dt>Benefit Name</dt><dd>{{ draftName() || '-' }}</dd></div>
-          <div><dt>Benefit Owner</dt><dd>{{ draftOwner() || '-' }}</dd></div>
-          <div><dt>Benefit Category</dt><dd>{{ draftCategory() || '-' }}</dd></div>
-          <div><dt>Benefit Type</dt><dd>Financial</dd></div>
-          <div><dt>Effective Date</dt><dd>{{ draftEffective() || '-' }}</dd></div>
-          <div><dt>Target Realisation Date</dt><dd>{{ draftTarget() || '-' }}</dd></div>
+          <div><dt>Benefit Name</dt><dd>{{ draftName() || emptyValue }}</dd></div>
+          <div><dt>Benefit Category</dt><dd>{{ draftCategories().join(', ') || emptyValue }}</dd></div>
+          <div><dt>Benefit Description</dt><dd>{{ draftDescription() || emptyValue }}</dd></div>
+          <div><dt>Benefit Owner</dt><dd>{{ draftOwners().join(', ') || emptyValue }}</dd></div>
+          <div><dt>BUs Involved</dt><dd>{{ businessUnits(draftOwners()) || emptyValue }}</dd></div>
+          <div><dt>Validation Source</dt><dd>{{ draftValidationSource() || emptyValue }}</dd></div>
+          <div><dt>Start date</dt><dd>{{ draftStart() || emptyValue }}</dd></div>
+          <div><dt>End date</dt><dd>{{ draftEnd() || emptyValue }}</dd></div>
+        </dl>
+      </ui-card>
+
+      <ui-card title="Baseline Definition">
+        <dl class="detail-grid">
+          <div><dt>With financial impact?</dt><dd>{{ draftFinancial() ? 'Yes' : 'No' }}</dd></div>
+          <div><dt>Benefit Type</dt><dd>{{ draftFinancial() ? 'Financial' : 'Non-Financial' }}</dd></div>
+          @if (draftFinancial()) {
+            <div><dt>Original Approved Baseline</dt><dd>{{ draftBaseline() === null ? emptyValue : money(draftBaseline()) }}</dd></div>
+            <div><dt>Baseline Change Reason</dt><dd>{{ draftBaselineReason() || 'Original baseline captured at benefit creation' }}</dd></div>
+          } @else {
+            <div><dt>Baseline description</dt><dd>{{ draftBaselineDescription() || emptyValue }}</dd></div>
+          }
           <div><dt>Baseline ID</dt><dd>Assigned on creation</dd></div>
         </dl>
-
-        <div class="create-grid baseline-block">
-          <div class="filter-field">
-            <span class="filter-label">Original Approved Baseline (S$)</span>
-            <ui-text-input [(value)]="draftBaselineValue" placeholder="0" />
-          </div>
-          <div class="filter-field">
-            <span class="filter-label">Baseline Change Reason</span>
-            <ui-text-input [(value)]="draftBaselineReason" placeholder="Original approved business case baseline" />
-          </div>
-        </div>
-        <p class="empty">
-          On creation this benefit is baselined and appears in both Benefits Tracking and
-          Baseline Management.
-        </p>
       </ui-card>
+
+      @if (draftFinancial() && draftLines().length) {
+        <ui-card title="Financial and Stat Impact">
+          <div class="vb-scroll">
+            <table ui-table size="sm">
+              <thead>
+                <tr>
+                  <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                  <th><ui-column-header label="Drivers" size="sm" /></th>
+                  <th><ui-column-header label="Measure" size="sm" /></th>
+                  @for (y of years(); track y) {
+                    <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
+                  }
+                  <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of draftLines(); track row.id) {
+                  <tr ui-table-row>
+                    <td>{{ row.typeOfFinancial || emptyValue }}</td>
+                    <td>{{ row.driver || emptyValue }}</td>
+                    <td>{{ row.measure || emptyValue }}</td>
+                    @for (y of years(); track y) {
+                      <td class="ui-cell-number">{{ row.values[y] ? money(row.values[y]) : emptyValue }}</td>
+                    }
+                    <td class="ui-cell-number cell-name">{{ money(lineTotal(row)) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </ui-card>
+      }
+
+      @if (!createValid()) {
+        <ui-info-banner
+          tone="warning"
+          text="Benefit name, at least one owner, and both dates are needed before this benefit can be created." />
+      }
     }
 
     <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeCreate()">Cancel</button>
-    @if (step() > 1) {
-      <button ui-modal-footer ui-button variant="secondary" size="small" type="button" (click)="step.set(step() - 1)">Back</button>
-    }
-    @if (step() < lastStep()) {
-      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!step1Valid()" (click)="step.set(step() + 1)">Next</button>
-    } @else {
-      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!step1Valid()" (click)="createBenefit()">Create Benefit</button>
-    }
+    <button
+      ui-modal-footer
+      ui-button
+      variant="primary"
+      size="small"
+      type="button"
+      [disabled]="!createValid()"
+      (click)="createBenefit()">Create Benefit</button>
   </ui-modal-shell>
 }
 
@@ -526,8 +622,8 @@
         <div><dt>Approval Status</dt><dd><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></dd></div>
         <div><dt>Baseline Value</dt><dd>{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) }}</dd></div>
         <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? 'Not set' : money(b.originalApprovedBaseline) }}</dd></div>
-        <div><dt>Effective Date</dt><dd>{{ b.effectiveDate }}</dd></div>
-        <div><dt>Target Realisation Date</dt><dd>{{ b.targetRealisationDate }}</dd></div>
+        <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
+        <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
         <div><dt>Approved By</dt><dd>{{ b.approvedBy }}</dd></div>
         <div><dt>Approval Date</dt><dd>{{ b.approvalDate }}</dd></div>
       </dl>
@@ -541,8 +637,8 @@
               <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
               <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
               <th><ui-column-header label="Change vs Previous" size="sm" align="end" /></th>
-              <th><ui-column-header label="Effective Date" size="sm" /></th>
-              <th><ui-column-header label="Target Realisation Date" size="sm" /></th>
+              <th><ui-column-header label="Start date" size="sm" /></th>
+              <th><ui-column-header label="End date" size="sm" /></th>
               <th><ui-column-header label="Requested By" size="sm" /></th>
               <th><ui-column-header label="Approved By" size="sm" /></th>
               <th><ui-column-header label="Approval Date" size="sm" /></th>
@@ -565,8 +661,8 @@
                       [dot]="false" />
                   }
                 </td>
-                <td>{{ h.effectiveDate }}</td>
-                <td>{{ h.targetRealisationDate }}</td>
+                <td>{{ h.startDate }}</td>
+                <td>{{ h.endDate }}</td>
                 <td>{{ h.requestedBy }}</td>
                 <td>{{ h.approvedBy }}</td>
                 <td>{{ h.approvalDate }}</td>
@@ -684,12 +780,12 @@
             <ui-text-input [(value)]="formProposed" placeholder="0" />
           </div>
           <div class="filter-field">
-            <span class="filter-label">Effective Date</span>
-            <ui-date-input [(value)]="formEffective" />
+            <span class="filter-label">Start date</span>
+            <ui-date-input [(value)]="formStart" />
           </div>
           <div class="filter-field">
-            <span class="filter-label">Target Realisation Date</span>
-            <ui-date-input [(value)]="formTarget" />
+            <span class="filter-label">End date</span>
+            <ui-date-input [(value)]="formEnd" />
           </div>
           <div class="filter-field span-2">
             <span class="filter-label">Change Reason</span>

@@ -57,7 +57,7 @@ export function approvalQueue(): ApprovalItem[] {
           kind: 'Baseline Change',
           reference: b.baselineId,
           requestedBy: latestBaseline?.requestedBy ?? '-',
-          requestedOn: latestBaseline?.requestedOn ?? latestBaseline?.effectiveDate ?? '-',
+          requestedOn: latestBaseline?.requestedOn ?? latestBaseline?.startDate ?? '-',
           pendingWith: b.pendingWith ?? 'Finance Business Partner',
           state: b.approvalStatus,
           detail: latestBaseline?.changeReason ?? ''
