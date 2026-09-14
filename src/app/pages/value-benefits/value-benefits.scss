@@ -320,7 +320,28 @@ ui-modal-shell ::ng-deep .panel-title {
    and ui-textarea print at body/sm (13) — the one control in a form that looks
    a size out. The kit's own rule is `.ui-date-input[_ngcontent-…]`, so the
    class has to be named here too or it wins on specificity. */
-ui-date-input ::ng-deep input.ui-date-input { @include type.body(sm); }
+ui-date-input ::ng-deep input.ui-date-input {
+  @include type.body(sm);
+
+  /* The value itself is drawn by the browser, not by the input's own text
+     layer: Chrome lays each segment out in its own fixed-width field with
+     internal padding, so the digits read wider and airier than every other
+     field on the form even when family, size and weight already match.
+     `font: inherit` on the segments pulls them back onto the page's face and
+     zeroing the padding closes the gaps. */
+  &::-webkit-datetime-edit,
+  &::-webkit-datetime-edit-fields-wrapper,
+  &::-webkit-datetime-edit-text,
+  &::-webkit-datetime-edit-day-field,
+  &::-webkit-datetime-edit-month-field,
+  &::-webkit-datetime-edit-year-field {
+    font: inherit;
+    padding: 0;
+  }
+
+  /* The separators keep a hair of space so 01/04/2026 does not run together. */
+  &::-webkit-datetime-edit-text { padding: 0 1px; }
+}
 
 /* An information mark beside a label is a hint, not a control: at the kit's
    16px it competes with the label it annotates. */

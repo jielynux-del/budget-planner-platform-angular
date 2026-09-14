@@ -65,6 +65,12 @@ and the failures are silent — the rule is simply ignored:
 1. `ui-date-input` prints its value at body/md (14px) where `ui-text-input` and `ui-textarea`
    print at body/sm (13). Its own rule is `.ui-date-input[_ngcontent-…]`, so the override has to
    name the class too: `ui-date-input ::ng-deep input.ui-date-input`.
+   *And that is only half of it.* Matching family, size and weight still leaves the value looking
+   wrong, because the text is drawn by the BROWSER, not the input's own text layer: Chrome lays
+   each segment in a fixed-width field with internal padding, so the digits read wider and airier
+   than every other field. The `::-webkit-datetime-edit-*` pseudo-elements need `font: inherit`
+   and zeroed padding as well. Computed styles on the input match perfectly throughout, which is
+   why this one resists diagnosis — the difference is not in anything `getComputedStyle` reports.
 2. `.ui-cell-actions` sets horizontal padding with `!important`, which pulls a centred child 8px
    off the column's middle. Rather than escalating, the remove cell simply does not use that
    class.
