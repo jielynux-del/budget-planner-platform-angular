@@ -6,6 +6,7 @@ import {
   type UiTagVariant
 } from 'ai-dls-kit';
 import { approvalQueue, benefitsFor, type ApprovalItem } from '../../data/benefitsStore';
+import { snapshotOf } from '../../data/benefitsData';
 import { currentPersona } from '../../data/personas';
 import type { Benefit } from '../../data/models';
 
@@ -95,10 +96,17 @@ export class Approvals {
   private today() { return new Date().toISOString().slice(0, 10); }
 
   private audit(b: Benefit, action: string, comments: string): Benefit {
+    // Snapshot taken of `b` — the record AFTER the decision has been applied —
+    // so the entry shows what the benefit became, not what it was leaving.
     return {
       ...b,
       auditLog: [...b.auditLog, {
-        id: `ba-${Date.now()}`, date: this.today(), user: this.persona().name, action, comments
+        id: `ba-${Date.now()}`,
+        date: this.today(),
+        user: this.persona().name,
+        action,
+        comments,
+        snapshot: snapshotOf(b)
       }]
     };
   }

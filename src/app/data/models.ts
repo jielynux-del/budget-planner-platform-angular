@@ -247,12 +247,42 @@ export interface BenefitFieldChange {
   value: unknown;
 }
 
+/**
+ * The benefit as it stood when an audit entry was written.
+ *
+ * Materialised at the moment the entry is created rather than reconstructed on
+ * read: the descriptive fields (name, owners, categories) are not versioned
+ * anywhere, so there is no way to work out later what they used to say. An
+ * entry without one shows as not captured — RULES #8, state the gap.
+ */
+export interface BenefitSnapshot {
+  name: string;
+  type: BenefitType;
+  categories: string[];
+  owners: string[];
+  businessUnits: string[];
+  description: string;
+  validationSource: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  baselineId: string;
+  baselineValue: number | null;
+  originalBaseline: number | null;
+  approvalStatus: string;
+  /** Reporting lines in the history at that point. */
+  reportingLines: number;
+  latestReported: string;
+}
+
 export interface AuditEntry {
   id: string;
   date: string;
   user: string;
   action: string;
   comments: string;
+  /** What the benefit looked like at this point. Absent on older entries. */
+  snapshot?: BenefitSnapshot;
 }
 
 /**

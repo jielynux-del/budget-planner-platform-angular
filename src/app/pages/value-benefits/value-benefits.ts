@@ -9,12 +9,12 @@ import {
 } from 'ai-dls-kit';
 import {
   BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, financialTotal, latestUpdate,
-  nextBaselineId, nextBenefitRef
+  nextBaselineId, nextBenefitRef, snapshotOf
 } from '../../data/benefitsData';
 import {
   BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, FINANCIAL_TYPES
 } from '../../data/lookups';
-import type { Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate } from '../../data/models';
+import type { AuditEntry, Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate } from '../../data/models';
 import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
 import { benefitsFor } from '../../data/benefitsStore';
 import { currentPersona } from '../../data/personas';
@@ -455,6 +455,74 @@ export class ValueBenefits {
     this.draftUpdates.update((rows) => rows.filter((r) => r.id !== id));
   }
 
+  /** A request is already outstanding, so the benefit cannot be submitted again. */
+  protected pendingReview(b: Benefit) {
+    return b.pendingUpdate?.status === 'Pending Approval';
+  }
+
+  /**
+   * Something has actually changed. Submit stays disabled until it has, so the
+   * button cannot raise an empty request for an approver to look at.
+   */
+  protected readonly editDirty = computed(() => {
+    const b = this.detail();
+    if (!b) return false;
+    if (this.draftUpdates().length) return true;
+    const sameList = (a: readonly string[], c: readonly string[]) =>
+      a.length === c.length && a.every((v, i) => v === c[i]);
+    return this.editName().trim() !== b.name
+      || this.editDescription().trim() !== b.description
+      || this.editValidationSource().trim() !== b.validationSource
+      || this.editStart() !== b.startDate
+      || this.editEnd() !== b.endDate
+      || !sameList(this.editOwners(), b.owners)
+      || !sameList(this.editCategories(), b.categories);
+  });
+
+  /* ---------------- Audit snapshot preview ---------------- */
+
+  protected readonly snapshotEntry = signal<AuditEntry | null>(null);
+
+  protected openSnapshot(entry: AuditEntry) { this.snapshotEntry.set(entry); }
+  protected closeSnapshot() { this.snapshotEntry.set(null); }
+
+  /** Downloads one snapshot as CSV — the version, not the whole benefit. */
+  protected downloadSnapshot(entry: AuditEntry) {
+    const snap = entry.snapshot;
+    if (!snap) return;
+    const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows: unknown[][] = [
+      ['Snapshot taken', entry.date],
+      ['Recorded by', entry.user],
+      ['Action', entry.action],
+      ['Comments', entry.comments],
+      [],
+      ['Benefit Name', snap.name],
+      ['Benefit Type', snap.type],
+      ['Benefit Category', snap.categories.join('; ')],
+      ['Benefit Owner', snap.owners.join('; ')],
+      ['BUs Involved', snap.businessUnits.join('; ')],
+      ['Benefit Description', snap.description],
+      ['Validation Source', snap.validationSource],
+      ['Start date', snap.startDate],
+      ['End date', snap.endDate],
+      ['Benefit Status', snap.status],
+      ['Baseline ID', snap.baselineId],
+      ['Baseline Value', snap.baselineValue],
+      ['Original Approved Baseline', snap.originalBaseline],
+      ['Approval Status', snap.approvalStatus],
+      ['Reporting lines', snap.reportingLines],
+      ['Latest reported', snap.latestReported]
+    ];
+    const csv = rows.map((r) => r.map(q).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${snap.name.replace(/[^a-z0-9]+/gi, '-')}-${entry.date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   /** The baseline figure changed, so a baseline approval is needed too. */
   protected readonly baselineChanged = computed(() => {
     const b = this.detail();
@@ -517,7 +585,8 @@ export class ValueBenefits {
             date: today,
             user: CURRENT_USER,
             action: 'Benefit Update Requested',
-            comments: `Submitted for approval — ${parts.join(' and ')}.`
+            comments: `Submitted for approval — ${parts.join(' and ')}.`,
+            snapshot: snapshotOf(r)
           }]
         };
       }));
@@ -701,7 +770,8 @@ export class ValueBenefits {
         {
           id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
           action: 'Benefit Updated',
-          comments: financial ? `Actuals reported — ${this.money(actual)}.` : 'Progress update recorded.'
+          comments: financial ? `Actuals reported — ${this.money(actual)}.` : 'Progress update recorded.',
+          snapshot: snapshotOf(cur)
         },
         ...(sourceMoved ? [{
           id: `ba-${Date.now() + 1}`, date: this.today(), user: CURRENT_USER,
@@ -728,7 +798,8 @@ export class ValueBenefits {
         comments: (cur.type === 'Financial'
           ? `Final realised value ${this.money(this.num(outcome))} submitted for approval.`
           : `${outcome} submitted for approval.`) +
-          (this.formComments().trim() ? ` ${this.formComments().trim()}` : '')
+          (this.formComments().trim() ? ` ${this.formComments().trim()}` : ''),
+        snapshot: snapshotOf(cur)
       }]
     }));
     this.closeAction();
@@ -768,7 +839,8 @@ export class ValueBenefits {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
         action: 'Baseline Change Requested',
         comments: `${id} submitted for approval` +
-          (proposed !== null ? ` — proposed baseline ${this.money(proposed)}.` : '.')
+          (proposed !== null ? ` — proposed baseline ${this.money(proposed)}.` : '.'),
+        snapshot: snapshotOf(cur)
       }]
     }));
     this.closeAction();

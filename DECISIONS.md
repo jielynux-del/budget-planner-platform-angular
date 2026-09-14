@@ -8,6 +8,28 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-14 — Audit entries carry a snapshot
+
+**Decision.** Each audit entry stores the benefit as it stood when the entry was written, shown
+as a Version column in the Audit Log and opened as a read-only dialog with its own Download.
+
+**Why materialised, not reconstructed.** The descriptive fields — name, owners, categories,
+description, validation source — are not versioned anywhere, so on read there is no way to work
+out what they used to say. The snapshot is therefore stamped at write time. Seeded entries get
+theirs at SEED time (`withSeedSnapshots`), before any user edit can move the record, with the
+baseline in force at each entry's date taken from `baselineHistory` — append-only, so genuinely
+knowable. An entry with no snapshot reads "Not captured" rather than showing today's values
+under yesterday's date.
+
+**A pending benefit cannot be submitted again.** Update benefit is hidden entirely while a
+request is outstanding, rather than shown and erroring on click.
+
+**Submit is disabled until something changes.** `editDirty()` compares the edit fields against
+the record and counts staged reporting lines, so the button cannot raise an empty request. Cancel
+now sits beside Submit on the right; split ends read as two unrelated actions rather than a pair.
+
+---
+
 ## 2026-09-14 — "Current" is a label, not a row colour
 
 **Decision.** The current baseline is marked with a grey `Current` tag beneath its approval

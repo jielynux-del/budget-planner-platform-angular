@@ -273,7 +273,7 @@
       variant="secondary"
       size="small"
       type="button"
-      [style.display]="summaryEdit() || !persona().canRequest ? 'none' : null"
+      [style.display]="summaryEdit() || !persona().canRequest || pendingReview(b) ? 'none' : null"
       (click)="startSummaryEdit(b)">
       <ui-icon name="edit" />
       Update benefit
@@ -521,7 +521,7 @@
     </ui-card>
 
     <button
-      ui-modal-footer-start
+      ui-modal-footer
       ui-button
       variant="secondary"
       size="small"
@@ -534,6 +534,7 @@
       variant="primary"
       size="small"
       type="button"
+      [disabled]="!editDirty()"
       [style.display]="summaryEdit() ? null : 'none'"
       (click)="saveSummaryEdit(b)">Submit for approval</button>
   </ui-modal-shell>
@@ -564,16 +565,27 @@
               <th><ui-column-header label="Date" size="sm" [first]="true" /></th>
               <th><ui-column-header label="User" size="sm" /></th>
               <th><ui-column-header label="Action" size="sm" /></th>
-              <th><ui-column-header label="Comments" size="sm" [last]="true" /></th>
+              <th><ui-column-header label="Comments" size="sm" /></th>
+              <th style="width: 120px"><ui-column-header label="Version" size="sm" [last]="true" /></th>
             </tr>
           </thead>
           <tbody>
             @for (a of auditEntries(b); track a.id) {
               <tr ui-table-row>
-                <td>{{ a.date }}</td>
+                <td class="cell-nowrap">{{ a.date }}</td>
                 <td>{{ a.user }}</td>
                 <td class="cell-name">{{ a.action }}</td>
                 <td>{{ a.comments }}</td>
+                <td>
+                  @if (a.snapshot) {
+                    <button ui-link variant="product" type="button" class="snapshot-link" (click)="openSnapshot(a)">
+                      View snapshot
+                    </button>
+                  } @else {
+                    <!-- Older entries pre-date snapshots; RULES #8 — say so. -->
+                    <span class="cell-meta">Not captured</span>
+                  }
+                </td>
               </tr>
             }
           </tbody>
@@ -1028,6 +1040,44 @@
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitBaselineChange()">Submit Request</button>
     }
   </ui-modal-shell>
+}
+
+<!-- ── Audit snapshot: read-only view of one version ──────────────────── -->
+@if (snapshotEntry(); as entry) {
+  @if (entry.snapshot; as snap) {
+    <div class="rl-scrim" (click)="closeSnapshot()"></div>
+    <div class="rl-dialog rl-dialog--wide" role="dialog" aria-modal="true" aria-label="Benefit snapshot">
+      <h2 class="rl-title">Snapshot · {{ entry.date }}</h2>
+      <p class="rl-subtitle">{{ entry.action }} by {{ entry.user }}</p>
+      <div class="rl-body">
+        <dl class="detail-grid">
+          <div class="span-2"><dt>Benefit Name</dt><dd>{{ snap.name }}</dd></div>
+          <div><dt>Benefit Type</dt><dd>{{ snap.type }}</dd></div>
+          <div><dt>Benefit Status</dt><dd>{{ snap.status }}</dd></div>
+          <div><dt>Benefit Category</dt><dd>{{ snap.categories.join(', ') || emptyValue }}</dd></div>
+          <div><dt>Benefit Owner</dt><dd>{{ snap.owners.join(', ') || emptyValue }}</dd></div>
+          <div><dt>BUs Involved</dt><dd>{{ snap.businessUnits.join(', ') || emptyValue }}</dd></div>
+          <div><dt>Validation Source</dt><dd>{{ snap.validationSource || emptyValue }}</dd></div>
+          <div class="span-2"><dt>Benefit Description</dt><dd>{{ snap.description || emptyValue }}</dd></div>
+          <div><dt>Baseline ID</dt><dd>{{ snap.baselineId }}</dd></div>
+          <div><dt>Baseline Value</dt><dd>{{ snap.baselineValue === null ? emptyValue : money(snap.baselineValue) }}</dd></div>
+          <div><dt>Original Approved Baseline</dt><dd>{{ snap.originalBaseline === null ? emptyValue : money(snap.originalBaseline) }}</dd></div>
+          <div><dt>Approval Status</dt><dd>{{ snap.approvalStatus }}</dd></div>
+          <div><dt>Start date</dt><dd>{{ snap.startDate }}</dd></div>
+          <div><dt>End date</dt><dd>{{ snap.endDate }}</dd></div>
+          <div><dt>Reporting lines</dt><dd>{{ snap.reportingLines }}</dd></div>
+          <div><dt>Latest reported</dt><dd>{{ snap.latestReported }}</dd></div>
+        </dl>
+      </div>
+      <div class="rl-actions">
+        <button ui-button variant="secondary" size="small" type="button" (click)="downloadSnapshot(entry)">
+          <ui-icon name="download" />
+          Download
+        </button>
+        <button ui-button variant="primary" size="small" type="button" (click)="closeSnapshot()">Close</button>
+      </div>
+    </div>
+  }
 }
 
 <!-- ── Add a reporting line: a small dialog over the benefit overlay ──── -->

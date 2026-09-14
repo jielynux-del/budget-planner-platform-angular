@@ -1,5 +1,6 @@
-import type { Benefit, BenefitUpdate } from './models';
+import type { Benefit, BenefitSnapshot, BenefitUpdate } from './models';
 import type { Workstream } from './models';
+import { businessUnitsFor } from './people';
 
 /** Signed-in user for the prototype — stamped on anything the user submits. */
 export const CURRENT_USER = 'tanhuiling';
@@ -40,6 +41,68 @@ export const nextBenefitRef = (benefits: Benefit[]) => {
   return `B${String((used.length ? Math.max(...used) : 0) + 1).padStart(2, '0')}`;
 };
 
+/** The benefit as it stands now, for stamping onto a new audit entry. */
+export function snapshotOf(b: Benefit): BenefitSnapshot {
+  const last = b.reportingHistory[b.reportingHistory.length - 1];
+  return {
+    name: b.name,
+    type: b.type,
+    categories: [...b.categories],
+    owners: [...b.owners],
+    businessUnits: businessUnitsFor(b.owners),
+    description: b.description,
+    validationSource: b.validationSource,
+    startDate: b.startDate,
+    endDate: b.endDate,
+    status: b.status,
+    baselineId: b.baselineId,
+    baselineValue: b.currentApprovedBaseline,
+    originalBaseline: b.originalApprovedBaseline,
+    approvalStatus: b.approvalStatus,
+    reportingLines: b.reportingHistory.length,
+    latestReported: last
+      ? (b.type === 'Financial' ? String(last.actualValue ?? '-') : last.progressUpdate)
+      : '-'
+  };
+}
+
+/**
+ * Stamps a snapshot onto every seeded audit entry, at seed time.
+ *
+ * Done here rather than on read because it has to capture the benefit as
+ * SEEDED — once a user edits the record, the old entries must keep saying what
+ * they said. The baseline in force at each entry's date comes from
+ * baselineHistory, which is append-only and therefore genuinely knowable; the
+ * descriptive fields are the seeded ones, which never change before this runs.
+ */
+function withSeedSnapshots(b: Benefit): Benefit {
+  return {
+    ...b,
+    auditLog: b.auditLog.map((entry) => {
+      const baseline = [...b.baselineHistory]
+        .filter((h) => h.status === 'Approved' && h.approvalDate !== '-' && h.approvalDate <= entry.date)
+        .pop();
+      const reported = b.reportingHistory.filter((r) => r.updateDate <= entry.date);
+      const last = reported[reported.length - 1];
+      return {
+        ...entry,
+        snapshot: {
+          ...snapshotOf(b),
+          baselineId: baseline?.baselineId ?? b.baselineHistory[0]?.baselineId ?? b.baselineId,
+          baselineValue: baseline?.baselineValue ?? b.originalApprovedBaseline,
+          startDate: baseline?.startDate ?? b.startDate,
+          endDate: baseline?.endDate ?? b.endDate,
+          approvalStatus: baseline?.status ?? b.approvalStatus,
+          reportingLines: reported.length,
+          latestReported: last
+            ? (b.type === 'Financial' ? String(last.actualValue ?? '-') : last.progressUpdate)
+            : '-'
+        }
+      };
+    })
+  };
+}
+
 /** Total of a benefit's year-phased financial lines — its baseline value. */
 export const financialTotal = (rows: Benefit['financialRows']) =>
   rows.reduce((sum, r) => sum + Object.values(r.values).reduce((s, v) => s + (v ?? 0), 0), 0);
@@ -51,6 +114,10 @@ export const financialTotal = (rows: Benefit['financialRows']) =>
 export function defaultBenefits(ws: Workstream): Benefit[] {
   if (ws.workStatus === 'Cancelled') return [];
 
+  return seedBenefits().map(withSeedSnapshots);
+}
+
+function seedBenefits(): Benefit[] {
   return [
     {
       id: 'bf-1',

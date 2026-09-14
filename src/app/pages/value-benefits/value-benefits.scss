@@ -448,3 +448,19 @@ ui-date-input ::ng-deep input.ui-date-input { @include type.body(sm); }
   display: block;
   margin-top: 4px;
 }
+
+/* A snapshot carries the whole record, so it needs more width than the
+   add-a-line dialog it shares its chrome with. */
+.rl-dialog--wide { width: min(760px, calc(100vw - 48px)); }
+
+.rl-subtitle {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 0;
+  padding: 0 24px 12px;
+}
+
+.rl-actions { justify-content: space-between; }
+
+/* The audit log's link sits in a table cell, so it takes the cell's size. */
+.snapshot-link { @include type.body(sm); }
