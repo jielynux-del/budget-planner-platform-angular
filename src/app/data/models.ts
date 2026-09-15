@@ -288,7 +288,8 @@ export interface AuditEntry {
 /**
  * A benefit is created once through Add New Benefit and then managed through
  * its lifecycle. It is the single record behind both the Benefits Tracking and
- * the Baseline Management tables.
+ * the Benefits Tracking table — its baseline lives inside it, not in a view
+ * of its own.
  */
 export interface Benefit {
   id: string;

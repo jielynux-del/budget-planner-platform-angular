@@ -873,46 +873,12 @@
       </ui-card>
     }
 
-    @if (actionKind() === 'change') {
-      <ui-card title="Request Baseline Change">
-        <div class="create-grid">
-          <div class="filter-field">
-            <span class="filter-label">Current Baseline</span>
-            <div class="readonly">{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) }}</div>
-          </div>
-          <div class="filter-field">
-            <span class="filter-label">Proposed Baseline (S$)</span>
-            <ui-text-input [(value)]="formProposed" placeholder="0" />
-          </div>
-          <div class="filter-field">
-            <span class="filter-label">Start date</span>
-            <ui-date-input [(value)]="formStart" />
-          </div>
-          <div class="filter-field">
-            <span class="filter-label">End date</span>
-            <ui-date-input [(value)]="formEnd" />
-          </div>
-          <div class="filter-field span-2">
-            <span class="filter-label">Change Reason</span>
-            <ui-textarea [(value)]="formReason" placeholder="Why the approved baseline should change" />
-          </div>
-        </div>
-        <p class="empty">
-          The request is recorded as the next baseline ID at <strong>Pending Approval</strong>.
-          The current approved baseline is unchanged until it is approved.
-        </p>
-      </ui-card>
-    }
-
     <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeAction()">Cancel</button>
     @if (actionKind() === 'update') {
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="saveUpdate()">Save</button>
     }
     @if (actionKind() === 'closure') {
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitClosure()">Submit Closure Request</button>
-    }
-    @if (actionKind() === 'change') {
-      <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitBaselineChange()">Submit Request</button>
     }
   </ui-modal-shell>
 }

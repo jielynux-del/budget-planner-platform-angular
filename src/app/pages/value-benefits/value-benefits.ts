@@ -134,9 +134,6 @@ export class ValueBenefits {
     { key: 'update', label: 'Update Benefit' },
     { key: 'closure', label: 'Request Closure' }
   ];
-  protected readonly baselineActions: UiMenuItem[] = [
-    { key: 'change', label: 'Request Baseline Change' }
-  ];
 
   /**
    * ui-kebab-menu owns its own open state, so two rows could be open at once.
@@ -681,19 +678,6 @@ export class ValueBenefits {
     setTimeout(() => { this.createOpen.set(false); this.closingCreate.set(false); }, ValueBenefits.EXIT_MS);
   }
 
-  /* ---------------- baseline detail ---------------- */
-
-  protected readonly baselineId = signal<string | null>(null);
-  protected readonly closingBaseline = signal(false);
-  protected readonly baselineOf = computed(() =>
-    this.benefits().find((b) => b.id === this.baselineId()) ?? null);
-
-  protected openBaseline(b: Benefit) { this.baselineId.set(b.id); }
-  protected closeBaseline() {
-    this.closingBaseline.set(true);
-    setTimeout(() => { this.baselineId.set(null); this.closingBaseline.set(false); }, ValueBenefits.EXIT_MS);
-  }
-
   /** Baseline history with the change each version made to the one before it. */
   protected baselineChain(b: Benefit) {
     return b.baselineHistory.map((h, i) => {
@@ -718,7 +702,7 @@ export class ValueBenefits {
   /* ---------------- row actions ---------------- */
 
   /** Which action form is open, and for which benefit. */
-  protected readonly actionKind = signal<'update' | 'closure' | 'change' | null>(null);
+  protected readonly actionKind = signal<'update' | 'closure' | null>(null);
   protected readonly actionId = signal<string | null>(null);
   protected readonly closingAction = signal(false);
   protected readonly actionBenefit = computed(() =>
@@ -732,12 +716,10 @@ export class ValueBenefits {
   protected readonly formCorrective = signal('');
   protected readonly formOutcome = signal('');
   protected readonly formComments = signal('');
-  protected readonly formProposed = signal('');
   protected readonly formStart = signal('');
   protected readonly formEnd = signal('');
-  protected readonly formReason = signal('');
 
-  protected openAction(kind: 'update' | 'closure' | 'change', b: Benefit, event: Event) {
+  protected openAction(kind: 'update' | 'closure', b: Benefit, event: Event) {
     event.stopPropagation();
     this.closeMenu();
     this.formActual.set('');
@@ -750,10 +732,8 @@ export class ValueBenefits {
       ? String(latestUpdate(b)?.actualValue ?? '')
       : latestUpdate(b)?.progressUpdate ?? '');
     this.formComments.set('');
-    this.formProposed.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
     this.formStart.set(b.startDate);
     this.formEnd.set(b.endDate);
-    this.formReason.set('');
     this.actionKind.set(kind);
     this.actionId.set(b.id);
   }
@@ -768,9 +748,7 @@ export class ValueBenefits {
   }
 
   protected readonly actionTitle = computed(() =>
-    this.actionKind() === 'update' ? 'Update Benefit'
-      : this.actionKind() === 'closure' ? 'Request Closure'
-      : 'Request Baseline Change');
+    this.actionKind() === 'closure' ? 'Request Closure' : 'Update Benefit');
 
   private today() { return new Date().toISOString().slice(0, 10); }
   private num(v: string) { return Number(String(v).replace(/[^0-9.-]/g, '')) || 0; }
@@ -851,51 +829,13 @@ export class ValueBenefits {
    * Baseline change — appends a new BL id at Pending Approval. The current
    * approved baseline is untouched until someone approves it.
    */
-  protected submitBaselineChange() {
-    const b = this.actionBenefit();
-    if (!b) return;
-    const id = nextBaselineId(this.benefits());
-    // A proposed baseline is accepted for any benefit — a non-financial one can
-    // acquire a measurable baseline later. Blank means it stays unset.
-    const proposed = this.formProposed().trim() ? this.num(this.formProposed()) : null;
-    this.patch(b.id, (cur) => ({
-      ...cur,
-      baselineId: id,
-      approvalStatus: 'Pending Approval',
-      approvedBy: '-',
-      approvalDate: '-',
-      baselineHistory: [...cur.baselineHistory, {
-        baselineId: id,
-        baselineValue: proposed,
-        startDate: this.formStart(),
-        endDate: this.formEnd(),
-        requestedBy: this.persona().name,
-        requestedOn: this.today(),
-        approvedBy: '-',
-        approvalDate: '-',
-        changeReason: this.formReason().trim(),
-        status: 'Pending Approval'
-      }],
-      pendingWith: 'Sponsor',
-      auditLog: [...cur.auditLog, {
-        id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
-        action: 'Baseline Change Requested',
-        comments: `${id} submitted for approval` +
-          (proposed !== null ? ` — proposed baseline ${this.money(proposed)}.` : '.'),
-        snapshot: snapshotOf(cur)
-      }]
-    }));
-    this.closeAction();
-  }
-
   protected readonly actionValid = computed(() => {
     const b = this.actionBenefit();
     if (!b) return false;
     if (this.actionKind() === 'update') {
       return b.type === 'Financial' ? this.formActual().trim() !== '' : this.formProgress().trim() !== '';
     }
-    if (this.actionKind() === 'closure') return this.formOutcome().trim() !== '';
-    return this.formReason().trim() !== '' && this.formStart() !== '' && this.formEnd() !== '';
+    return this.formOutcome().trim() !== '';
   });
 
   /* ---------------- Add New Benefit ---------------- */

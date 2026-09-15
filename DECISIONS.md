@@ -34,6 +34,12 @@ request as everything else. Consequences:
   the queue deliberately suppresses it as a standalone item (`baselineInPackage`) so one change
   does not appear as two requests for one approver to decide twice.
 
+**Request Baseline Change is gone with it.** Once the baseline moved into the update package the
+standalone flow was unreachable, and leaving it would have meant two ways to raise the same change
+with different governance. Its form state, submit handler and overlay card are removed, along with
+the orphaned baseline-detail overlay state a Haiku sweep found (`baselineOf`, `openBaseline`,
+`closeBaseline`, `closingBaseline`).
+
 **Model tiering, on request.** `personas.ts` and the stale-reference sweep went to Haiku agents —
 both are isolated and mechanical. The rest was done inline: items 2-4 all rewrite the same two
 1,100-line files, so parallel agents would conflict and sequential ones would each re-read the
@@ -489,9 +495,6 @@ Stated rather than hidden, per RULES.md #8:
 - **`Update Pending Approval` is a display state, not a stored one.** `displayStatus()` derives
   it from a live `pendingUpdate`; `status` continues to hold the lifecycle value. Anything
   reading `benefit.status` directly will not see it.
-- **Request Baseline Change still exists as a row action.** Baseline editing moved into the
-  benefit update package, but the standalone row action was left in place — so a baseline can be
-  raised either way, and only the standalone one queues as its own item.
 - **Validation Source is governed two ways.** Through Update benefit it needs approval; through
   the Update Benefit (reporting) flow it applies directly, because gating it there would block
   the actuals report it belongs to. A real inconsistency, accepted on purpose.
