@@ -350,8 +350,12 @@
               }
             </div>
 
-            @if (editType() === 'Financial') {
-              <div class="baseline-lines">
+          }
+        </div>
+
+        @if (summaryEdit() && editType() === 'Financial') {
+          <div class="entity-section-wide">
+            <div class="baseline-lines">
                 <span class="filter-label">Financial and Stat Impact</span>
                 @if (!datesSetEdit()) {
                   <ui-info-banner
@@ -406,10 +410,11 @@
                   <ui-icon name="plus-circle" />
                   Add new
                 </button>
-              </div>
-            }
-          }
+            </div>
+          </div>
+        }
 
+        <div class="entity-section-wide">
           <ui-accordion title="Baseline History" [count]="b.baselineHistory.length" [defaultOpen]="false">
             <div class="vb-scroll">
               <table ui-table size="sm">
@@ -482,7 +487,7 @@
           <h3 class="entity-section-title">Reporting History</h3>
           <p class="entity-section-note">Every update reported against this benefit. Appended, never edited.</p>
         </aside>
-        <div class="entity-section-body">
+        <div class="entity-section-wide entity-section-body">
       @if (!b.reportingHistory.length && !draftUpdates().length && !summaryEdit()) {
         <p class="empty">Nothing has been reported for this benefit yet.</p>
       } @else {

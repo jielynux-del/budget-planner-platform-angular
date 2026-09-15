@@ -501,3 +501,16 @@ ui-date-input ::ng-deep input.ui-date-input {
   flex-direction: column;
   gap: 8px;
 }
+
+/* Wide content runs across BOTH grid columns.
+   The left title column is right for a field, which is read alongside its
+   label — but it costs a data table a third of the card's width, and a table
+   squeezed to 382px scrolls instead of being read. Tables and their
+   accordions therefore break out of the body column and span the section. */
+.entity-section-wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

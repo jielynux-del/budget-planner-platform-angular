@@ -24,6 +24,13 @@ each row onto its benefit's own range at seed time, folding anything beyond the 
 final year so row totals are preserved exactly. No baseline figure changed; they simply add up
 now. Opening an edit no longer marks the form dirty before the user has touched it.
 
+**Wide content spans the whole section.** The fixed 220px title column is right for a field,
+which is read alongside its label, but it cost every data table a third of the card — the baseline
+lines table had 382px to show 785px of columns, so it scrolled instead of being read. Tables and
+their accordions now break out of the body column via `.entity-section-wide` and span both grid
+tracks. They still scroll when the viewport is genuinely narrow, which is the point: overflow is
+for when there is no room, not for when the room was given away to a label column.
+
 **Doubled strokes in the Baseline accordions.** A `table[ui-table]` inside a `ui-accordion` was
 drawing its own outer border 1px inside the accordion's, in the same colour. The accordion owns
 the container, so the table no longer draws an edge there — measured, not eyeballed: table border
