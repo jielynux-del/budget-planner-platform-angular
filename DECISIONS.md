@@ -8,6 +8,29 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-15 — The baseline table comes back, and the seed data is re-phased
+
+**Decision.** A financial baseline is built from year-phased lines again, not typed as a lump
+sum — the same Types of Financial / Drivers / Measure table the create wizard uses, with columns
+following the benefit's own start and end dates and a row-level add and remove. The Proposed
+Baseline field is derived from those lines and read-only: a baseline figure should always be
+able to show its working, and a separate input could only ever disagree with the table above it.
+
+**That surfaced a real data fault.** The seeded financial rows were phased across a fixed
+2024-2026 window while each benefit carries its own dates, so money sat in years the benefit does
+not span. Invisible until the table's columns started following the dates — at which point a row
+totalling S$35,000,000 sat under a baseline of S$71,000,000. `realignFinancialYears()` re-phases
+each row onto its benefit's own range at seed time, folding anything beyond the range into the
+final year so row totals are preserved exactly. No baseline figure changed; they simply add up
+now. Opening an edit no longer marks the form dirty before the user has touched it.
+
+**Doubled strokes in the Baseline accordions.** A `table[ui-table]` inside a `ui-accordion` was
+drawing its own outer border 1px inside the accordion's, in the same colour. The accordion owns
+the container, so the table no longer draws an edge there — measured, not eyeballed: table border
+0px, accordion 1px.
+
+---
+
 ## 2026-09-15 — Three roles, one package, and no Baseline Management view
 
 **Three personas, not five.** Benefit Owner (creates and updates), Sponsor (approves anything),

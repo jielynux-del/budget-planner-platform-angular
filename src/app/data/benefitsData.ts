@@ -67,6 +67,39 @@ export function snapshotOf(b: Benefit): BenefitSnapshot {
 }
 
 /**
+ * Re-phases each benefit's financial lines onto ITS OWN year range.
+ *
+ * The seeded rows were written against a fixed 2024-2026 window while the
+ * benefits carry their own start and end dates, so money sat in years the
+ * benefit does not span. The edit table's columns follow the benefit's dates,
+ * which made the row total disagree with the baseline it is supposed to
+ * explain. Row totals are preserved exactly — the money is re-phased, not
+ * changed — so every baseline figure still ties out.
+ */
+function realignFinancialYears(b: Benefit): Benefit {
+  const from = Number(b.startDate.slice(0, 4));
+  const to = Number(b.endDate.slice(0, 4));
+  if (!from || !to || to < from) return b;
+  const years = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
+  return {
+    ...b,
+    financialRows: b.financialRows.map((row) => {
+      const amounts = Object.keys(row.values)
+        .sort()
+        .map((k) => row.values[Number(k)] ?? 0);
+      const values: Record<number, number> = {};
+      years.forEach((y, i) => { values[y] = amounts[i] ?? 0; });
+      // Anything beyond the new range folds into the final year so the row
+      // total is untouched.
+      const spill = amounts.slice(years.length).reduce((t, v) => t + v, 0);
+      if (spill) values[years[years.length - 1]] += spill;
+      return { ...row, values };
+    })
+  };
+}
+
+/**
  * Stamps a snapshot onto every seeded audit entry, at seed time.
  *
  * Done here rather than on read because it has to capture the benefit as
@@ -114,7 +147,7 @@ export const financialTotal = (rows: Benefit['financialRows']) =>
 export function defaultBenefits(ws: Workstream): Benefit[] {
   if (ws.workStatus === 'Cancelled') return [];
 
-  return seedBenefits().map(withSeedSnapshots);
+  return seedBenefits().map(realignFinancialYears).map(withSeedSnapshots);
 }
 
 function seedBenefits(): Benefit[] {

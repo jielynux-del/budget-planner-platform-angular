@@ -330,9 +330,11 @@
                 <p class="readonly-field">{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</p>
               </div>
               @if (editType() === 'Financial') {
+                <!-- Derived from the lines below, never typed: a baseline figure
+                     should always be able to show its working. -->
                 <div class="filter-field">
-                  <span class="filter-label">Current Approved Baseline (S$)</span>
-                  <ui-text-input [(value)]="editBaseline" placeholder="0" />
+                  <span class="filter-label">Proposed Baseline (S$)</span>
+                  <p class="readonly-field">{{ money(editBaselineTotal()) }}</p>
                 </div>
               } @else {
                 <div class="filter-field span-2">
@@ -347,6 +349,65 @@
                 </div>
               }
             </div>
+
+            @if (editType() === 'Financial') {
+              <div class="baseline-lines">
+                <span class="filter-label">Financial and Stat Impact</span>
+                @if (!datesSetEdit()) {
+                  <ui-info-banner
+                    tone="warning"
+                    [dismissible]="false"
+                    message="Set a start and end date above — the years below follow that range." />
+                }
+                <div class="vb-scroll">
+                  <table ui-table size="sm">
+                    <thead>
+                      <tr>
+                        <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                        <th><ui-column-header label="Drivers" size="sm" /></th>
+                        <th><ui-column-header label="Measure" size="sm" /></th>
+                        @for (y of editYears(); track y) {
+                          <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
+                        }
+                        <th><ui-column-header label="Total" size="sm" align="end" /></th>
+                        <th style="width: 56px"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of editLines(); track row.id) {
+                        <tr ui-table-row>
+                          <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setEditLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
+                          <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setEditLine(row.id, 'driver', $event)" placeholder="Select" /></td>
+                          <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setEditLine(row.id, 'measure', $event)" placeholder="Select" /></td>
+                          @for (y of editYears(); track y) {
+                            <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setEditLineValue(row.id, y, $event)" placeholder="0" /></td>
+                          }
+                          <td class="ui-cell-number cell-name cell-nowrap">{{ money(editLineTotal(row)) }}</td>
+                          <td class="rl-remove-cell">
+                            @if (editLines().length > 1) {
+                              <button
+                                ui-icon-button
+                                variant="ghost"
+                                size="small"
+                                type="button"
+                                class="rl-remove"
+                                aria-label="Remove this line"
+                                (click)="removeEditLine(row.id)">
+                                <ui-icon name="delete" [size]="16" />
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <button ui-button variant="plain" size="small" type="button" class="add-row" (click)="addEditLine()">
+                  <ui-icon name="plus-circle" />
+                  Add new
+                </button>
+              </div>
+            }
           }
 
           <ui-accordion title="Baseline History" [count]="b.baselineHistory.length" [defaultOpen]="false">

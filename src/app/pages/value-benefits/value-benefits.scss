@@ -184,6 +184,15 @@ ui-modal-shell.sheet-closing ::ng-deep .panel {
 /* table[ui-table] already draws its own row rule, so only the vertical
    dividers and the outer edge are added here — a full border on every cell
    doubles up on the horizontal rules and reads far too heavy. */
+/* A table inside an accordion must NOT draw its own outer edge: the accordion
+   already has one, and the two land 1px apart in the same colour — a doubled
+   stroke down both sides. The accordion owns the container; the table only
+   draws what is inside it. */
+ui-modal-shell ::ng-deep ui-accordion table[ui-table] {
+  border: none;
+  border-radius: 0;
+}
+
 ui-modal-shell ::ng-deep table[ui-table] {
   border: 1px solid var(--color-border-decorative);
   border-radius: var(--radius-sm, 4px);
@@ -485,3 +494,10 @@ ui-date-input ::ng-deep input.ui-date-input {
 
 /* The audit log's link sits in a table cell, so it takes the cell's size. */
 .snapshot-link { @include type.body(sm); }
+
+/* The financial lines sit under the baseline fields as their own block. */
+.baseline-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

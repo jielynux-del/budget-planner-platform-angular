@@ -344,6 +344,60 @@ export class ValueBenefits {
   protected readonly editStatus = signal('Tracking Active');
   protected readonly editBaseline = signal('');
   protected readonly editBaselineDescription = signal('');
+
+  /**
+   * The benefit's year-phased financial lines, editable in place.
+   *
+   * A financial baseline is built the same way it was at creation — from the
+   * lines, not typed as a lump sum — so the figure always has its working
+   * shown. `editBaselineTotal` is therefore the proposed baseline; there is no
+   * separate field to disagree with it.
+   */
+  protected readonly editLines = signal<BenefitRow[]>([]);
+
+  /** Columns follow the benefit's own dates, exactly as the wizard's table does. */
+  protected readonly editYears = computed(() => {
+    const from = Number(this.editStart().slice(0, 4));
+    const to = Number(this.editEnd().slice(0, 4));
+    if (!from || !to || to < from) return [new Date().getFullYear()];
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  });
+
+  /**
+   * Summed over the VISIBLE years only, so the figure always equals what the
+   * table above it adds up to. A baseline the reader cannot verify by looking
+   * is worse than no figure at all.
+   */
+  protected readonly editBaselineTotal = computed(() => {
+    const years = this.editYears();
+    return this.editLines().reduce(
+      (sum, r) => sum + years.reduce((t, y) => t + (r.values[y] ?? 0), 0), 0);
+  });
+
+  /** Both dates set — the table's year columns depend on them. */
+  protected readonly datesSetEdit = computed(() =>
+    this.editStart() !== '' && this.editEnd() !== '');
+
+  protected addEditLine() { this.editLines.update((l) => [...l, this.blankLine()]); }
+
+  protected removeEditLine(id: string) {
+    this.editLines.update((rows) => rows.filter((r) => r.id !== id));
+  }
+
+  protected setEditLine(id: string, field: 'typeOfFinancial' | 'driver' | 'measure', value: string | null) {
+    this.editLines.update((rows) =>
+      rows.map((r) => (r.id === id ? ({ ...r, [field]: value ?? '' } as BenefitRow) : r)));
+  }
+
+  protected setEditLineValue(id: string, year: number, value: string | null) {
+    const n = Number(String(value).replace(/[^0-9.-]/g, '')) || 0;
+    this.editLines.update((rows) =>
+      rows.map((r) => (r.id === id ? { ...r, values: { ...r.values, [year]: n } } : r)));
+  }
+
+  protected editLineTotal(row: BenefitRow) {
+    return this.editYears().reduce((s, y) => s + (row.values[y] ?? 0), 0);
+  }
   protected readonly editReason = signal('');
 
   /** Derived from the owners being edited — never typed in. */
@@ -362,6 +416,9 @@ export class ValueBenefits {
     this.editStatus.set(b.status);
     this.editBaseline.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
     this.editBaselineDescription.set(b.baselineDescription);
+    this.editLines.set(b.financialRows.length
+      ? b.financialRows.map((r) => ({ ...r, values: { ...r.values } }))
+      : [this.blankLine()]);
     this.editReason.set('');
     this.draftUpdates.set([]);
     this.summaryEdit.set(true);
@@ -531,9 +588,7 @@ export class ValueBenefits {
   protected readonly baselineChanged = computed(() => {
     const b = this.detail();
     if (!b || this.editType() !== 'Financial') return false;
-    const typed = this.editBaseline().trim();
-    const next = typed === '' ? null : this.num(typed);
-    return next !== b.currentApprovedBaseline;
+    return this.editBaselineTotal() !== b.currentApprovedBaseline;
   });
 
   /**
@@ -560,10 +615,7 @@ export class ValueBenefits {
 
     // The baseline travels in the SAME package: updating a baseline is now part
     // of updating the benefit, not a separate request with its own approver.
-    const typed = this.editBaseline().trim();
-    const proposed = this.editType() === 'Financial'
-      ? (typed === '' ? null : this.num(typed))
-      : null;
+    const proposed = this.editType() === 'Financial' ? this.editBaselineTotal() : null;
     const baselineMoved = this.baselineChanged();
     if (baselineMoved) {
       changes.push({
@@ -576,6 +628,15 @@ export class ValueBenefits {
     }
     add('baselineDescription', 'Baseline description', b.baselineDescription,
       this.editBaselineDescription().trim(), this.editBaselineDescription().trim());
+    if (baselineMoved) {
+      changes.push({
+        key: 'financialRows',
+        label: 'Financial lines',
+        from: `${b.financialRows.length} line${b.financialRows.length === 1 ? '' : 's'}`,
+        to: `${this.editLines().length} line${this.editLines().length === 1 ? '' : 's'}`,
+        value: this.editLines()
+      });
+    }
 
     const staged = this.draftUpdates();
     if (!changes.length && !staged.length) {
