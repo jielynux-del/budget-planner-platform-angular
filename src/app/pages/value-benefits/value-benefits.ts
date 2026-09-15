@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
 import {
-  UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
+  UiAccordion, UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
   UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
@@ -45,7 +45,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
 @Component({
   selector: 'app-value-benefits',
   imports: [
-    UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
+    UiAccordion, UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
     UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiInfoBanner,
     UiTabs, UiTooltipDirective, UiSnackbar, UiRadioChicletGroup, UiRadioChiclet, UiLink,
@@ -58,8 +58,6 @@ const STATUS_DOT: Record<string, UiPillColor> = {
 export class ValueBenefits {
   readonly seeded = input.required<Benefit[]>({ alias: 'benefits' });
   readonly workstreamId = input.required<string>();
-  /** Which sub-tab to open on, so a link can land on Baseline Management. */
-  readonly initialView = input<string>('tracking');
 
   /** The session store's list for this workstream, so edits persist. */
   protected readonly benefits = computed(() => benefitsFor(this.workstreamId())());
@@ -67,18 +65,16 @@ export class ValueBenefits {
   protected readonly persona = currentPersona;
 
   /**
-   * Requests on this workstream sitting with the signed-in persona. Routing
-   * matches the approvals queue: baseline changes go to Finance, closures to
-   * the Portfolio Approver.
+   * Requests on this workstream waiting on the signed-in persona. Every kind of
+   * request now routes to the Sponsor, so this is simply "can I approve, and is
+   * anything outstanding" rather than a per-kind routing table.
    */
   protected readonly awaitingMe = computed(() => {
-    const role = this.persona().role;
     if (!this.persona().canApprove) return [];
     return this.benefits().filter((b) =>
-      (b.approvalStatus === 'Pending Approval' &&
-        (b.pendingWith ?? 'Finance Business Partner') === role) ||
-      (b.status === 'Closure Pending Approval' &&
-        (b.pendingWith ?? 'Portfolio Approver') === role));
+      b.approvalStatus === 'Pending Approval' ||
+      b.status === 'Closure Pending Approval' ||
+      b.pendingUpdate?.status === 'Pending Approval');
   });
 
   /** Requests on this workstream that were sent back for the requester to amend. */
@@ -93,13 +89,6 @@ export class ValueBenefits {
   protected readonly statusOptions = [ALL, ...BENEFIT_STATUSES];
   protected readonly typeOptions = [ALL, 'Financial', 'Non-Financial'];
   protected readonly approvalOptions = [ALL, 'Approved', 'Pending Approval', 'Rejected'];
-
-  /** The table switches views in place rather than through page tabs. */
-  protected readonly views: UiSegment[] = [
-    { key: 'tracking', label: 'Benefits Tracking' },
-    { key: 'baseline', label: 'Baseline Management' }
-  ];
-  protected readonly view = linkedSignal(() => this.initialView());
 
   /** A benefit lives on a workstream, so its approvals do too. */
   protected readonly pageTabs = computed<UiFilterTab[]>(() => [
@@ -258,14 +247,6 @@ export class ValueBenefits {
   protected latest(b: Benefit) { return latestUpdate(b); }
 
   /**
-   * Deep link to this workstream's Baseline Management sub-tab. A real
-   * destination rather than a link back to the workstream, so the reader
-   * lands where the sentence says they will.
-   */
-  protected readonly baselineManagementUrl = computed(() =>
-    `/workstreams/${this.workstreamId()}?tab=value-benefits&view=baseline`);
-
-  /**
    * The owner column stays narrow, so it prints the first name and a count.
    * The full list is the tooltip's job — `ownerTooltip` below.
    */
@@ -315,7 +296,6 @@ export class ValueBenefits {
   /** Banner CTA — show only what is waiting on a decision. */
   protected viewPending() {
     this.pageTab.set('benefits');
-    this.view.set('tracking');
     this.statusTile.set('Closure Pending Approval');
     this.page.set(1);
   }
@@ -366,6 +346,7 @@ export class ValueBenefits {
   protected readonly editType = signal('Financial');
   protected readonly editStatus = signal('Tracking Active');
   protected readonly editBaseline = signal('');
+  protected readonly editBaselineDescription = signal('');
   protected readonly editReason = signal('');
 
   /** Derived from the owners being edited — never typed in. */
@@ -383,6 +364,7 @@ export class ValueBenefits {
     this.editType.set(b.type);
     this.editStatus.set(b.status);
     this.editBaseline.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
+    this.editBaselineDescription.set(b.baselineDescription);
     this.editReason.set('');
     this.draftUpdates.set([]);
     this.summaryEdit.set(true);
@@ -455,6 +437,28 @@ export class ValueBenefits {
     this.draftUpdates.update((rows) => rows.filter((r) => r.id !== id));
   }
 
+  /**
+   * The benefit as it should be READ while a request is outstanding — the
+   * requested values, not the approved ones.
+   *
+   * A reader looking at a benefit under review wants to see what is being
+   * proposed; the superseded values are still recoverable from the audit log's
+   * snapshots, which is what makes showing the new ones safe.
+   */
+  protected shown(b: Benefit): Benefit {
+    const upd = b.pendingUpdate;
+    if (upd?.status !== 'Pending Approval') return b;
+    const applied = upd.fields.reduce<Record<string, unknown>>((acc, f) => {
+      acc[f.key] = f.value;
+      return acc;
+    }, {});
+    return {
+      ...b,
+      ...applied,
+      reportingHistory: [...b.reportingHistory, ...(upd.reportingLines ?? [])]
+    } as Benefit;
+  }
+
   /** A request is already outstanding, so the benefit cannot be submitted again. */
   protected pendingReview(b: Benefit) {
     return b.pendingUpdate?.status === 'Pending Approval';
@@ -470,7 +474,10 @@ export class ValueBenefits {
     if (this.draftUpdates().length) return true;
     const sameList = (a: readonly string[], c: readonly string[]) =>
       a.length === c.length && a.every((v, i) => v === c[i]);
+    if (this.baselineChanged()) return true;
     return this.editName().trim() !== b.name
+      || this.editType() !== b.type
+      || this.editBaselineDescription().trim() !== b.baselineDescription
       || this.editDescription().trim() !== b.description
       || this.editValidationSource().trim() !== b.validationSource
       || this.editStart() !== b.startDate
@@ -526,7 +533,7 @@ export class ValueBenefits {
   /** The baseline figure changed, so a baseline approval is needed too. */
   protected readonly baselineChanged = computed(() => {
     const b = this.detail();
-    if (!b) return false;
+    if (!b || this.editType() !== 'Financial') return false;
     const typed = this.editBaseline().trim();
     const next = typed === '' ? null : this.num(typed);
     return next !== b.currentApprovedBaseline;
@@ -535,7 +542,7 @@ export class ValueBenefits {
   /**
    * Saves an edit as REQUESTS, not as changes: the benefit keeps its approved
    * values until someone decides. Descriptive fields raise one request to the
-   * Portfolio Approver; a changed baseline raises a separate BaselineRecord for
+   * Sponsor; a changed baseline raises a separate BaselineRecord for
    * Finance. The two are independent and can be decided by different people.
    */
   protected saveSummaryEdit(b: Benefit) {
@@ -553,7 +560,25 @@ export class ValueBenefits {
     add('startDate', 'Start date', b.startDate, this.editStart(), this.editStart());
     add('endDate', 'End date', b.endDate, this.editEnd(), this.editEnd());
     add('type', 'Benefit Type', b.type, this.editType(), this.editType());
-    add('status', 'Benefit Status', b.status, this.editStatus(), this.editStatus());
+
+    // The baseline travels in the SAME package: updating a baseline is now part
+    // of updating the benefit, not a separate request with its own approver.
+    const typed = this.editBaseline().trim();
+    const proposed = this.editType() === 'Financial'
+      ? (typed === '' ? null : this.num(typed))
+      : null;
+    const baselineMoved = this.baselineChanged();
+    if (baselineMoved) {
+      changes.push({
+        key: 'currentApprovedBaseline',
+        label: 'Current Approved Baseline',
+        from: b.currentApprovedBaseline === null ? this.emptyValue : this.money(b.currentApprovedBaseline),
+        to: proposed === null ? this.emptyValue : this.money(proposed),
+        value: proposed
+      });
+    }
+    add('baselineDescription', 'Baseline description', b.baselineDescription,
+      this.editBaselineDescription().trim(), this.editBaselineDescription().trim());
 
     const staged = this.draftUpdates();
     if (!changes.length && !staged.length) {
@@ -569,6 +594,23 @@ export class ValueBenefits {
         if (staged.length) parts.push(`${staged.length} reporting line${staged.length > 1 ? 's' : ''}`);
         return {
           ...r,
+          // A moved baseline opens a pending BaselineRecord so the history shows
+          // the proposal; it is approved along with the rest of the package.
+          approvalStatus: baselineMoved ? ('Pending Approval' as const) : r.approvalStatus,
+          baselineHistory: baselineMoved
+            ? [...r.baselineHistory, {
+                baselineId: nextBaselineId(this.benefits()),
+                baselineValue: proposed,
+                startDate: this.editStart(),
+                endDate: this.editEnd(),
+                requestedBy: CURRENT_USER,
+                requestedOn: today,
+                approvedBy: '-',
+                approvalDate: '-',
+                changeReason: this.editReason().trim() || 'Baseline revised as part of a benefit update',
+                status: 'Pending Approval' as const
+              }]
+            : r.baselineHistory,
           // Nothing is written yet. A change anywhere in the benefit puts the
           // WHOLE benefit up for review, so the reporting lines travel with the
           // field changes and only reach the history on approval.
@@ -791,7 +833,7 @@ export class ValueBenefits {
     this.patch(b.id, (cur) => ({
       ...cur,
       status: 'Closure Pending Approval',
-      pendingWith: 'Portfolio Approver',
+      pendingWith: 'Sponsor',
       auditLog: [...cur.auditLog, {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
         action: 'Closure Submitted',
@@ -834,7 +876,7 @@ export class ValueBenefits {
         changeReason: this.formReason().trim(),
         status: 'Pending Approval'
       }],
-      pendingWith: 'Finance Business Partner',
+      pendingWith: 'Sponsor',
       auditLog: [...cur.auditLog, {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
         action: 'Baseline Change Requested',
@@ -1025,7 +1067,7 @@ export class ValueBenefits {
       approvedBy: '-',
       approvalDate: '-',
       status: 'Tracking Active',
-      pendingWith: 'Finance Business Partner',
+      pendingWith: 'Sponsor',
       financialRows: financial ? this.draftLines().map((r) => ({ ...r, benefitRef: ref })) : [],
       baselineHistory: [{
         baselineId,

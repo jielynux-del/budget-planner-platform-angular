@@ -44,7 +44,6 @@
 
 <ui-table-card>
   <ui-table-header title="Value / Benefits">
-    <ui-segmented [segments]="views" [(value)]="view" label="Table view" />
 
     <ui-popover uiTableActions title="Filters" [(open)]="filtersOpen" [width]="360" placement="bottom-end">
       <button uiPopoverTrigger ui-button variant="secondary" size="small" type="button">
@@ -73,17 +72,14 @@
       <button uiPopoverActions ui-button variant="primary" size="small" type="button" (click)="filtersOpen.set(false)">Apply</button>
     </ui-popover>
 
-    @if (view() === 'tracking') {
-      <button uiTableActions ui-button variant="primary" size="small" type="button" (click)="openCreate()">
-        <ui-icon name="plus" />
-        Add New Benefit
-      </button>
-    }
+    <button uiTableActions ui-button variant="primary" size="small" type="button" (click)="openCreate()">
+      <ui-icon name="plus" />
+      Add New Benefit
+    </button>
   </ui-table-header>
 
   <div class="vb-scroll vb-scroll--page">
-    @if (view() === 'tracking') {
-      <table ui-table size="sm" class="vb-table">
+    <table ui-table size="sm" class="vb-table">
         <thead>
           <tr>
             <th style="min-width: 230px">
@@ -116,8 +112,11 @@
           </tr>
         </thead>
         <tbody>
-          @for (b of rows(); track b.id) {
-            <tr ui-table-row interactive (activate)="openDetail(b)">
+          @for (row of rows(); track row.id) {
+            <!-- `shown` surfaces a pending request's values; the approved ones
+                 stay recoverable from the audit log's snapshots. -->
+            @let b = shown(row);
+            <tr ui-table-row interactive (activate)="openDetail(row)">
               <td>
                 <div class="cell-name">{{ b.name }}</div>
                 <div class="cell-meta">
@@ -168,67 +167,6 @@
           }
         </tbody>
       </table>
-    } @else {
-      <table ui-table size="sm" class="vb-table">
-        <thead>
-          <tr>
-            <th><ui-column-header label="Baseline ID" size="sm" [sortable]="true" [first]="true" /></th>
-            <th style="min-width: 230px">
-              <ui-column-header label="Benefit Name" size="sm" [sortable]="true" [filtered]="!!colName().length">
-                <ui-multi-select class="col-filter" [items]="nameOptions()" [(selected)]="colName" placeholder="All" display="count" />
-              </ui-column-header>
-            </th>
-            <th><ui-column-header label="Original Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-            <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-            <th><ui-column-header label="Start date" size="sm" [sortable]="true" /></th>
-            <th><ui-column-header label="End date" size="sm" [sortable]="true" /></th>
-            <th>
-              <ui-column-header label="Approval Status" size="sm" [sortable]="true" [filtered]="!!colApproval().length">
-                <ui-multi-select class="col-filter" [items]="approvalChoices" [(selected)]="colApproval" placeholder="All" display="count" />
-              </ui-column-header>
-            </th>
-            <th><ui-column-header label="Approved By" size="sm" [sortable]="true" /></th>
-            <th><ui-column-header label="Approval Date" size="sm" [sortable]="true" /></th>
-            <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (b of rows(); track b.id) {
-            <tr ui-table-row interactive (activate)="openBaseline(b)">
-              <td class="cell-name">{{ b.baselineId }}</td>
-              <td>
-                <div class="cell-name">{{ b.name }}</div>
-                <div class="cell-meta">{{ b.benefitRef }} · {{ b.type }}</div>
-              </td>
-              <td class="ui-cell-number">{{ money(b.originalApprovedBaseline) }}</td>
-              <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
-              <td>{{ b.startDate }}</td>
-              <td>{{ b.endDate }}</td>
-              <td class="ui-cell-status"><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></td>
-              <td>{{ b.approvedBy }}</td>
-              <td>{{ b.approvalDate }}</td>
-              <td class="ui-cell-actions ui-td-sticky">
-                <div class="row-actions">
-                  <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="openAudit(b); $event.stopPropagation()">
-                    <ui-icon name="history" />
-                  </button>
-                  <button ui-icon-button size="small" type="button" aria-label="More actions" (click)="toggleMenu(b.id, $event)">
-                    <ui-icon name="more-vertical" />
-                  </button>
-                  @if (openMenuId() === b.id) {
-                    <ui-dropdown-menu class="row-menu" [class.row-menu--up]="menuUp()" role="menu">
-                      @for (a of baselineActions; track a.key) {
-                        <button ui-dropdown-item type="button" (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
-                      }
-                    </ui-dropdown-menu>
-                  }
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
   </div>
 
   <ui-pagination [total]="filtered().length" [(page)]="page" [(pageSize)]="pageSize" />
@@ -237,7 +175,8 @@
 }
 
 <!-- ── Benefit detail: full-viewport focus overlay ────────────────────── -->
-@if (detail(); as b) {
+@if (detail(); as record) {
+  @let b = shown(record);
   <ui-modal-shell
     [title]="b.name"
     [subtitle]="b.benefitRef + ' · ' + b.type + ' · ' + ownerLabel(b.owners)"
@@ -249,7 +188,7 @@
       <ui-info-banner
         tone="warning"
         [dismissible]="false"
-        message="This benefit is pending approval. The values shown are the approved ones." />
+        message="This benefit is pending approval. The values shown are the ones requested — the approved ones are in the audit log." />
     }
 
     <!-- Projected into the shell's named slots, so these must stay at the top
@@ -358,28 +297,120 @@
         <aside class="entity-section-head">
           <h3 class="entity-section-title">Baseline</h3>
           <p class="entity-section-note">
-            The figure this benefit is measured against. To update baseline, request baseline
-            change under the
-            <a
-              ui-link
-              variant="product"
-              class="baseline-link"
-              [href]="baselineManagementUrl()"
-              target="_blank"
-              rel="noopener">Baseline Management Page</a>.
+            The figure this benefit is measured against. Edit it here as part of updating the
+            benefit — the change goes to the Sponsor with everything else.
           </p>
         </aside>
 
         <div class="entity-section-body">
-          <dl class="detail-grid">
-            <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
-            <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
-            <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
-            <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) }}</dd></div>
-            @if (b.type === 'Non-Financial' && b.baselineDescription) {
-              <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
-            }
-          </dl>
+          @if (!summaryEdit()) {
+            <dl class="detail-grid">
+              <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
+              <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
+              <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
+              <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) }}</dd></div>
+              @if (b.type === 'Non-Financial' && b.baselineDescription) {
+                <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
+              }
+            </dl>
+          } @else {
+            <div class="create-grid">
+              <div class="filter-field">
+                <span class="filter-label">Benefit Type</span>
+                <ui-select [options]="typeChoices" [(value)]="editType" />
+              </div>
+              <!-- Assigned by the system when a baseline change is approved. -->
+              <div class="filter-field">
+                <span class="filter-label">Baseline ID</span>
+                <p class="readonly-field">{{ b.baselineId }}</p>
+              </div>
+              <!-- The opening figure never moves; it is what variance is read against. -->
+              <div class="filter-field">
+                <span class="filter-label">Original Approved Baseline</span>
+                <p class="readonly-field">{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</p>
+              </div>
+              @if (editType() === 'Financial') {
+                <div class="filter-field">
+                  <span class="filter-label">Current Approved Baseline (S$)</span>
+                  <ui-text-input [(value)]="editBaseline" placeholder="0" />
+                </div>
+              } @else {
+                <div class="filter-field span-2">
+                  <span class="filter-label">Baseline description</span>
+                  <ui-textarea [(value)]="editBaselineDescription" placeholder="The starting position this benefit is measured against" />
+                </div>
+              }
+              @if (baselineChanged()) {
+                <div class="filter-field span-2">
+                  <span class="filter-label">Baseline Change Reason</span>
+                  <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
+                </div>
+              }
+            </div>
+          }
+
+          <ui-accordion title="Baseline History" [count]="b.baselineHistory.length" [defaultOpen]="false">
+            <div class="vb-scroll">
+              <table ui-table size="sm">
+                <thead>
+                  <tr>
+                    <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
+                    <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
+                    <th><ui-column-header label="Start date" size="sm" /></th>
+                    <th><ui-column-header label="Requested By" size="sm" /></th>
+                    <th><ui-column-header label="Approved By" size="sm" /></th>
+                    <th><ui-column-header label="Approval Date" size="sm" /></th>
+                    <th><ui-column-header label="Status" size="sm" /></th>
+                    <th style="min-width: 240px"><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (h of baselineChain(b); track h.baselineId) {
+                    <tr ui-table-row>
+                      <td class="cell-name cell-nowrap">{{ h.baselineId }}</td>
+                      <td class="ui-cell-number cell-nowrap">{{ money(h.baselineValue) }}</td>
+                      <td class="cell-nowrap">{{ h.startDate }}</td>
+                      <td>{{ h.requestedBy }}</td>
+                      <td>{{ h.approvedBy }}</td>
+                      <td class="cell-nowrap">{{ h.approvalDate }}</td>
+                      <td class="ui-cell-status">
+                        <ui-status-tag [status]="h.status" [variant]="approvalVariant(h.status)" />
+                        @if (h.isCurrent) {
+                          <ui-status-tag class="current-tag" status="Current" variant="neutral" />
+                        }
+                      </td>
+                      <td>{{ h.changeReason }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-accordion>
+
+          <ui-accordion title="Baseline Approval Trail" [count]="baselineAudit(b).length" [defaultOpen]="false">
+            <div class="vb-scroll">
+              <table ui-table size="sm">
+                <thead>
+                  <tr>
+                    <th><ui-column-header label="Date" size="sm" [first]="true" /></th>
+                    <th><ui-column-header label="User" size="sm" /></th>
+                    <th><ui-column-header label="Action" size="sm" /></th>
+                    <th style="min-width: 280px"><ui-column-header label="Comments" size="sm" [last]="true" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (a of baselineAudit(b); track a.id) {
+                    <tr ui-table-row>
+                      <td class="cell-nowrap">{{ a.date }}</td>
+                      <td>{{ a.user }}</td>
+                      <td class="cell-name">{{ a.action }}</td>
+                      <td>{{ a.comments }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </ui-accordion>
         </div>
       </div>
     </ui-card>
@@ -471,54 +502,6 @@
       </div>
     </ui-card>
 
-    <ui-card>
-      <div class="entity-section">
-        <aside class="entity-section-head">
-          <h3 class="entity-section-title">Baseline History</h3>
-          <p class="entity-section-note">
-            Each baseline this benefit has held, and why it moved. To update baseline,
-            request baseline change under the
-            <a
-              ui-link
-              variant="product"
-              class="baseline-link"
-              [href]="baselineManagementUrl()"
-              target="_blank"
-              rel="noopener">Baseline Management Page</a>.
-          </p>
-        </aside>
-        <div class="entity-section-body">
-      <div class="vb-scroll">
-        <table ui-table size="sm">
-          <thead>
-            <tr>
-              <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
-              <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
-              <th><ui-column-header label="Start date" size="sm" /></th>
-              <th><ui-column-header label="Requested By" size="sm" /></th>
-              <th><ui-column-header label="Approved By" size="sm" /></th>
-              <th><ui-column-header label="Approval Date" size="sm" /></th>
-              <th><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (h of b.baselineHistory; track h.baselineId) {
-              <tr ui-table-row>
-                <td class="cell-name cell-nowrap">{{ h.baselineId }}</td>
-                <td class="ui-cell-number cell-nowrap">{{ money(h.baselineValue) }}</td>
-                <td class="cell-nowrap">{{ h.startDate }}</td>
-                <td>{{ h.requestedBy }}</td>
-                <td>{{ h.approvedBy }}</td>
-                <td class="cell-nowrap">{{ h.approvalDate }}</td>
-                <td>{{ h.changeReason }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-        </div>
-      </div>
-    </ui-card>
 
     <button
       ui-modal-footer
@@ -815,114 +798,6 @@
       type="button"
       [disabled]="!createValid()"
       (click)="createBenefit()">Create Benefit</button>
-  </ui-modal-shell>
-}
-
-<!-- ── Baseline detail: the agreement, not the benefit's performance ──── -->
-@if (baselineOf(); as b) {
-  <ui-modal-shell
-    [title]="'Baseline ' + b.baselineId"
-    [subtitle]="b.benefitRef + ' · ' + b.name"
-    [class.sheet-closing]="closingBaseline()"
-    (closed)="closeBaseline()">
-
-    <button ui-modal-actions ui-button variant="secondary" size="small" type="button" (click)="download(b)">
-      <ui-icon name="download" />
-      Download
-    </button>
-
-    <ui-card title="Current Approved Baseline">
-      <dl class="detail-grid">
-        <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
-        <div><dt>Approval Status</dt><dd><ui-status-tag [status]="b.approvalStatus" [variant]="approvalVariant(b.approvalStatus)" /></dd></div>
-        <div><dt>Baseline Value</dt><dd>{{ b.currentApprovedBaseline === null ? 'Not set' : money(b.currentApprovedBaseline) }}</dd></div>
-        <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? 'Not set' : money(b.originalApprovedBaseline) }}</dd></div>
-        <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
-        <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
-        <div><dt>Approved By</dt><dd>{{ b.approvedBy }}</dd></div>
-        <div><dt>Approval Date</dt><dd>{{ b.approvalDate }}</dd></div>
-      </dl>
-    </ui-card>
-
-    <ui-card title="Baseline History">
-      <div class="vb-scroll">
-        <table ui-table size="sm">
-          <thead>
-            <tr>
-              <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
-              <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
-              <th><ui-column-header label="Change vs Previous" size="sm" align="end" /></th>
-              <th><ui-column-header label="Start date" size="sm" /></th>
-              <th><ui-column-header label="End date" size="sm" /></th>
-              <th><ui-column-header label="Requested By" size="sm" /></th>
-              <th><ui-column-header label="Approved By" size="sm" /></th>
-              <th><ui-column-header label="Approval Date" size="sm" /></th>
-              <th><ui-column-header label="Status" size="sm" /></th>
-              <th style="min-width: 280px"><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (h of baselineChain(b); track h.baselineId) {
-              <!-- No row wash for the current baseline: the kit's `selected`
-                   state means "the reader picked this row", and its green read
-                   as approved/good next to a delta pill that can be red. The
-                   Status cell says it in words instead. -->
-              <tr ui-table-row>
-                <td class="cell-name">{{ h.baselineId }}</td>
-                <td class="ui-cell-number">{{ money(h.baselineValue) }}</td>
-                <td class="ui-cell-number">
-                  @if (h.delta === null) {
-                    <span class="cell-meta">Opening baseline</span>
-                  } @else {
-                    <ui-pill
-                      [label]="(h.delta > 0 ? '+' : '') + money(h.delta) + (h.pct !== null ? ' (' + (h.pct > 0 ? '+' : '') + h.pct + '%)' : '')"
-                      [color]="h.delta >= 0 ? 'green' : 'red'"
-                      [dot]="false" />
-                  }
-                </td>
-                <td>{{ h.startDate }}</td>
-                <td>{{ h.endDate }}</td>
-                <td>{{ h.requestedBy }}</td>
-                <td>{{ h.approvedBy }}</td>
-                <td>{{ h.approvalDate }}</td>
-                <td class="ui-cell-status">
-                  <ui-status-tag [status]="h.status" [variant]="approvalVariant(h.status)" />
-                  @if (h.isCurrent) {
-                    <ui-status-tag class="current-tag" status="Current" variant="neutral" />
-                  }
-                </td>
-                <td>{{ h.changeReason }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </ui-card>
-
-    <ui-card title="Approval Trail">
-      <div class="vb-scroll">
-        <table ui-table size="sm">
-          <thead>
-            <tr>
-              <th><ui-column-header label="Date" size="sm" [first]="true" /></th>
-              <th><ui-column-header label="User" size="sm" /></th>
-              <th><ui-column-header label="Action" size="sm" /></th>
-              <th style="min-width: 320px"><ui-column-header label="Comments" size="sm" [last]="true" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (a of baselineAudit(b); track a.id) {
-              <tr ui-table-row>
-                <td>{{ a.date }}</td>
-                <td>{{ a.user }}</td>
-                <td class="cell-name">{{ a.action }}</td>
-                <td>{{ a.comments }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </ui-card>
   </ui-modal-shell>
 }
 

@@ -53,16 +53,9 @@ export class WorkstreamDetail {
 
   protected readonly tree = hierarchy;
   protected readonly ws = computed(() => workstreamById(this.params()?.get('id') ?? ''));
-  /**
-   * Deep-linkable: `?tab=value-benefits&view=baseline` opens straight onto
-   * Baseline Management, which is what the Baseline History link needs in
-   * order to open a real destination rather than just the workstream.
-   */
+  /** Deep-linkable: `?tab=value-benefits` opens straight onto that tab. */
   protected readonly activeTab = linkedSignal(() =>
     this.query()?.get('tab') ?? 'work-profile');
-  /** 'baseline' opens Value/Benefits on the Baseline Management sub-tab. */
-  protected readonly initialView = computed(() => this.query()?.get('view') ?? 'tracking');
-
   /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
   protected readonly panelExpanded = signal(true);
 

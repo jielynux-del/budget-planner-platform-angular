@@ -8,6 +8,39 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-15 — Three roles, one package, and no Baseline Management view
+
+**Three personas, not five.** Benefit Owner (creates and updates), Sponsor (approves anything),
+Finance (sees everything, does nothing). Every request now routes to the Sponsor, so `awaitingMe`
+is simply "can I approve, and is anything outstanding" rather than a per-kind routing table.
+Finance having neither `canRequest` nor `canApprove` is the point: it proves a read-only view
+exists rather than leaving it implied.
+
+**A pending benefit now shows the REQUESTED values, not the approved ones.** This reverses the
+call made on 14 Sep, and the reversal is only safe because of what was built since: audit
+snapshots mean the superseded values are recoverable. A reader looking at a benefit under review
+wants to see what is being proposed; the banner says so and points at the audit log. `shown()` is
+the single place that applies a pending request's fields for display — the stored record is
+untouched until a decision is made.
+
+**Baseline Management is no longer a view.** Updating a baseline is part of the package of
+updating a benefit: the Baseline section is editable in place, and the change travels in the same
+request as everything else. Consequences:
+
+- The sub-tab, its table, its detail overlay and the `?view=baseline` deep link are all gone.
+- Baseline History and Baseline Approval Trail moved into the benefit's own Baseline section, in
+  collapsed accordions — they are reference, not the first thing to read.
+- A moved baseline still opens a pending `BaselineRecord` so the history shows the proposal, but
+  the queue deliberately suppresses it as a standalone item (`baselineInPackage`) so one change
+  does not appear as two requests for one approver to decide twice.
+
+**Model tiering, on request.** `personas.ts` and the stale-reference sweep went to Haiku agents —
+both are isolated and mechanical. The rest was done inline: items 2-4 all rewrite the same two
+1,100-line files, so parallel agents would conflict and sequential ones would each re-read the
+files cold, costing more than they save.
+
+---
+
 ## 2026-09-14 — Session close: what this round changed
 
 A single working session covering the Value/Benefits detail overlay end to end. Grouped here so
@@ -456,6 +489,9 @@ Stated rather than hidden, per RULES.md #8:
 - **`Update Pending Approval` is a display state, not a stored one.** `displayStatus()` derives
   it from a live `pendingUpdate`; `status` continues to hold the lifecycle value. Anything
   reading `benefit.status` directly will not see it.
+- **Request Baseline Change still exists as a row action.** Baseline editing moved into the
+  benefit update package, but the standalone row action was left in place — so a baseline can be
+  raised either way, and only the standalone one queues as its own item.
 - **Validation Source is governed two ways.** Through Update benefit it needs approval; through
   the Update Benefit (reporting) flow it applies directly, because gating it there would block
   the actuals report it belongs to. A real inconsistency, accepted on purpose.

@@ -49,7 +49,13 @@ export function approvalQueue(): ApprovalItem[] {
     for (const b of benefitsFor(ws.id)()) {
       const latestBaseline = b.baselineHistory[b.baselineHistory.length - 1];
 
-      if (b.approvalStatus === 'Pending Approval' || b.approvalStatus === 'Changes Requested') {
+      // A baseline moved through Update benefit is part of THAT package and is
+      // decided with it, so it must not also stand as its own queue item. Only
+      // a baseline raised on its own (Request Baseline Change) queues here.
+      const baselineInPackage = b.pendingUpdate?.status === 'Pending Approval';
+
+      if (!baselineInPackage &&
+          (b.approvalStatus === 'Pending Approval' || b.approvalStatus === 'Changes Requested')) {
         items.push({
           benefit: b,
           workstreamId: ws.id,
@@ -58,7 +64,7 @@ export function approvalQueue(): ApprovalItem[] {
           reference: b.baselineId,
           requestedBy: latestBaseline?.requestedBy ?? '-',
           requestedOn: latestBaseline?.requestedOn ?? latestBaseline?.startDate ?? '-',
-          pendingWith: b.pendingWith ?? 'Finance Business Partner',
+          pendingWith: b.pendingWith ?? 'Sponsor',
           state: b.approvalStatus,
           detail: latestBaseline?.changeReason ?? ''
         });
@@ -76,7 +82,7 @@ export function approvalQueue(): ApprovalItem[] {
           requestedOn: upd.requestedOn,
           // Descriptive changes are a portfolio governance matter, so they do
           // not share the baseline queue's approver.
-          pendingWith: 'Portfolio Approver',
+          pendingWith: 'Sponsor',
           state: upd.status,
           detail: [
             ...upd.fields.map((f) => `${f.label}: ${f.from || '-'} → ${f.to || '-'}`),
@@ -97,7 +103,7 @@ export function approvalQueue(): ApprovalItem[] {
           reference: b.benefitRef,
           requestedBy: submitted?.user ?? '-',
           requestedOn: submitted?.date ?? '-',
-          pendingWith: b.pendingWith ?? 'Portfolio Approver',
+          pendingWith: b.pendingWith ?? 'Sponsor',
           state: b.status === 'Closure Pending Approval' ? 'Pending Approval' : 'Changes Requested',
           detail: submitted?.comments ?? ''
         });

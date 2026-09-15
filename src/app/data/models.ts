@@ -325,7 +325,7 @@ export interface Benefit {
   pendingWith?: string;
 
   /**
-   * A live edit to the descriptive fields, awaiting the Portfolio Approver.
+   * A live edit to the descriptive fields, awaiting the Sponsor.
    * Absent when there is nothing outstanding.
    */
   pendingUpdate?: BenefitUpdateRequest;

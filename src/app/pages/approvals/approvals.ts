@@ -164,9 +164,27 @@ export class Approvals {
         const applied = approved
           ? upd.fields.reduce<Record<string, unknown>>((acc, f) => { acc[f.key] = f.value; return acc; }, {})
           : {};
+        // A baseline moved in the same package has a pending record waiting in
+        // the history; it is decided with everything else, not separately.
+        const idx = b.baselineHistory.findIndex((h) => h.status === 'Pending Approval');
+        const history = idx === -1 ? b.baselineHistory : b.baselineHistory.map((h, i) =>
+          i === idx
+            ? {
+                ...h,
+                status: (approved ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected') as Benefit['approvalStatus'],
+                approvedBy: approved ? this.persona().name : '-',
+                approvalDate: approved ? this.today() : '-',
+                decisionNote: note
+              }
+            : h);
         return this.audit({
           ...b,
           ...applied,
+          baselineHistory: history,
+          baselineId: approved && idx !== -1 ? history[idx].baselineId : b.baselineId,
+          approvalStatus: idx === -1
+            ? b.approvalStatus
+            : (approved ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected'),
           // The staged reporting lines join the history only on approval —
           // they were part of the same review as the field changes.
           reportingHistory: approved
