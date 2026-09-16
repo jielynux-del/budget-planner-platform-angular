@@ -164,16 +164,17 @@ export interface AppNotification {
 export type BenefitType = 'Financial' | 'Non-Financial';
 
 /**
- * 'Changes Requested' is rework: sent back to the requester to amend and
- * resubmit. Distinct from 'Rejected', which ends the request.
+ * 'Rework' is sent back to the requester to amend and resubmit — the request
+ * stays alive. 'Rejected' ends it. The Sponsor's queue only offers approve and
+ * rework; Rejected remains in the type for records that already carry it.
  */
 export type BaselineApprovalStatus =
-  | 'Approved' | 'Pending Approval' | 'Changes Requested' | 'Rejected';
+  | 'Approved' | 'Pending Approval' | 'Rework' | 'Rejected';
 
 export type BenefitLifecycleStatus =
   | 'Tracking Active'
   | 'Closure Pending Approval'
-  | 'Closure Changes Requested'
+  | 'Closure Rework'
   | 'Closed';
 
 /** One immutable entry in a benefit's baseline history. Never overwritten. */

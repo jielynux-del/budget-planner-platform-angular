@@ -8,6 +8,51 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-16 — Creation stops needing approval, and the queue gets its own vocabulary
+
+**Creation no longer goes to the Sponsor.** A new benefit starts Tracking Active with its opening
+baseline approved, confirmed by "Benefit created and tracking is now active". Only later EDITS
+are reviewed. The reasoning: creation is not a change to anything, so there is nothing for an
+approver to compare against. This reverses the 14 Sep decision that sent new baselines to
+Finance — recorded as a reversal rather than quietly overwritten.
+
+**The creation flow therefore drops Original Approved Baseline and Baseline Change Reason.**
+Nothing is changing; this is the first time a baseline exists. The opening figure is the line
+table's total, so it still shows its working. Create Benefit is gated on the Baseline Definition
+page being complete as well as Benefit Details, and a Next button walks the ordinary path — the
+tabs stay freely navigable, so Next is a convenience, not a gate.
+
+**'Changes Requested' became 'Rework'** everywhere, including `Closure Changes Requested` →
+`Closure Rework`. Process jargon replaced with what people actually call it.
+
+**'Update Pending Approval' is now a first-class filter** in the summary tiles, the status column
+filter and the column header filter — all three count `displayStatus()`, not the stored status,
+so the tiles cannot disagree with the column beside them.
+
+**One banner, above the page tabs.** `attention()` derives its line from what is outstanding, so
+it recounts and disappears on its own as items are decided — a banner that has to be told to go
+away eventually won't be. Its View action goes to the approvals queue. The embedded queue no
+longer renders a second banner of its own.
+
+**Row actions are for whoever raises requests.** Disabled for the Sponsor (who decides, not
+submits), for a closed benefit, and while any request is already outstanding — a second request
+on one record would give the approver two things to decide about one benefit.
+
+### Two kit limitations hit on the way
+
+**`ui-table-header` confines projected content to a `.control-left` box that sizes to its
+content**, so `margin-left: auto` could only push the queue filters to the end of a 488px box,
+not to the header's right edge. Letting `.control-row` and `.control-left` take the full row is
+what makes right-alignment possible at all. Also worth noting: the kit has no minimal/borderless
+select face, so those filters are standard triggers, narrowed.
+
+**`ui-kebab-menu` owns its open state and exposes no model for it.** Two rows can therefore sit
+open at once with no way for the consumer to close one — verified: two panels open after clicking
+two triggers. Worked around by closing the others through the SAME path a user would, a click on
+their own trigger, rather than removing panel DOM the kit owns. Both going into the kit feedback.
+
+---
+
 ## 2026-09-15 — The baseline table comes back, and the seed data is re-phased
 
 **Decision.** A financial baseline is built from year-phased lines again, not typed as a lump

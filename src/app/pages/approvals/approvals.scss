@@ -34,7 +34,29 @@
 .scroll table th { white-space: nowrap; }
 .scroll ::ng-deep ui-column-header .label { overflow: visible; text-overflow: clip; }
 
-.row-actions { display: flex; gap: 6px; }
+.queue-heading {
+  @include type.heading(xs);
+  color: var(--color-text-strong);
+  // Takes the slack so the filters are pushed to the row's far edge; the
+  // header row is a flex line and margin-left:auto alone only wins if
+  // something before it is not already growing.
+  flex: 1 1 auto;
+}
+// ui-table-header wraps projected content in `.control-row > .control-left`,
+// which sizes to its content — so `margin-left: auto` on the filters could
+// only push them to the end of a 488px box, not to the header's right edge.
+// Letting those two wrappers take the full row is what makes the alignment
+// possible at all.
+ui-table-header ::ng-deep .control-row,
+ui-table-header ::ng-deep .control-left {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+// Plain filters: the kit has no minimal/borderless select face, so these stay
+// the standard ui-select trigger, just narrowed and pushed to the row's end.
+.toolbar-filters { display: flex; gap: 8px; margin-left: auto; }
+.toolbar-filter { width: 180px; }
 .cell-name { @include type.label(sm); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
 .empty { @include type.body(sm); color: var(--color-text-subtle); margin: 0; padding: 20px 0; text-align: center; }

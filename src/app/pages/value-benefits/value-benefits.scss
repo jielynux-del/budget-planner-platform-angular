@@ -514,3 +514,15 @@ ui-date-input ::ng-deep input.ui-date-input {
   flex-direction: column;
   gap: 16px;
 }
+
+/* The year-phased line tables carry three selects, N year inputs and a total.
+   Left to fill the available width they compress every column until nothing is
+   readable, so they state a floor and let `.vb-scroll` scroll instead. Each
+   year column also holds its own minimum, or adding a fourth year squeezes the
+   three before it. */
+.lines-table {
+  min-width: 860px;
+
+  th, td { min-width: 104px; }
+  th:first-child, td:first-child { min-width: 168px; }
+}

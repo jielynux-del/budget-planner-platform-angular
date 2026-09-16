@@ -1,9 +1,9 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  UiButton, UiCard, UiColumnHeader, UiIcon, UiInfoBanner, UiModalShell, UiPill, UiSelect,
-  UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow, UiTextarea,
-  type UiTagVariant
+  UiButton, UiCard, UiColumnHeader, UiIcon, UiInfoBanner, UiKebabMenu, UiModalShell,
+  UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow, UiTextarea,
+  type UiMenuItem, type UiSelectOption, type UiTagVariant
 } from 'ai-dls-kit';
 import { approvalQueue, benefitsFor, type ApprovalItem } from '../../data/benefitsStore';
 import { snapshotOf } from '../../data/benefitsData';
@@ -15,8 +15,8 @@ const ALL = 'All';
 @Component({
   selector: 'app-approvals',
   imports: [
-    UiCard, UiInfoBanner, UiSelect, UiButton, UiIcon, UiTableCard, UiTableHeader, UiTable,
-    UiColumnHeader, UiTableRow, UiStatusTag, UiPill, UiModalShell, UiTextarea
+    UiCard, UiInfoBanner, UiSelect, UiButton, UiIcon, UiKebabMenu, UiTableCard, UiTableHeader,
+    UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiModalShell, UiTextarea
   ],
   templateUrl: './approvals.html',
   styleUrl: './approvals.scss'
@@ -27,15 +27,60 @@ export class Approvals {
   /** Scopes the queue to one workstream — a benefit only exists on a workstream. */
   readonly workstreamId = input<string | null>(null);
 
+  /**
+   * Reported upward rather than confirmed here: the page this queue is embedded
+   * in already owns a snackbar, and two of them would sit on top of each other.
+   */
+  readonly decided = output<{ message: string; benefitId: string }>();
+
   protected readonly persona = currentPersona;
   protected readonly all = ALL;
-  protected readonly kindOptions = [ALL, 'Baseline Change', 'Benefit Update', 'Benefit Closure'];
-  protected readonly stateOptions = [ALL, 'Pending Approval', 'Changes Requested'];
+  // Display text diverges from the underlying `kind` values the queue produces
+  // ('Baseline Change' reads as 'Baseline Change Only' to a sponsor), so this
+  // is an option list rather than the bare kind strings.
+  protected readonly kindOptions: UiSelectOption[] = [
+    { value: ALL, label: ALL },
+    { value: 'Baseline Change', label: 'Baseline Change Only' },
+    { value: 'Benefit Update', label: 'Benefit Update' },
+    { value: 'Benefit Closure', label: 'Benefit Closure' }
+  ];
+  protected readonly stateOptions = [ALL, 'Pending Approval', 'Rework'];
+
+  /** The two sponsor actions, offered from the row's kebab menu. */
+  protected readonly rowActions: UiMenuItem[] = [
+    { key: 'approve', label: 'Approve' },
+    { key: 'rework', label: 'Send for rework' }
+  ];
 
   protected readonly kind = signal(ALL);
   protected readonly state = signal(ALL);
   /** Re-runs the derived queue after a decision. */
   protected readonly version = signal(0);
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+
+  constructor() {
+    // `ui-kebab-menu` owns its open state and exposes no model for it, so two
+    // rows can sit open at once and the consumer has no way to close one.
+    // Pressing a second trigger therefore closes the first through the SAME
+    // path the user would — a click on its own trigger — rather than by
+    // removing panel DOM the kit owns.
+    effect((onCleanup) => {
+      const root = this.host.nativeElement as HTMLElement;
+      const closeOthers = (event: Event) => {
+        const target = event.target as HTMLElement | null;
+        if (!target) return;
+        for (const menu of Array.from(root.querySelectorAll('ui-kebab-menu'))) {
+          if (menu.contains(target)) continue;
+          const panel = menu.querySelector('ui-dropdown-menu');
+          if (!panel || panel.getBoundingClientRect().height === 0) continue;
+          menu.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        }
+      };
+      root.addEventListener('pointerdown', closeOthers, true);
+      onCleanup(() => root.removeEventListener('pointerdown', closeOthers, true));
+    });
+  }
 
   private readonly scoped = computed(() => {
     this.version();
@@ -55,14 +100,13 @@ export class Approvals {
   });
 
   protected readonly myRework = computed(() =>
-    this.scoped().filter((i) => i.state === 'Changes Requested'));
+    this.scoped().filter((i) => i.state === 'Rework'));
 
   protected readonly counts = computed(() => {
     const q = this.scoped();
     return {
-      total: q.length,
       pending: q.filter((i) => i.state === 'Pending Approval').length,
-      rework: q.filter((i) => i.state === 'Changes Requested').length
+      rework: q.filter((i) => i.state === 'Rework').length
     };
   });
 
@@ -78,10 +122,15 @@ export class Approvals {
       : this.decisionKind() === 'rework' ? 'Send back for rework'
       : 'Reject request');
 
-  protected open(item: ApprovalItem, kind: 'approve' | 'rework' | 'reject') {
+  protected open(item: ApprovalItem, kind: 'approve' | 'rework') {
     this.decisionNote.set('');
     this.decisionKind.set(kind);
     this.decisionFor.set(item);
+  }
+
+  /** Kebab menu selection, keyed the same as `rowActions`. */
+  protected onRowAction(item: ApprovalItem, key: string) {
+    if (key === 'approve' || key === 'rework') this.open(item, key);
   }
 
   protected closeDecision() {
@@ -129,7 +178,7 @@ export class Approvals {
           i === idx
             ? {
                 ...h,
-                status: (kind === 'approve' ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected') as Benefit['approvalStatus'],
+                status: (kind === 'approve' ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected') as Benefit['approvalStatus'],
                 approvedBy: kind === 'approve' ? this.persona().name : '-',
                 approvalDate: kind === 'approve' ? this.today() : '-',
                 decisionNote: note
@@ -139,7 +188,7 @@ export class Approvals {
         return this.audit({
           ...b,
           baselineHistory: history,
-          approvalStatus: approved ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected',
+          approvalStatus: approved ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected',
           // Only an approval promotes the proposed value to the current baseline.
           currentApprovedBaseline: approved ? history[idx].baselineValue : b.currentApprovedBaseline,
           startDate: approved ? history[idx].startDate : b.startDate,
@@ -171,7 +220,7 @@ export class Approvals {
           i === idx
             ? {
                 ...h,
-                status: (approved ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected') as Benefit['approvalStatus'],
+                status: (approved ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected') as Benefit['approvalStatus'],
                 approvedBy: approved ? this.persona().name : '-',
                 approvalDate: approved ? this.today() : '-',
                 decisionNote: note
@@ -184,14 +233,14 @@ export class Approvals {
           baselineId: approved && idx !== -1 ? history[idx].baselineId : b.baselineId,
           approvalStatus: idx === -1
             ? b.approvalStatus
-            : (approved ? 'Approved' : kind === 'rework' ? 'Changes Requested' : 'Rejected'),
+            : (approved ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected'),
           // The staged reporting lines join the history only on approval —
           // they were part of the same review as the field changes.
           reportingHistory: approved
             ? [...b.reportingHistory, ...(upd.reportingLines ?? [])]
             : b.reportingHistory,
           pendingUpdate: kind === 'rework'
-            ? { ...upd, status: 'Changes Requested' as const, decisionNote: note }
+            ? { ...upd, status: 'Rework' as const, decisionNote: note }
             : undefined
         } as Benefit,
         approved ? 'Benefit Update Approved'
@@ -205,7 +254,7 @@ export class Approvals {
       return this.audit({
         ...b,
         status: kind === 'approve' ? 'Closed'
-          : kind === 'rework' ? 'Closure Changes Requested'
+          : kind === 'rework' ? 'Closure Rework'
           : 'Tracking Active',
         pendingWith: kind === 'rework' ? b.pendingWith : undefined
       },
@@ -217,6 +266,12 @@ export class Approvals {
     }));
 
     this.version.update((v) => v + 1);
+    if (item.kind === 'Benefit Closure' && kind === 'approve') {
+      this.decided.emit({
+        message: `${item.benefit.name} has been successfully closed`,
+        benefitId: item.benefit.id
+      });
+    }
     this.closeDecision();
   }
 
@@ -233,7 +288,41 @@ export class Approvals {
     return state === 'Pending Approval' ? 'amber' : 'purple';
   }
 
+  /** Display text for the request-type column and filter. */
+  protected kindLabel(kind: ApprovalItem['kind']): string {
+    return kind === 'Baseline Change' ? 'Baseline Change Only' : kind;
+  }
+
+  /** A baseline moved as part of a benefit update reads as that update, not
+   *  as a bare baseline change — only a request touching nothing else is
+   *  "Baseline Change Only". */
+  private static readonly BASELINE_ONLY_KEYS = new Set([
+    'currentApprovedBaseline', 'financialRows', 'baselineDescription'
+  ]);
+
+  private changeTypeLabel(item: ApprovalItem): string {
+    if (item.kind === 'Benefit Closure') return 'Closure';
+    if (item.kind === 'Baseline Change') return 'Baseline Change Only';
+    const fields = item.benefit.pendingUpdate?.fields ?? [];
+    const baselineOnly = fields.length > 0 &&
+      fields.every((f) => Approvals.BASELINE_ONLY_KEYS.has(f.key));
+    return baselineOnly ? 'Baseline Change Only' : 'Benefit Update';
+  }
+
+  protected stateLabel(item: ApprovalItem): string {
+    return `${item.state} (${this.changeTypeLabel(item)})`;
+  }
+
   protected openWorkstream(item: ApprovalItem) {
-    this.router.navigate(['/workstreams', item.workstreamId]);
+    // This component only ever runs scoped to the workstream it's already
+    // shown on (embedded in that workstream's Value/Benefits tab), so
+    // `item.workstreamId` is always the current route id — navigating there
+    // with no query change resolves to the SAME URL, and the router ignores
+    // a same-URL navigation by default, making the button a no-op. Deep-link
+    // to the Value/Benefits tab explicitly so the navigation actually changes
+    // the URL (and stays correct if this ever surfaces cross-workstream).
+    this.router.navigate(['/workstreams', item.workstreamId], {
+      queryParams: { tab: 'value-benefits' }
+    });
   }
 }

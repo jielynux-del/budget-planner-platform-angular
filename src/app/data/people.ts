@@ -39,7 +39,12 @@ export const PEOPLE: Person[] = [
   { name: 'Rachel Mei Ling KOH', businessUnit: 'Group Risk Management' }
 ];
 
-export const PEOPLE_NAMES = PEOPLE.map((p) => p.name);
+/**
+ * Alphabetical, because a picker is scanned before it is searched — roster
+ * order means something to whoever wrote the roster and nothing to the reader.
+ * `localeCompare` so accented names sort where a reader expects them.
+ */
+export const PEOPLE_NAMES = PEOPLE.map((p) => p.name).sort((a, b) => a.localeCompare(b));
 
 const BU_BY_NAME = new Map(PEOPLE.map((p) => [p.name, p.businessUnit]));
 

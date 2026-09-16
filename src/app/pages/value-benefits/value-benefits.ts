@@ -4,7 +4,7 @@ import {
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
   UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiTable, UiTableCard,
   UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
-  UiLink, UiRadioChiclet, UiRadioChicletGroup, UiSnackbar, UiTabs, UiTooltipDirective,
+  UiLink, UiRadio, UiSnackbar, UiTabs, UiTooltipDirective,
   type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiTab, type UiTagVariant
 } from 'ai-dls-kit';
 import {
@@ -37,6 +37,7 @@ const APPROVAL_VARIANT: Record<string, UiTagVariant> = {
 
 /** Dot colour per lifecycle status, for the summary card. */
 const STATUS_DOT: Record<string, UiPillColor> = {
+  'Update Pending Approval': 'yellow',
   'Tracking Active': 'green',
   'Closure Pending Approval': 'yellow',
   'Closed': 'grey'
@@ -48,7 +49,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
     UiAccordion, UiCard, UiSelect, UiDateInput, UiButton, UiIcon, UiIconButton, UiPopover, UiSegmented,
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
     UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiInfoBanner,
-    UiTabs, UiTooltipDirective, UiSnackbar, UiRadioChicletGroup, UiRadioChiclet, UiLink,
+    UiTabs, UiTooltipDirective, UiSnackbar, UiRadio, UiLink,
     Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
   ],
@@ -80,13 +81,14 @@ export class ValueBenefits {
   /** Requests on this workstream that were sent back for the requester to amend. */
   protected readonly needsRework = computed(() =>
     this.benefits().filter((b) =>
-      b.approvalStatus === 'Changes Requested' || b.status === 'Closure Changes Requested'));
+      b.approvalStatus === 'Rework' || b.status === 'Closure Rework'));
 
   protected readonly all = ALL;
   protected readonly ownerOptions = [ALL, ...PEOPLE_NAMES];
   /** The wizard picks real people, so it must not offer the filter's All sentinel. */
   protected readonly ownerChoices = PEOPLE_NAMES;
-  protected readonly statusOptions = [ALL, ...BENEFIT_STATUSES];
+  protected readonly statusOptions = [ALL, 'Tracking Active', 'Update Pending Approval',
+    'Closure Pending Approval', 'Closed'];
   protected readonly typeOptions = [ALL, 'Financial', 'Non-Financial'];
   protected readonly approvalOptions = [ALL, 'Approved', 'Pending Approval', 'Rejected'];
 
@@ -136,6 +138,20 @@ export class ValueBenefits {
   ];
 
   /**
+   * Row actions raise requests, so they belong to whoever can raise one — the
+   * Sponsor decides, it does not submit. They are also closed off while a
+   * request is already outstanding or the benefit is closed: a second request
+   * on the same record would give the approver two things to decide about one
+   * benefit.
+   */
+  protected actionDisabled(b: Benefit) {
+    return !this.persona().canRequest
+      || b.status === 'Closed'
+      || b.status === 'Closure Pending Approval'
+      || b.pendingUpdate?.status === 'Pending Approval';
+  }
+
+  /**
    * ui-kebab-menu owns its own open state, so two rows could be open at once.
    * The menu is composed from ui-dropdown-menu here instead, with the open row
    * held in one signal — only ever one.
@@ -165,20 +181,21 @@ export class ValueBenefits {
 
   protected readonly nameOptions = computed(() => this.benefits().map((b) => b.name));
   protected readonly typeChoices = ['Financial', 'Non-Financial'];
-  protected readonly statusChoices = [...BENEFIT_STATUSES];
-  protected readonly approvalChoices = ['Approved', 'Pending Approval', 'Changes Requested', 'Rejected'];
+  protected readonly statusChoices = ['Tracking Active', 'Update Pending Approval',
+    'Closure Pending Approval', 'Closed'];
+  protected readonly approvalChoices = ['Approved', 'Pending Approval', 'Rework', 'Rejected'];
 
   protected readonly filtered = computed<Benefit[]>(() =>
     this.benefits().filter((b) =>
       (this.owner() === ALL || b.owners.includes(this.owner())) &&
       (this.status() === ALL || b.status === this.status()) &&
-      (this.statusTile() === ALL || b.status === this.statusTile()) &&
+      (this.statusTile() === ALL || this.displayStatus(b) === this.statusTile()) &&
       (!this.realisationFrom() || b.endDate >= this.realisationFrom()) &&
       (!this.realisationTo() || b.endDate <= this.realisationTo()) &&
       (!this.colName().length || this.colName().includes(b.name)) &&
       (!this.colType().length || this.colType().includes(b.type)) &&
       (!this.colOwner().length || b.owners.some((o) => this.colOwner().includes(o))) &&
-      (!this.colStatus().length || this.colStatus().includes(b.status)) &&
+      (!this.colStatus().length || this.colStatus().includes(this.displayStatus(b))) &&
       (!this.colApproval().length || this.colApproval().includes(b.approvalStatus))
     )
   );
@@ -192,11 +209,22 @@ export class ValueBenefits {
   protected readonly summary = computed(() => {
     const all = this.benefits();
     const pct = (n: number) => (all.length ? Math.round((n / all.length) * 100) : 0);
-    return BENEFIT_STATUSES.map((s) => {
-      const n = all.filter((b) => b.status === s).length;
-      return { key: s as string, label: s as string, count: n, pct: pct(n), dot: STATUS_DOT[s] };
+    return this.summaryStatuses.map((s) => {
+      const n = all.filter((b) => this.displayStatus(b) === s).length;
+      return { key: s, label: s, count: n, pct: pct(n), dot: STATUS_DOT[s] };
     });
   });
+
+  /**
+   * Counted on `displayStatus`, not on the stored one, so the tiles agree with
+   * the Benefit Status column — a benefit under review reads as pending in both.
+   */
+  protected readonly summaryStatuses = [
+    'Tracking Active',
+    'Update Pending Approval',
+    'Closure Pending Approval',
+    'Closed'
+  ];
 
   protected readonly activeFilterCount = computed(() =>
     [this.owner() !== ALL, this.status() !== ALL, !!this.realisationFrom(), !!this.realisationTo()]
@@ -290,11 +318,26 @@ export class ValueBenefits {
   protected lifecycleVariant(s: string): UiTagVariant { return LIFECYCLE_VARIANT[s] ?? 'neutral'; }
   protected approvalVariant(s: string): UiTagVariant { return APPROVAL_VARIANT[s] ?? 'neutral'; }
 
-  /** Banner CTA — show only what is waiting on a decision. */
+  /**
+   * The one line the banner shows, or null for nothing outstanding.
+   *
+   * Derived rather than stored so it falls away on its own the moment the last
+   * item is decided — a banner that has to be told to disappear eventually
+   * won't be.
+   */
+  protected readonly attention = computed(() => {
+    const waiting = this.awaitingMe().length;
+    const rework = this.needsRework().length;
+    const plural = (n: number) => `${n} item${n === 1 ? '' : 's'}`;
+    if (waiting && rework) return `${plural(waiting)} awaiting your approval and ${plural(rework)} sent back for rework`;
+    if (waiting) return `${plural(waiting)} awaiting your approval`;
+    if (rework) return `${plural(rework)} sent back for rework`;
+    return null;
+  });
+
+  /** Banner CTA — the approvals queue is where these are dealt with. */
   protected viewPending() {
-    this.pageTab.set('benefits');
-    this.statusTile.set('Closure Pending Approval');
-    this.page.set(1);
+    this.pageTab.set('approvals');
   }
 
   protected toggleStatus(key: string) {
@@ -922,6 +965,11 @@ export class ValueBenefits {
   protected readonly draftBaselineValue = signal('');
   protected readonly draftBaselineReason = signal('');
 
+  protected readonly yesNoOptions = [
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' }
+  ];
+
   protected readonly financialTypes = FINANCIAL_TYPES as unknown as string[];
   protected readonly driverOptions = BENEFIT_DRIVERS;
   protected readonly measureOptions = BENEFIT_MEASURES;
@@ -962,8 +1010,9 @@ export class ValueBenefits {
 
   protected readonly draftBaseline = computed(() => {
     if (!this.draftFinancial()) return null;
-    const typed = this.draftBaselineValue().trim();
-    return typed ? this.num(typed) : financialTotal(this.draftLines());
+    const years = this.years();
+    return this.draftLines().reduce(
+      (sum, r) => sum + years.reduce((t, y) => t + (r.values[y] ?? 0), 0), 0);
   });
 
   /** The kit's sentinel for a value that genuinely has none — RULES #7. */
@@ -986,9 +1035,23 @@ export class ValueBenefits {
    * Create is gated on the whole form, not one page: with freely navigable
    * tabs a user can reach Review without having visited Benefit Details.
    */
-  protected readonly createValid = computed(() =>
+  /**
+   * The Baseline Definition page is complete. A financial benefit needs at
+   * least one line carrying a figure; a non-financial one needs its prose
+   * baseline. Creation is the first time a baseline exists, so leaving it
+   * empty would create a benefit with nothing to measure against.
+   */
+  protected readonly baselineValid = computed(() => {
+    if (!this.draftFinancial()) return this.draftBaselineDescription().trim() !== '';
+    return (this.draftBaseline() ?? 0) > 0;
+  });
+
+  /** Page 1 alone — what the Next button needs. */
+  protected readonly detailsValid = computed(() =>
     this.draftName().trim() !== '' && this.draftOwners().length > 0 &&
     this.draftStart() !== '' && this.draftEnd() !== '');
+
+  protected readonly createValid = computed(() => this.detailsValid() && this.baselineValid());
 
   protected openCreate() {
     this.wizardTab.set('details');
@@ -1064,11 +1127,12 @@ export class ValueBenefits {
       startDate: this.draftStart(),
       endDate: this.draftEnd(),
       baselineDescription: financial ? '' : this.draftBaselineDescription().trim(),
-      approvalStatus: 'Pending Approval',
-      approvedBy: '-',
-      approvalDate: '-',
+      // Creation is not a change to anything, so there is nothing to approve:
+      // the benefit starts tracking and only later EDITS go to the Sponsor.
+      approvalStatus: 'Approved',
+      approvedBy: CURRENT_USER,
+      approvalDate: today,
       status: 'Tracking Active',
-      pendingWith: 'Sponsor',
       financialRows: financial ? this.draftLines().map((r) => ({ ...r, benefitRef: ref })) : [],
       baselineHistory: [{
         baselineId,
@@ -1088,13 +1152,14 @@ export class ValueBenefits {
         date: today,
         user: CURRENT_USER,
         action: 'Baseline Created',
-        comments: `${baselineId} submitted for approval — ${financial ? this.money(baseline) : 'non-financial benefit'}.`
+        comments: `${baselineId} opened at ${financial ? this.money(baseline) : 'non-financial benefit'}.`
       }]
     };
 
     benefitsFor(this.workstreamId()).update((rows) => [...rows, benefit]);
     this.closeCreate();
-    this.toast.set('Benefit has been created and baseline is pending approval');
+    this.toastBenefitId.set(benefit.id);
+    this.toast.set('Benefit created and tracking is now active');
   }
 
   /* ---------------- Snackbar ---------------- */
@@ -1109,6 +1174,12 @@ export class ValueBenefits {
   protected readonly toastBenefitId = signal<string | null>(null);
 
   private toastTimer?: ReturnType<typeof setTimeout>;
+
+  /** A decision made in the embedded queue confirms through this page's snackbar. */
+  protected onDecision(event: { message: string; benefitId: string }) {
+    this.toastBenefitId.set(event.benefitId);
+    this.toast.set(event.message);
+  }
 
   protected dismissToast() { this.toast.set(null); this.toastBenefitId.set(null); }
 

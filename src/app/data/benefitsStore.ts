@@ -31,7 +31,7 @@ export interface ApprovalItem {
   requestedOn: string;
   pendingWith: string;
   /** Waiting on a decision, or sent back to the requester to amend. */
-  state: 'Pending Approval' | 'Changes Requested';
+  state: 'Pending Approval' | 'Rework';
   detail: string;
 }
 
@@ -55,7 +55,7 @@ export function approvalQueue(): ApprovalItem[] {
       const baselineInPackage = b.pendingUpdate?.status === 'Pending Approval';
 
       if (!baselineInPackage &&
-          (b.approvalStatus === 'Pending Approval' || b.approvalStatus === 'Changes Requested')) {
+          (b.approvalStatus === 'Pending Approval' || b.approvalStatus === 'Rework')) {
         items.push({
           benefit: b,
           workstreamId: ws.id,
@@ -71,7 +71,7 @@ export function approvalQueue(): ApprovalItem[] {
       }
 
       const upd = b.pendingUpdate;
-      if (upd && (upd.status === 'Pending Approval' || upd.status === 'Changes Requested')) {
+      if (upd && (upd.status === 'Pending Approval' || upd.status === 'Rework')) {
         items.push({
           benefit: b,
           workstreamId: ws.id,
@@ -93,7 +93,7 @@ export function approvalQueue(): ApprovalItem[] {
         });
       }
 
-      if (b.status === 'Closure Pending Approval' || b.status === 'Closure Changes Requested') {
+      if (b.status === 'Closure Pending Approval' || b.status === 'Closure Rework') {
         const submitted = [...b.auditLog].reverse().find((a) => a.action.includes('Closure Submitted'));
         items.push({
           benefit: b,
@@ -104,7 +104,7 @@ export function approvalQueue(): ApprovalItem[] {
           requestedBy: submitted?.user ?? '-',
           requestedOn: submitted?.date ?? '-',
           pendingWith: b.pendingWith ?? 'Sponsor',
-          state: b.status === 'Closure Pending Approval' ? 'Pending Approval' : 'Changes Requested',
+          state: b.status === 'Closure Pending Approval' ? 'Pending Approval' : 'Rework',
           detail: submitted?.comments ?? ''
         });
       }

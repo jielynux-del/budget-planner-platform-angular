@@ -1,23 +1,16 @@
-<ui-filter-tabs [tabs]="pageTabs()" [(active)]="pageTab" />
-
-@if (awaitingMe().length) {
-  <ui-info-banner
-    tone="warning"
-    [title]="awaitingMe().length + ' request' + (awaitingMe().length === 1 ? '' : 's') + ' on this workstream awaiting your approval'"
-    [dismissible]="false">
-    <button ui-info-banner-actions ui-button variant="secondary" size="small" type="button" (click)="viewPending()">View</button>
-  </ui-info-banner>
-} @else if (needsRework().length) {
-  <ui-info-banner
-    tone="warning"
-    [title]="needsRework().length + ' request' + (needsRework().length === 1 ? '' : 's') + ' sent back for rework'"
-    [dismissible]="false">
+<!-- One banner, above the page tabs: whatever is waiting on this persona,
+     stated once. Two stacked banners made the same point twice and pushed the
+     tabs down the page. -->
+@if (attention(); as note) {
+  <ui-info-banner tone="warning" [title]="note" [dismissible]="false">
     <button ui-info-banner-actions ui-button variant="secondary" size="small" type="button" (click)="viewPending()">View</button>
   </ui-info-banner>
 }
 
+<ui-filter-tabs [tabs]="pageTabs()" [(active)]="pageTab" />
+
 @if (pageTab() === 'approvals') {
-  <app-approvals [workstreamId]="workstreamId()" />
+  <app-approvals [workstreamId]="workstreamId()" (decided)="onDecision($event)" />
 } @else {
 
 <!-- Status summary. Each figure filters the table.
@@ -157,7 +150,11 @@
                   @if (openMenuId() === b.id) {
                     <ui-dropdown-menu class="row-menu" [class.row-menu--up]="menuUp()" role="menu">
                       @for (a of rowActions; track a.key) {
-                        <button ui-dropdown-item type="button" (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
+                        <button
+                          ui-dropdown-item
+                          type="button"
+                          [disabled]="actionDisabled(b)"
+                          (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
                       }
                     </ui-dropdown-menu>
                   }
@@ -364,7 +361,7 @@
                     message="Set a start and end date above — the years below follow that range." />
                 }
                 <div class="vb-scroll">
-                  <table ui-table size="sm">
+                  <table ui-table size="sm" class="lines-table">
                     <thead>
                       <tr>
                         <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
@@ -380,9 +377,9 @@
                     <tbody>
                       @for (row of editLines(); track row.id) {
                         <tr ui-table-row>
-                          <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setEditLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
-                          <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setEditLine(row.id, 'driver', $event)" placeholder="Select" /></td>
-                          <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setEditLine(row.id, 'measure', $event)" placeholder="Select" /></td>
+                          <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setEditLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" [clearable]="false" /></td>
+                          <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setEditLine(row.id, 'driver', $event)" placeholder="Select" [clearable]="false" /></td>
+                          <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setEditLine(row.id, 'measure', $event)" placeholder="Select" [clearable]="false" /></td>
                           @for (y of editYears(); track y) {
                             <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setEditLineValue(row.id, y, $event)" placeholder="0" /></td>
                           }
@@ -715,12 +712,11 @@
       <ui-card title="Baseline Definition">
         <div class="filter-field">
           <span class="filter-label">With financial impact?</span>
-          <ui-radio-chiclet-group
+          <ui-radio
+            name="with-financial-impact"
+            [options]="yesNoOptions"
             [value]="draftFinancial() ? 'yes' : 'no'"
-            (valueChange)="setFinancial($event === 'yes')">
-            <ui-radio-chiclet value="yes" label="Yes" />
-            <ui-radio-chiclet value="no" label="No" />
-          </ui-radio-chiclet-group>
+            (valueChange)="setFinancial($event === 'yes')" />
         </div>
       </ui-card>
 
@@ -732,7 +728,7 @@
               message="Set a start and end date on Benefit Details — the years below follow that range." />
           }
           <div class="vb-scroll">
-            <table ui-table size="sm">
+            <table ui-table size="sm" class="lines-table">
               <thead>
                 <tr>
                   <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
@@ -747,9 +743,9 @@
               <tbody>
                 @for (row of draftLines(); track row.id) {
                   <tr ui-table-row>
-                    <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
-                    <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" /></td>
-                    <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" /></td>
+                    <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" [clearable]="false" /></td>
+                    <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" [clearable]="false" /></td>
+                    <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" [clearable]="false" /></td>
                     @for (y of years(); track y) {
                       <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setLineValue(row.id, y, $event)" placeholder="0" /></td>
                     }
@@ -764,16 +760,6 @@
             Add Benefit Line
           </button>
 
-          <div class="create-grid baseline-block">
-            <div class="filter-field">
-              <span class="filter-label">Original Approved Baseline (S$)</span>
-              <ui-text-input [(value)]="draftBaselineValue" placeholder="0" />
-            </div>
-            <div class="filter-field">
-              <span class="filter-label">Baseline Change Reason</span>
-              <ui-text-input [(value)]="draftBaselineReason" placeholder="Original baseline captured at benefit creation" />
-            </div>
-          </div>
         </ui-card>
       } @else {
         <ui-card title="Baseline Description">
@@ -806,8 +792,7 @@
           <div><dt>With financial impact?</dt><dd>{{ draftFinancial() ? 'Yes' : 'No' }}</dd></div>
           <div><dt>Benefit Type</dt><dd>{{ draftFinancial() ? 'Financial' : 'Non-Financial' }}</dd></div>
           @if (draftFinancial()) {
-            <div><dt>Original Approved Baseline</dt><dd>{{ draftBaseline() === null ? emptyValue : money(draftBaseline()) }}</dd></div>
-            <div><dt>Baseline Change Reason</dt><dd>{{ draftBaselineReason() || 'Original baseline captured at benefit creation' }}</dd></div>
+            <div><dt>Opening Baseline</dt><dd>{{ draftBaseline() === null ? emptyValue : money(draftBaseline()) }}</dd></div>
           } @else {
             <div><dt>Baseline description</dt><dd>{{ draftBaselineDescription() || emptyValue }}</dd></div>
           }
@@ -818,7 +803,7 @@
       @if (draftFinancial() && draftLines().length) {
         <ui-card title="Financial and Stat Impact">
           <div class="vb-scroll">
-            <table ui-table size="sm">
+            <table ui-table size="sm" class="lines-table">
               <thead>
                 <tr>
                   <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
@@ -856,6 +841,17 @@
     }
 
     <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeCreate()">Cancel</button>
+    <!-- Next is the ordinary path through the form; the tabs above remain free
+         to jump between, so this is a convenience rather than a gate. -->
+    <button
+      ui-modal-footer
+      ui-button
+      variant="secondary"
+      size="small"
+      type="button"
+      [style.display]="wizardTab() === 'details' ? null : 'none'"
+      [disabled]="!detailsValid()"
+      (click)="wizardTab.set('baseline')">Next</button>
     <button
       ui-modal-footer
       ui-button
