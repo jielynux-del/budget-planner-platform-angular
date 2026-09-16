@@ -20,7 +20,17 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
+  // Clickable filter tile, not a plain figure: kit tokens only, border
+  // transparent at rest so the active state's border doesn't shift layout.
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
 }
+.stat:hover { background: var(--color-bg-hover); }
+.stat--active { background: var(--color-primary-subtle); border-color: var(--color-primary); }
 .stat-count { @include type.heading(sm); color: var(--color-text-strong); }
 .stat-label { @include type.label(xs); color: var(--color-text-subtle); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 
@@ -53,10 +63,25 @@ ui-table-header ::ng-deep .control-left {
   width: 100%;
 }
 
-// Plain filters: the kit has no minimal/borderless select face, so these stay
-// the standard ui-select trigger, just narrowed and pushed to the row's end.
+// The kit's ui-select has no minimal/borderless face (no variant/appearance
+// input) — this is a stated deviation (RULES #8): a ::ng-deep override on
+// the trigger strips the border and fill down to kit tokens (transparent),
+// and drops the fixed width so the control hugs its label + chevron instead
+// of sitting in a wide box. Behaviour (options, keyboard, selection) is
+// untouched — only the trigger's paint and sizing change.
 .toolbar-filters { display: flex; gap: 8px; margin-left: auto; }
-.toolbar-filter { width: 180px; }
+.toolbar-filter {
+  width: auto;
+
+  ::ng-deep .ui-select-trigger {
+    background: transparent;
+    border-color: transparent;
+    padding-left: 4px;
+    padding-right: 4px;
+    gap: 4px;
+  }
+  ::ng-deep .ui-select-trigger:hover { background: var(--color-bg-hover); }
+}
 .cell-name { @include type.label(sm); color: var(--color-text-strong); }
 .cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
 .empty { @include type.body(sm); color: var(--color-text-subtle); margin: 0; padding: 20px 0; text-align: center; }

@@ -3,7 +3,19 @@
      tabs down the page. -->
 @if (attention(); as note) {
   <ui-info-banner tone="warning" [title]="note" [dismissible]="false">
-    <button ui-info-banner-actions ui-button variant="secondary" size="small" type="button" (click)="viewPending()">View</button>
+    <!-- No CTA once the reader is already looking at the queue: the banner is
+         then just the count, and a button that goes nowhere invites a click.
+         Visibility is BOUND rather than wrapped in @if — content nested in a
+         control-flow block is not projected into a named slot, so an @if here
+         would drop the button into the banner's default content instead. -->
+    <button
+      ui-info-banner-actions
+      ui-button
+      variant="secondary"
+      size="small"
+      type="button"
+      [style.display]="pageTab() === 'approvals' ? 'none' : null"
+      (click)="viewPending()">View</button>
   </ui-info-banner>
 }
 
@@ -650,7 +662,7 @@
     [class.sheet-closing]="closingCreate()"
     (closed)="closeCreate()">
 
-    <ui-tabs ui-modal-tabs [tabs]="wizardTabs" [(active)]="wizardTab" />
+    <ui-tabs ui-modal-tabs [tabs]="wizardTabs" [active]="wizardTab()" (activeChange)="onWizardTab($event)" />
 
     @if (wizardTab() === 'details') {
       <ui-card title="Benefit Details">
@@ -849,9 +861,9 @@
       variant="secondary"
       size="small"
       type="button"
-      [style.display]="wizardTab() === 'details' ? null : 'none'"
-      [disabled]="!detailsValid()"
-      (click)="wizardTab.set('baseline')">Next</button>
+      [style.display]="wizardTab() === 'review' ? 'none' : null"
+      [disabled]="wizardTab() === 'details' ? !detailsValid() : !baselineValid()"
+      (click)="onWizardTab(wizardTab() === 'details' ? 'baseline' : 'review')">Next</button>
     <button
       ui-modal-footer
       ui-button

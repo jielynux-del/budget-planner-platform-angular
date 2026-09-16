@@ -1008,6 +1008,13 @@ export class ValueBenefits {
   ];
   protected readonly wizardTab = signal('details');
 
+  /** Records the visit, so Create unlocks once Review has been opened. */
+  protected onWizardTab(key: string | undefined) {
+    if (!key) return;
+    this.wizardTab.set(key);
+    if (key === 'review') this.reviewSeen.set(true);
+  }
+
   protected readonly draftBaseline = computed(() => {
     if (!this.draftFinancial()) return null;
     const years = this.years();
@@ -1051,10 +1058,19 @@ export class ValueBenefits {
     this.draftName().trim() !== '' && this.draftOwners().length > 0 &&
     this.draftStart() !== '' && this.draftEnd() !== '');
 
-  protected readonly createValid = computed(() => this.detailsValid() && this.baselineValid());
+  /**
+   * Review has actually been looked at. The page exists so someone confirms
+   * what they are about to create; letting Create fire from an earlier tab
+   * would make it decoration.
+   */
+  protected readonly reviewSeen = signal(false);
+
+  protected readonly createValid = computed(() =>
+    this.detailsValid() && this.baselineValid() && this.reviewSeen());
 
   protected openCreate() {
     this.wizardTab.set('details');
+    this.reviewSeen.set(false);
     this.draftName.set('');
     this.draftOwners.set([]);
     this.draftCategories.set([]);

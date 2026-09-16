@@ -12,14 +12,16 @@
 
   <ui-card>
     <div class="summary">
-      <div class="stat">
+      <!-- boundary-allow: clickable summary figure — ui-summary-card is display-only -->
+      <button type="button" class="stat" [class.stat--active]="state() === 'Pending Approval'" [attr.aria-pressed]="state() === 'Pending Approval'" (click)="toggleState('Pending Approval')">
         <span class="stat-count">{{ counts().pending }}</span>
         <span class="stat-label"><span class="dot dot--amber"></span>Pending approval</span>
-      </div>
-      <div class="stat">
+      </button>
+      <!-- boundary-allow: clickable summary figure — ui-summary-card is display-only -->
+      <button type="button" class="stat" [class.stat--active]="state() === 'Rework'" [attr.aria-pressed]="state() === 'Rework'" (click)="toggleState('Rework')">
         <span class="stat-count">{{ counts().rework }}</span>
         <span class="stat-label"><span class="dot dot--purple"></span>Awaiting rework</span>
-      </div>
+      </button>
     </div>
   </ui-card>
 
@@ -54,7 +56,7 @@
         </thead>
         <tbody>
           @for (item of queue(); track item.benefit.id + item.kind) {
-            <tr ui-table-row>
+            <tr ui-table-row interactive (activate)="openWorkstream(item)">
               <td>{{ kindLabel(item.kind) }}</td>
               <td class="cell-name">{{ item.reference }}</td>
               <td>
@@ -68,14 +70,9 @@
               <td class="ui-cell-status">
                 <ui-status-tag [status]="stateLabel(item)" [variant]="stateVariant(item.state)" />
               </td>
-              <td>
+              <td (click)="$event.stopPropagation()">
                 @if (persona().canApprove && item.state === 'Pending Approval') {
                   <ui-kebab-menu [items]="rowActions" (selected)="onRowAction(item, $event)" />
-                } @else {
-                  <button ui-button variant="secondary" size="tiny" type="button" (click)="openWorkstream(item)">
-                    <ui-icon name="arrow-right" />
-                    Open workstream
-                  </button>
                 }
               </td>
             </tr>

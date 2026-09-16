@@ -1,7 +1,7 @@
 import { Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  UiButton, UiCard, UiColumnHeader, UiIcon, UiInfoBanner, UiKebabMenu, UiModalShell,
+  UiButton, UiCard, UiColumnHeader, UiInfoBanner, UiKebabMenu, UiModalShell,
   UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow, UiTextarea,
   type UiMenuItem, type UiSelectOption, type UiTagVariant
 } from 'ai-dls-kit';
@@ -15,7 +15,7 @@ const ALL = 'All';
 @Component({
   selector: 'app-approvals',
   imports: [
-    UiCard, UiInfoBanner, UiSelect, UiButton, UiIcon, UiKebabMenu, UiTableCard, UiTableHeader,
+    UiCard, UiInfoBanner, UiSelect, UiButton, UiKebabMenu, UiTableCard, UiTableHeader,
     UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiModalShell, UiTextarea
   ],
   templateUrl: './approvals.html',
@@ -131,6 +131,12 @@ export class Approvals {
   /** Kebab menu selection, keyed the same as `rowActions`. */
   protected onRowAction(item: ApprovalItem, key: string) {
     if (key === 'approve' || key === 'rework') this.open(item, key);
+  }
+
+  /** Summary tiles are a second face on the same `state` filter as the
+   *  select — clicking one sets it, clicking the active one clears it. */
+  protected toggleState(value: string) {
+    this.state.set(this.state() === value ? ALL : value);
   }
 
   protected closeDecision() {

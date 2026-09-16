@@ -8,6 +8,34 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-16 — Review is a step, not a page you can skip
+
+**Create Benefit now requires Review to have been opened.** `reviewSeen` records the visit and
+gates the button alongside the two validity checks. The page exists so someone confirms what they
+are about to create; letting Create fire from an earlier tab would make it decoration. Next now
+walks Details → Baseline → Review and hides on the last page, while the tabs stay freely
+navigable — Next is the ordinary path, not a rail.
+
+**The banner drops its View action once you are on the approvals page.** The count still matters
+there; a button that navigates to where you already are does not. Visibility is BOUND rather than
+wrapped in `@if`, because content nested in a control-flow block is not projected into a named
+slot — an `@if` would have dropped the button into the banner's default content instead. Second
+time this trap has cost something; it is in the log twice now for a reason.
+
+**Approval queue refinements.** The two filters lost their border and fixed width (a deviation —
+`ui-select` has no minimal face, verified against its API). The summary tiles became clickable
+filters wired to the SAME `state` signal the select uses, so the two cannot disagree. The Open
+workstream button is gone in favour of an interactive row, with the kebab cell stopping
+propagation so acting on a request does not also navigate.
+
+**Worth knowing about that last one.** The queue embedded in a workstream is scoped to that
+workstream, so a row click navigates to the page you are already on and appears to do nothing.
+It is correct, and it matters on the standalone approvals page where items span workstreams —
+but on the embedded view the more useful destination would be the BENEFIT, not the workstream.
+Left as asked; flagged rather than silently redesigned.
+
+---
+
 ## 2026-09-16 — Creation stops needing approval, and the queue gets its own vocabulary
 
 **Creation no longer goes to the Sponsor.** A new benefit starts Tracking Active with its opening
