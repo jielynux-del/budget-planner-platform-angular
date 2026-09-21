@@ -8,6 +8,39 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-21 — The benefit record becomes a second-level page
+
+**Decision.** Clicking a benefit no longer opens a focus overlay; it navigates to a second-level
+page. Both nav panels stay exactly as they are, with their collapse behaviour untouched. The
+workstream's own header and tabs stand down while the page is showing, so the benefit takes the
+content column rather than sitting on top of it. The overlay's header becomes the page header,
+with the close button replaced by a back arrow at the START of the row — leaving is now a step
+back, not a dismissal.
+
+**It has a URL: `?tab=value-benefits&benefit=B01`.** `detailId` is derived FROM the query string
+rather than set directly, so the back arrow, the browser's own Back button and a pasted link are
+three ways of saying the same thing and cannot disagree. Verified: browser Back returns to the
+benefit, Forward returns to the list, and a cold-loaded `?benefit=B02` opens straight onto that
+page with the workstream chrome already down.
+
+**Consequences worth recording:**
+
+- The list stands down behind the page (`@if (!detailId())`) rather than scrolling underneath it.
+  A second-level page replaces its parent; it does not cover it.
+- The edit actions moved from the shell's projected footer to a sticky bar belonging to the page,
+  because there is no overlay left to anchor a fixed footer to.
+- The header buttons could go back to ordinary `@if` blocks — they are plain children now, not
+  content projected into named slots, so the projection trap that caught them twice no longer
+  applies here.
+- Motion is a 240ms slide from the right on enter and back out on leave, matching the direction
+  the reader travelled, and disabled under `prefers-reduced-motion`.
+
+**Only the benefit detail moved.** Add New Benefit, the Audit Log and the row-action forms stay
+as overlays: they are short tasks you return from, not places you navigate to. A form that takes
+over the whole page loses the sense of coming back to where you were.
+
+---
+
 ## 2026-09-16 — Review is a step, not a page you can skip
 
 **Create Benefit now requires Review to have been opened.** `reviewSeen` records the visit and

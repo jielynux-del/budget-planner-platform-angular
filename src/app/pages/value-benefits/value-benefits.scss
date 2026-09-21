@@ -526,3 +526,90 @@ ui-date-input ::ng-deep input.ui-date-input {
   th, td { min-width: 104px; }
   th:first-child, td:first-child { min-width: 168px; }
 }
+
+
+/* ── Benefit as a second-level page ──────────────────────────────────
+   Not an overlay: it takes the workstream's content column while both nav
+   panels stay exactly where they were, so the reader has moved down a level
+   rather than had a sheet dropped over the page they were on. */
+.benefit-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  /* Enters from the right, the direction the reader travelled. */
+  animation: benefit-page-in 240ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
+}
+
+.benefit-page--leaving {
+  animation: benefit-page-out 220ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
+}
+
+@keyframes benefit-page-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes benefit-page-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(24px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .benefit-page,
+  .benefit-page--leaving { animation: none; }
+}
+
+/* The overlay's header becomes the page's, minus the close button: leaving is
+   a back step now, not a dismissal, so the control sits at the START of the
+   row where a reader looks to go back. */
+.benefit-page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.benefit-page-back { margin-top: 2px; }
+
+.benefit-page-identity {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.benefit-page-title {
+  @include type.heading(xs);
+  color: var(--color-text-strong);
+  margin: 0;
+}
+
+.benefit-page-subtitle {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 2px 0 0;
+}
+
+.benefit-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.benefit-page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* The edit bar follows the page rather than floating over it — there is no
+   overlay left to anchor a fixed footer to. */
+.benefit-page-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0;
+  background: var(--color-bg-app);
+  border-top: 1px solid var(--color-border-decorative);
+}

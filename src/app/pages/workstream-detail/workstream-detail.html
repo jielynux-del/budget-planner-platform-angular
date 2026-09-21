@@ -22,7 +22,9 @@
     </ui-nav-panel>
 
     <div class="detail-main" [class.panel-collapsed]="!panelExpanded()">
-      <header class="detail-header">
+      <!-- A benefit is a SECOND-LEVEL page: it replaces the workstream's own
+           header and tabs, while both nav panels stay exactly as they are. -->
+      <header class="detail-header" [hidden]="benefitOpen()">
         <div class="ws-avatar"><ui-icon name="table" [size]="24" /></div>
 
         <div class="ws-identity">
@@ -45,7 +47,7 @@
         </div>
       </header>
 
-      <div class="detail-tabs">
+      <div class="detail-tabs" [hidden]="benefitOpen()">
         <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
       </div>
 
@@ -273,7 +275,11 @@
           </ui-card>
 
         } @else {
-          <app-value-benefits [benefits]="benefits()" [workstreamId]="w.id" />
+          <app-value-benefits
+            [benefits]="benefits()"
+            [workstreamId]="w.id"
+            [openBenefitRef]="openBenefitRef()"
+            (benefitOpenChange)="benefitOpen.set($event)" />
         }
       </div>
     </div>

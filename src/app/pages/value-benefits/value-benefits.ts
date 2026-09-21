@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, linkedSignal, output, signal } from '@angular/core';
 import {
   UiAccordion, UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
   UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
@@ -16,6 +16,7 @@ import {
 } from '../../data/lookups';
 import type { AuditEntry, Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate } from '../../data/models';
 import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
+import { ActivatedRoute, Router } from '@angular/router';
 import { benefitsFor } from '../../data/benefitsStore';
 import { currentPersona } from '../../data/personas';
 import { Approvals } from '../approvals/approvals';
@@ -59,6 +60,12 @@ const STATUS_DOT: Record<string, UiPillColor> = {
 export class ValueBenefits {
   readonly seeded = input.required<Benefit[]>({ alias: 'benefits' });
   readonly workstreamId = input.required<string>();
+
+  /** The benefit the URL names, if any — the page's own back/forward state. */
+  readonly openBenefitRef = input<string | null>(null);
+
+  /** Tells the workstream page to stand its header and tabs down. */
+  readonly benefitOpenChange = output<boolean>();
 
   /** The session store's list for this workstream, so edits persist. */
   protected readonly benefits = computed(() => benefitsFor(this.workstreamId())());
@@ -124,7 +131,11 @@ export class ValueBenefits {
   protected readonly pageSize = signal(10);
 
   /** Focus overlays: the benefit being viewed, and the one whose audit log is open. */
-  protected readonly detailId = signal<string | null>(null);
+  protected readonly detailId = computed(() => {
+    const ref = this.openBenefitRef();
+    if (!ref) return null;
+    return this.benefits().find((b) => b.benefitRef === ref)?.id ?? null;
+  });
   protected readonly auditId = signal<string | null>(null);
 
   protected readonly detail = computed(() =>
@@ -231,6 +242,8 @@ export class ValueBenefits {
       .filter(Boolean).length);
 
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   /**
    * ui-popover places its panel once, on open, as position: fixed. Scrolling
@@ -260,6 +273,11 @@ export class ValueBenefits {
         removeEventListener('resize', this.anchorPopover);
       });
     });
+
+    // The workstream page hides its own header and tabs while a benefit page
+    // is showing, so it has to be told — including through the closing
+    // animation, which is why `closingDetail` counts as still open.
+    effect(() => this.benefitOpenChange.emit(!!this.detailId() || this.closingDetail()));
 
     // A confirmation clears itself; the snackbar stays dismissible meanwhile.
     effect((onCleanup) => {
@@ -363,7 +381,12 @@ export class ValueBenefits {
 
   /** Row click opens the benefit; the audit icon opens just its history. */
   protected openDetail(b: Benefit) {
-    this.detailId.set(b.id);
+    // Navigating rather than opening: the URL is what the page reads back.
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { benefit: b.benefitRef },
+      queryParamsHandling: 'merge'
+    });
     this.summaryEdit.set(false);
   }
 
@@ -765,10 +788,18 @@ export class ValueBenefits {
     document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
   }
 
+  /** The back arrow — and the browser's own Back, which clears the same param. */
   protected closeDetail() {
     this.dismissOverlays();
     this.closingDetail.set(true);
-    setTimeout(() => { this.detailId.set(null); this.closingDetail.set(false); }, ValueBenefits.EXIT_MS);
+    setTimeout(() => {
+      this.closingDetail.set(false);
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { benefit: null },
+        queryParamsHandling: 'merge'
+      });
+    }, ValueBenefits.EXIT_MS);
   }
 
   protected closeAudit() {
@@ -1201,7 +1232,8 @@ export class ValueBenefits {
 
   protected viewToastBenefit() {
     const id = this.toastBenefitId();
-    if (id) this.detailId.set(id);
+    const benefit = id ? this.benefits().find((b) => b.id === id) : null;
+    if (benefit) this.openDetail(benefit);
     this.dismissToast();
   }
 

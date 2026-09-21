@@ -56,6 +56,16 @@ export class WorkstreamDetail {
   /** Deep-linkable: `?tab=value-benefits` opens straight onto that tab. */
   protected readonly activeTab = linkedSignal(() =>
     this.query()?.get('tab') ?? 'work-profile');
+  /**
+   * Which benefit the URL is pointing at, if any. Held in the query string so
+   * the back arrow, the browser's own Back and a pasted link all mean the
+   * same thing.
+   */
+  protected readonly openBenefitRef = computed(() => this.query()?.get('benefit') ?? null);
+
+  /** Set by the child once it has resolved the ref; hides this page's chrome. */
+  protected readonly benefitOpen = signal(false);
+
   /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
   protected readonly panelExpanded = signal(true);
 
