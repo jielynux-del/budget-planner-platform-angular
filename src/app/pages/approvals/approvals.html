@@ -32,8 +32,8 @@
     <ui-table-header layout="inline">
       <span class="queue-heading">Approval Queue</span>
       <div class="toolbar-filters">
-        <ui-select class="toolbar-filter" [options]="kindOptions" [(value)]="kind" [emptyValue]="all" />
-        <ui-select class="toolbar-filter" [options]="stateOptions" [(value)]="state" [emptyValue]="all" />
+        <ui-select class="toolbar-filter" [options]="kindOptions" [(value)]="kind" [emptyValue]="all" [clearable]="false" />
+        <ui-select class="toolbar-filter" [options]="stateOptions" [(value)]="state" [emptyValue]="all" [clearable]="false" />
       </div>
     </ui-table-header>
 
@@ -56,7 +56,7 @@
         </thead>
         <tbody>
           @for (item of queue(); track item.benefit.id + item.kind) {
-            <tr ui-table-row interactive (activate)="openWorkstream(item)">
+            <tr ui-table-row interactive (activate)="openRequest(item)">
               <td>{{ kindLabel(item.kind) }}</td>
               <td class="cell-name">{{ item.reference }}</td>
               <td>
@@ -118,9 +118,6 @@
       @if (decisionKind() === 'rework') {
         <p class="empty">The request goes back to the requester to amend and resubmit. Nothing is discarded.</p>
       }
-      @if (decisionKind() === 'reject') {
-        <p class="empty">Rejecting ends the request. The current approved baseline is unchanged.</p>
-      }
     </ui-card>
 
     <button ui-modal-footer-start ui-button variant="secondary" size="small" type="button" (click)="closeDecision()">Cancel</button>
@@ -130,9 +127,9 @@
       variant="primary"
       size="small"
       type="button"
-      [disabled]="decisionKind() !== 'approve' && !decisionNote().trim()"
+      [disabled]="!decisionValid()"
       (click)="submitDecision()">
-      {{ decisionKind() === 'approve' ? 'Approve' : decisionKind() === 'rework' ? 'Send back' : 'Reject' }}
+      {{ decisionKind() === 'approve' ? 'Approve' : 'Send back' }}
     </button>
   </ui-modal-shell>
 }

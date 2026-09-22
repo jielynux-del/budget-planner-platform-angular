@@ -6,7 +6,7 @@ import {
   type UiMenuItem, type UiSelectOption, type UiTagVariant
 } from 'ai-dls-kit';
 import { approvalQueue, benefitsFor, type ApprovalItem } from '../../data/benefitsStore';
-import { snapshotOf } from '../../data/benefitsData';
+import { decide, type DecisionKind } from '../../data/decisions';
 import { currentPersona } from '../../data/personas';
 import type { Benefit } from '../../data/models';
 
@@ -39,12 +39,16 @@ export class Approvals {
   // ('Baseline Change' reads as 'Baseline Change Only' to a sponsor), so this
   // is an option list rather than the bare kind strings.
   protected readonly kindOptions: UiSelectOption[] = [
-    { value: ALL, label: ALL },
+    { value: ALL, label: 'All changes' },
     { value: 'Baseline Change', label: 'Baseline Change Only' },
     { value: 'Benefit Update', label: 'Benefit Update' },
     { value: 'Benefit Closure', label: 'Benefit Closure' }
   ];
-  protected readonly stateOptions = [ALL, 'Pending Approval', 'Rework'];
+  protected readonly stateOptions: UiSelectOption[] = [
+    { value: ALL, label: 'All statuses' },
+    { value: 'Pending Approval', label: 'Pending Approval' },
+    { value: 'Rework', label: 'Rework' }
+  ];
 
   /** The two sponsor actions, offered from the row's kebab menu. */
   protected readonly rowActions: UiMenuItem[] = [
@@ -113,7 +117,7 @@ export class Approvals {
   /* ---------------- decision overlay ---------------- */
 
   protected readonly decisionFor = signal<ApprovalItem | null>(null);
-  protected readonly decisionKind = signal<'approve' | 'rework' | 'reject' | null>(null);
+  protected readonly decisionKind = signal<DecisionKind | null>(null);
   protected readonly decisionNote = signal('');
   protected readonly closingDecision = signal(false);
 
@@ -150,126 +154,25 @@ export class Approvals {
 
   private today() { return new Date().toISOString().slice(0, 10); }
 
-  private audit(b: Benefit, action: string, comments: string): Benefit {
-    // Snapshot taken of `b` — the record AFTER the decision has been applied —
-    // so the entry shows what the benefit became, not what it was leaving.
-    return {
-      ...b,
-      auditLog: [...b.auditLog, {
-        id: `ba-${Date.now()}`,
-        date: this.today(),
-        user: this.persona().name,
-        action,
-        comments,
-        snapshot: snapshotOf(b)
-      }]
-    };
-  }
-
   /** Applies the decision to the stored record and refreshes the queue. */
+  /** A rework must say why — the requester cannot act on a bare "no". */
+  protected readonly decisionValid = computed(() =>
+    this.decisionKind() !== 'rework' || this.decisionNote().trim() !== '');
+
   protected submitDecision() {
     const item = this.decisionFor();
     const kind = this.decisionKind();
-    if (!item || !kind) return;
+    if (!item || !kind || !this.decisionValid()) return;
 
-    const store = benefitsFor(item.workstreamId);
-    const note = this.decisionNote().trim();
+    const decision = {
+      kind,
+      note: this.decisionNote().trim(),
+      approver: this.persona().name,
+      reference: item.reference
+    };
 
-    store.update((rows) => rows.map((b) => {
-      if (b.id !== item.benefit.id) return b;
-
-      if (item.kind === 'Baseline Change') {
-        const idx = b.baselineHistory.length - 1;
-        const history = b.baselineHistory.map((h, i) =>
-          i === idx
-            ? {
-                ...h,
-                status: (kind === 'approve' ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected') as Benefit['approvalStatus'],
-                approvedBy: kind === 'approve' ? this.persona().name : '-',
-                approvalDate: kind === 'approve' ? this.today() : '-',
-                decisionNote: note
-              }
-            : h);
-        const approved = kind === 'approve';
-        return this.audit({
-          ...b,
-          baselineHistory: history,
-          approvalStatus: approved ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected',
-          // Only an approval promotes the proposed value to the current baseline.
-          currentApprovedBaseline: approved ? history[idx].baselineValue : b.currentApprovedBaseline,
-          startDate: approved ? history[idx].startDate : b.startDate,
-          endDate: approved ? history[idx].endDate : b.endDate,
-          approvedBy: approved ? this.persona().name : '-',
-          approvalDate: approved ? this.today() : '-',
-          pendingWith: approved || kind === 'reject' ? undefined : b.pendingWith
-        },
-        kind === 'approve' ? 'Baseline Change Approved'
-          : kind === 'rework' ? 'Baseline Change Returned'
-          : 'Baseline Change Rejected',
-        `${item.reference} ${kind === 'approve' ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
-          (note ? ` ${note}` : ''));
-      }
-
-      if (item.kind === 'Benefit Update') {
-        const upd = b.pendingUpdate;
-        if (!upd) return b;
-        const approved = kind === 'approve';
-        // Only an approval writes the requested values onto the benefit; a
-        // rework keeps the request alive so the requester can amend it.
-        const applied = approved
-          ? upd.fields.reduce<Record<string, unknown>>((acc, f) => { acc[f.key] = f.value; return acc; }, {})
-          : {};
-        // A baseline moved in the same package has a pending record waiting in
-        // the history; it is decided with everything else, not separately.
-        const idx = b.baselineHistory.findIndex((h) => h.status === 'Pending Approval');
-        const history = idx === -1 ? b.baselineHistory : b.baselineHistory.map((h, i) =>
-          i === idx
-            ? {
-                ...h,
-                status: (approved ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected') as Benefit['approvalStatus'],
-                approvedBy: approved ? this.persona().name : '-',
-                approvalDate: approved ? this.today() : '-',
-                decisionNote: note
-              }
-            : h);
-        return this.audit({
-          ...b,
-          ...applied,
-          baselineHistory: history,
-          baselineId: approved && idx !== -1 ? history[idx].baselineId : b.baselineId,
-          approvalStatus: idx === -1
-            ? b.approvalStatus
-            : (approved ? 'Approved' : kind === 'rework' ? 'Rework' : 'Rejected'),
-          // The staged reporting lines join the history only on approval —
-          // they were part of the same review as the field changes.
-          reportingHistory: approved
-            ? [...b.reportingHistory, ...(upd.reportingLines ?? [])]
-            : b.reportingHistory,
-          pendingUpdate: kind === 'rework'
-            ? { ...upd, status: 'Rework' as const, decisionNote: note }
-            : undefined
-        } as Benefit,
-        approved ? 'Benefit Update Approved'
-          : kind === 'rework' ? 'Benefit Update Returned'
-          : 'Benefit Update Rejected',
-        `${this.updateSummary(upd)} ${approved ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
-          (note ? ` ${note}` : ''));
-      }
-
-      // Benefit closure
-      return this.audit({
-        ...b,
-        status: kind === 'approve' ? 'Closed'
-          : kind === 'rework' ? 'Closure Rework'
-          : 'Tracking Active',
-        pendingWith: kind === 'rework' ? b.pendingWith : undefined
-      },
-      kind === 'approve' ? 'Closure Approved'
-        : kind === 'rework' ? 'Closure Returned'
-        : 'Closure Rejected',
-      `Closure ${kind === 'approve' ? 'approved' : kind === 'rework' ? 'sent back for rework' : 'rejected'}.` +
-        (note ? ` ${note}` : ''));
-    }));
+    benefitsFor(item.workstreamId).update((rows) =>
+      rows.map((b) => (b.id === item.benefit.id ? decide(b, item.kind, decision) : b)));
 
     this.version.update((v) => v + 1);
     if (item.kind === 'Benefit Closure' && kind === 'approve') {
@@ -282,14 +185,6 @@ export class Approvals {
   }
 
   /** What the request covers, for the audit line and the queue's detail cell. */
-  private updateSummary(upd: NonNullable<Benefit['pendingUpdate']>) {
-    const parts: string[] = [];
-    if (upd.fields.length) parts.push(`${upd.fields.length} field${upd.fields.length > 1 ? 's' : ''}`);
-    const lines = upd.reportingLines?.length ?? 0;
-    if (lines) parts.push(`${lines} reporting line${lines > 1 ? 's' : ''}`);
-    return parts.join(' and ') || 'No changes';
-  }
-
   protected stateVariant(state: string): UiTagVariant {
     return state === 'Pending Approval' ? 'amber' : 'purple';
   }
@@ -319,16 +214,16 @@ export class Approvals {
     return `${item.state} (${this.changeTypeLabel(item)})`;
   }
 
-  protected openWorkstream(item: ApprovalItem) {
-    // This component only ever runs scoped to the workstream it's already
-    // shown on (embedded in that workstream's Value/Benefits tab), so
-    // `item.workstreamId` is always the current route id — navigating there
-    // with no query change resolves to the SAME URL, and the router ignores
-    // a same-URL navigation by default, making the button a no-op. Deep-link
-    // to the Value/Benefits tab explicitly so the navigation actually changes
-    // the URL (and stays correct if this ever surfaces cross-workstream).
+  /**
+   * Opens the benefit itself, not the workstream. A queue row is a request
+   * ABOUT a benefit, and the benefit's page is where it can actually be read
+   * — and, for a sponsor, decided. Everyone gets this, whether or not they
+   * can act on it: being unable to approve is no reason to be unable to look.
+   */
+  protected openRequest(item: ApprovalItem) {
     this.router.navigate(['/workstreams', item.workstreamId], {
-      queryParams: { tab: 'value-benefits' }
+      queryParams: { tab: 'value-benefits', benefit: item.benefit.benefitRef }
     });
   }
+
 }

@@ -18,6 +18,7 @@ import type { AuditEntry, Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate
 import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
 import { ActivatedRoute, Router } from '@angular/router';
 import { benefitsFor } from '../../data/benefitsStore';
+import { decide, reworkNote, type DecisionKind, type RequestKind } from '../../data/decisions';
 import { currentPersona } from '../../data/personas';
 import { Approvals } from '../approvals/approvals';
 
@@ -570,6 +571,72 @@ export class ValueBenefits {
       ...applied,
       reportingHistory: [...b.reportingHistory, ...(upd.reportingLines ?? [])]
     } as Benefit;
+  }
+
+  /* ---------------- Deciding from the benefit's own page ---------------- */
+
+  /** What kind of request is outstanding on this benefit, if any. */
+  protected requestKind(b: Benefit): RequestKind | null {
+    if (b.pendingUpdate?.status === 'Pending Approval') return 'Benefit Update';
+    if (b.status === 'Closure Pending Approval') return 'Benefit Closure';
+    if (b.approvalStatus === 'Pending Approval') return 'Baseline Change';
+    return null;
+  }
+
+  protected canDecide(b: Benefit) {
+    return this.persona().canApprove && !!this.requestKind(b);
+  }
+
+  protected readonly decisionKind = signal<DecisionKind | null>(null);
+  protected readonly decisionNote = signal('');
+
+  protected openDecision(kind: DecisionKind) {
+    this.decisionKind.set(kind);
+    this.decisionNote.set('');
+  }
+
+  protected closeDecision() { this.decisionKind.set(null); }
+
+  /** A rework must say why — the requester cannot act on a bare "no". */
+  protected readonly decisionValid = computed(() =>
+    this.decisionKind() !== 'rework' || this.decisionNote().trim() !== '');
+
+  protected submitDecision(b: Benefit) {
+    const kind = this.decisionKind();
+    const requestKind = this.requestKind(b);
+    if (!kind || !requestKind || !this.decisionValid()) return;
+
+    benefitsFor(this.workstreamId()).update((rows) =>
+      rows.map((r) => (r.id === b.id
+        ? decide(r, requestKind, {
+            kind,
+            note: this.decisionNote().trim(),
+            approver: this.persona().name,
+            reference: b.benefitRef
+          })
+        : r)));
+
+    this.closeDecision();
+    this.toastBenefitId.set(b.id);
+    this.toast.set(kind === 'approve'
+      ? (requestKind === 'Benefit Closure'
+          ? `${b.name} has been successfully closed`
+          : 'Request approved')
+      : 'Sent back for rework');
+  }
+
+  /** The note the requester still has to act on, if any. */
+  protected reworkFor(b: Benefit) { return reworkNote(b); }
+
+  /**
+   * The superseded value of a field under review, for the amber
+   * "Previously: …" line. Null when nothing about that field is changing.
+   */
+  protected previously(b: Benefit, key: string): string | null {
+    const upd = b.pendingUpdate;
+    if (upd?.status !== 'Pending Approval') return null;
+    const field = upd.fields.find((f) => f.key === key);
+    return field ? (field.from || this.emptyValue) : null;
   }
 
   /** A request is already outstanding, so the benefit cannot be submitted again. */

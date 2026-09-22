@@ -332,6 +332,9 @@ export interface Benefit {
    */
   pendingUpdate?: BenefitUpdateRequest;
 
+  /** Why a closure request was sent back, so the requester knows what to fix. */
+  closureNote?: string;
+
   /** Year-phased financial lines captured at definition (financial benefits). */
   financialRows: BenefitRow[];
 

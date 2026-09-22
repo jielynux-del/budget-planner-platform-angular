@@ -8,6 +8,37 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-22 — Deciding happens where the request can be read
+
+**Decision logic moved into `data/decisions.ts`.** A sponsor can now reach a decision from two
+directions — the queue, or the benefit's own page after reading it — and both must write the same
+record. A pure `decide(benefit, requestKind, decision)` means neither component owns the rules and
+neither can drift from the other. The approvals component lost its private copy.
+
+**Queue rows open the benefit, not the workstream.** A row is a request ABOUT a benefit, and the
+benefit's page is where it can actually be read. Everyone gets this regardless of persona: being
+unable to approve is no reason to be unable to look. That also retires the old
+`openWorkstream` no-op.
+
+**A rework must say why.** The Send back button is disabled until a comment is written, in both
+the queue dialog and the one on the benefit page. The comment then does three jobs: it lands in
+the audit log, it is stored on the request, and it drives a banner on the benefit that CANNOT be
+dismissed. Verified end to end — the owner sees the sponsor's words verbatim, the banner has no
+dismiss control, and resubmitting replaces it with the pending-approval banner.
+
+**That closes a gap this log has carried since 14 Sep.** "A returned request cannot be
+resubmitted" is no longer true: a rework keeps `pendingUpdate` alive with status Rework, which
+leaves Update benefit available, so amending and resubmitting works without anything new.
+
+**Superseded values show as amber "Previously: …" lines**, inside the same value cell so a longer
+cell grows its own grid row and the fields beside it keep their baselines. Only fields actually
+under review carry one — `previously()` returns null otherwise, so nothing is invented.
+
+**Filter labels read "All changes" and "All statuses"**, and neither filter offers a clear ✕ —
+the selector states what is selected, and All is already the way back.
+
+---
+
 ## 2026-09-21 — The benefit record becomes a second-level page
 
 **Decision.** Clicking a benefit no longer opens a focus overlay; it navigates to a second-level
@@ -652,8 +683,6 @@ Every override, so none of them look like accidents:
 Stated rather than hidden, per RULES.md #8:
 
 - **Nothing persists across a browser refresh.** All state is in memory.
-- **A returned request cannot be resubmitted.** The row actions offer no "amend and resubmit" for
-  an item in Changes Requested, so the rework loop does not close.
 - **No supporting-evidence upload.** Every form in the original spec had one; the kit ships
   `ui-file-drop` / `ui-upload-file` for it.
 - **No reporting cadence.** Nothing tracks when an update is due, so no benefit can be overdue.

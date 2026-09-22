@@ -660,3 +660,14 @@ ui-date-input ::ng-deep input.ui-date-input {
 
   th:last-child, td:last-child { min-width: 240px; }
 }
+
+/* The value a pending change would replace. Amber rather than subtle grey
+   because it is not metadata — it is the thing an approver is being asked to
+   compare against. Its own line inside the value cell, so the grid row grows
+   and the fields either side keep their baselines. */
+.was {
+  display: block;
+  margin-top: 4px;
+  @include type.body(sm);
+  color: var(--color-warning-strong);
+}

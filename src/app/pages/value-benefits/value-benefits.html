@@ -223,6 +223,14 @@
     }
 
         @if (!summaryEdit()) {
+          @if (canDecide(b)) {
+            <button ui-button variant="secondary" size="small" type="button" (click)="openDecision('rework')">
+              Send for rework
+            </button>
+            <button ui-button variant="primary" size="small" type="button" (click)="openDecision('approve')">
+              Approve
+            </button>
+          }
           <button ui-button variant="secondary" size="small" type="button" (click)="download(b)">
             <ui-icon name="download" />
             Download
@@ -238,6 +246,13 @@
     </header>
 
     <div class="benefit-page-body">
+      @if (reworkFor(b); as note) {
+        <ui-info-banner
+          tone="warning"
+          [dismissible]="false"
+          title="Sent back for rework"
+          [message]="note" />
+      }
     <ui-card>
       <div class="entity-section">
         <aside class="entity-section-head">
@@ -249,16 +264,55 @@
 
         <div class="entity-section-body">
           @if (!summaryEdit()) {
+            <!-- A field under review shows the value being PROPOSED, with the
+                 one it would replace beneath it in amber. The line lives inside
+                 the same <dd>, so a longer cell grows its own grid row and the
+                 fields beside it stay on their baselines. -->
             <dl class="detail-grid">
-              <div class="span-2"><dt>Benefit Name</dt><dd>{{ b.name }}</dd></div>
-              <div><dt>Benefit Category</dt><dd>{{ b.categories.join(', ') || emptyValue }}</dd></div>
+              <div class="span-2">
+                <dt>Benefit Name</dt>
+                <dd>{{ b.name }}
+                  @if (previously(record, 'name'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
+              <div>
+                <dt>Benefit Category</dt>
+                <dd>{{ b.categories.join(', ') || emptyValue }}
+                  @if (previously(record, 'categories'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
               <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></dd></div>
-              <div><dt>Benefit Owner</dt><dd>{{ b.owners.join(', ') || emptyValue }}</dd></div>
+              <div>
+                <dt>Benefit Owner</dt>
+                <dd>{{ b.owners.join(', ') || emptyValue }}
+                  @if (previously(record, 'owners'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
               <div><dt>BUs Involved</dt><dd>{{ businessUnits(b.owners) || emptyValue }}</dd></div>
-              <div><dt>Benefit Description</dt><dd>{{ b.description || emptyValue }}</dd></div>
-              <div><dt>Validation Source</dt><dd>{{ b.validationSource || emptyValue }}</dd></div>
-              <div><dt>Start date</dt><dd>{{ b.startDate }}</dd></div>
-              <div><dt>End date</dt><dd>{{ b.endDate }}</dd></div>
+              <div>
+                <dt>Benefit Description</dt>
+                <dd>{{ b.description || emptyValue }}
+                  @if (previously(record, 'description'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
+              <div>
+                <dt>Validation Source</dt>
+                <dd>{{ b.validationSource || emptyValue }}
+                  @if (previously(record, 'validationSource'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
+              <div>
+                <dt>Start date</dt>
+                <dd>{{ b.startDate }}
+                  @if (previously(record, 'startDate'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
+              <div>
+                <dt>End date</dt>
+                <dd>{{ b.endDate }}
+                  @if (previously(record, 'endDate'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
             </dl>
           } @else {
             <div class="create-grid">
@@ -328,7 +382,12 @@
               <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
               <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
               <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
-              <div><dt>Current Approved Baseline</dt><dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) }}</dd></div>
+              <div>
+                <dt>Current Approved Baseline</dt>
+                <dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) }}
+                  @if (previously(record, 'currentApprovedBaseline'); as was) { <span class="was">Previously: {{ was }}</span> }
+                </dd>
+              </div>
               @if (b.type === 'Non-Financial' && b.baselineDescription) {
                 <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
               }
@@ -963,6 +1022,45 @@
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitClosure()">Submit Closure Request</button>
     }
   </ui-modal-shell>
+}
+
+<!-- ── Decide on this benefit's request, from its own page ─────────────── -->
+@if (decisionKind(); as kind) {
+  @if (detail(); as b) {
+    <div class="rl-scrim" (click)="closeDecision()"></div>
+    <div class="rl-dialog" role="dialog" aria-modal="true" aria-label="Decide on request">
+      <h2 class="rl-title">{{ kind === 'approve' ? 'Approve request' : 'Send back for rework' }}</h2>
+      <p class="rl-subtitle">{{ b.benefitRef }} · {{ b.name }}</p>
+      <div class="rl-body">
+        <div class="filter-field">
+          <span class="filter-label">
+            {{ kind === 'approve' ? 'Approval note' : 'What needs to change' }}
+          </span>
+          <ui-textarea
+            [(value)]="decisionNote"
+            [placeholder]="kind === 'approve'
+              ? 'Optional note recorded against the approval'
+              : 'Required — the owner acts on this'" />
+        </div>
+        @if (kind === 'rework') {
+          <p class="empty">
+            The request goes back to the owner to amend and resubmit. Nothing is discarded, and
+            these comments stay on the benefit until it is sent back for approval.
+          </p>
+        }
+      </div>
+      <div class="rl-actions">
+        <button ui-button variant="secondary" size="small" type="button" (click)="closeDecision()">Cancel</button>
+        <button
+          ui-button
+          variant="primary"
+          size="small"
+          type="button"
+          [disabled]="!decisionValid()"
+          (click)="submitDecision(b)">{{ kind === 'approve' ? 'Approve' : 'Send back' }}</button>
+      </div>
+    </div>
+  }
 }
 
 <!-- ── Audit snapshot: read-only view of one version ──────────────────── -->
