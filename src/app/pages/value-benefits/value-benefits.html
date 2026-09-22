@@ -196,7 +196,7 @@
 @if (detail(); as record) {
   @let b = shown(record);
   <section class="benefit-page" [class.benefit-page--leaving]="closingDetail()">
-    <header class="benefit-page-header">
+    <header class="benefit-page-header" [class.benefit-page-header--sticky]="!summaryEdit()">
       <button
         ui-icon-button
         variant="ghost"

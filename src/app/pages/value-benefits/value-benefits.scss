@@ -592,6 +592,20 @@ ui-date-input ::ng-deep input.ui-date-input {
   border-bottom: 1px solid var(--color-border-decorative);
 }
 
+/* Sticky while READING only. Scrolling a long record keeps the benefit's name
+   and the way back in view, which is the point. In edit mode the page already
+   has a sticky action bar at the bottom, and pinning the header too would
+   squeeze the form between two fixed rails on a short viewport.
+
+   `top: 0` resolves against `.detail-main`, the scrolling ancestor — the
+   header's own negative top margin is cancelled once it sticks, so it lands
+   flush with the top of the content column. */
+.benefit-page-header--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
 .benefit-page-back { margin-top: 2px; }
 
 .benefit-page-identity {

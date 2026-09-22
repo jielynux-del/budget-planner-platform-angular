@@ -39,6 +39,11 @@ something else was fixed:**
    Checking `hasAttribute('hidden')` reported success while the header was plainly on screen —
    measure the rendered height, not the attribute.
 
+**The header is sticky while reading, static while editing.** Scrolling a long record keeps the
+benefit's name and the way back in view. In edit mode it releases, because the page already has
+a sticky action bar at the bottom and pinning both would squeeze the form between two fixed
+rails on a short viewport. `top: 0` resolves against `.detail-main`, the scrolling ancestor.
+
 **The page header is a white band, not a card.** It cancels `.detail-body`'s content padding
 with a matching negative margin and reapplies it as its own, so the white runs edge to edge of
 the content column exactly as the workstream's own header does. Left inside the padding it read
