@@ -241,11 +241,13 @@
           message="The values below are the ones requested. No further changes can be made until the Sponsor approves them or sends them back for rework." />
       }
       @if (reworkFor(b); as note) {
+        <!-- Labelled, so the sponsor's words read as a quoted instruction
+             rather than as the banner's own prose. -->
         <ui-info-banner
           tone="warning"
           [dismissible]="false"
           title="Sent back for rework"
-          [message]="note" />
+          [message]="'Comments: ' + note" />
       }
     <ui-card>
       <div class="entity-section">
