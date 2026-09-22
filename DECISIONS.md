@@ -23,6 +23,22 @@ three ways of saying the same thing and cannot disagree. Verified: browser Back 
 benefit, Forward returns to the list, and a cold-loaded `?benefit=B02` opens straight onto that
 page with the workstream chrome already down.
 
+**Three faults found on the first pass, all worth recording because each was invisible until
+something else was fixed:**
+
+1. `activeTab` was a `linkedSignal` reading `?tab=`. Reaching Value/Benefits by CLICKING the tab
+   leaves no such param, so adding `?benefit=` recomputed the signal, found nothing, and fell
+   back to Work Profile. It now keeps its previous value when the param is absent, and opening a
+   benefit writes the tab into the URL alongside it.
+2. That reset unmounted `app-value-benefits`, and the parent's `benefitOpen` flag was being SET
+   BY that child — so it stayed raised and the tabs never came back. The flag is now derived from
+   the URL in the parent, which is present whether or not the child is.
+3. `[hidden]` on `.detail-header` did nothing visible: the attribute only carries a UA-level
+   `display: none`, and the element's own `display: flex` outranks it. The header sat there at
+   348px looking exactly like the bug it was. Both header and tabs are now removed with `@if`.
+   Checking `hasAttribute('hidden')` reported success while the header was plainly on screen —
+   measure the rendered height, not the attribute.
+
 **Consequences worth recording:**
 
 - The list stands down behind the page (`@if (!detailId())`) rather than scrolling underneath it.

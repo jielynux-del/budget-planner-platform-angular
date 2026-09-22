@@ -64,8 +64,6 @@ export class ValueBenefits {
   /** The benefit the URL names, if any — the page's own back/forward state. */
   readonly openBenefitRef = input<string | null>(null);
 
-  /** Tells the workstream page to stand its header and tabs down. */
-  readonly benefitOpenChange = output<boolean>();
 
   /** The session store's list for this workstream, so edits persist. */
   protected readonly benefits = computed(() => benefitsFor(this.workstreamId())());
@@ -274,11 +272,6 @@ export class ValueBenefits {
       });
     });
 
-    // The workstream page hides its own header and tabs while a benefit page
-    // is showing, so it has to be told — including through the closing
-    // animation, which is why `closingDetail` counts as still open.
-    effect(() => this.benefitOpenChange.emit(!!this.detailId() || this.closingDetail()));
-
     // A confirmation clears itself; the snackbar stays dismissible meanwhile.
     effect((onCleanup) => {
       if (!this.toast()) return;
@@ -384,7 +377,7 @@ export class ValueBenefits {
     // Navigating rather than opening: the URL is what the page reads back.
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { benefit: b.benefitRef },
+      queryParams: { tab: 'value-benefits', benefit: b.benefitRef },
       queryParamsHandling: 'merge'
     });
     this.summaryEdit.set(false);
@@ -796,7 +789,7 @@ export class ValueBenefits {
       this.closingDetail.set(false);
       this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { benefit: null },
+        queryParams: { tab: 'value-benefits', benefit: null },
         queryParamsHandling: 'merge'
       });
     }, ValueBenefits.EXIT_MS);

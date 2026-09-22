@@ -23,8 +23,12 @@
 
     <div class="detail-main" [class.panel-collapsed]="!panelExpanded()">
       <!-- A benefit is a SECOND-LEVEL page: it replaces the workstream's own
-           header and tabs, while both nav panels stay exactly as they are. -->
-      <header class="detail-header" [hidden]="benefitOpen()">
+           header and tabs, while both nav panels stay exactly as they are.
+           Removed rather than `[hidden]`, which only sets `display: none` at
+           the UA level — `.detail-header`'s own `display: flex` outranks it
+           and the header stays on screen at full height. -->
+      @if (!benefitOpen()) {
+      <header class="detail-header">
         <div class="ws-avatar"><ui-icon name="table" [size]="24" /></div>
 
         <div class="ws-identity">
@@ -47,9 +51,10 @@
         </div>
       </header>
 
-      <div class="detail-tabs" [hidden]="benefitOpen()">
+      <div class="detail-tabs">
         <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
       </div>
+      }
 
       <div class="detail-body">
         @if (activeTab() === 'work-profile') {
@@ -278,8 +283,7 @@
           <app-value-benefits
             [benefits]="benefits()"
             [workstreamId]="w.id"
-            [openBenefitRef]="openBenefitRef()"
-            (benefitOpenChange)="benefitOpen.set($event)" />
+            [openBenefitRef]="openBenefitRef()" />
         }
       </div>
     </div>

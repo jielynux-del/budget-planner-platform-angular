@@ -54,8 +54,15 @@ export class WorkstreamDetail {
   protected readonly tree = hierarchy;
   protected readonly ws = computed(() => workstreamById(this.params()?.get('id') ?? ''));
   /** Deep-linkable: `?tab=value-benefits` opens straight onto that tab. */
-  protected readonly activeTab = linkedSignal(() =>
-    this.query()?.get('tab') ?? 'work-profile');
+  /**
+   * Keeps its value when the URL carries no `tab` — otherwise ANY other query
+   * change (opening a benefit, say) recomputes this and throws the reader back
+   * to Work Profile, because the param it reads was never there to begin with.
+   */
+  protected readonly activeTab = linkedSignal<string | null, string>({
+    source: () => this.query()?.get('tab') ?? null,
+    computation: (tab, previous) => tab ?? previous?.value ?? 'work-profile'
+  });
   /**
    * Which benefit the URL is pointing at, if any. Held in the query string so
    * the back arrow, the browser's own Back and a pasted link all mean the
@@ -63,8 +70,15 @@ export class WorkstreamDetail {
    */
   protected readonly openBenefitRef = computed(() => this.query()?.get('benefit') ?? null);
 
-  /** Set by the child once it has resolved the ref; hides this page's chrome. */
-  protected readonly benefitOpen = signal(false);
+  /**
+   * Derived from the URL, NOT reported by the child.
+   *
+   * The child lives inside the Value/Benefits tab, so anything that unmounts
+   * that tab takes the child with it — and a flag the child was supposed to
+   * lower stays raised, hiding this page's header and tabs for good. The URL
+   * is present either way.
+   */
+  protected readonly benefitOpen = computed(() => !!this.openBenefitRef());
 
   /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
   protected readonly panelExpanded = signal(true);
