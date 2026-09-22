@@ -51,7 +51,7 @@
             <th><ui-column-header label="Requested On" size="sm" /></th>
             <th><ui-column-header label="Pending With" size="sm" /></th>
             <th><ui-column-header label="State" size="sm" /></th>
-            <th style="min-width: 240px"><ui-column-header label="Actions" size="sm" [last]="true" /></th>
+            <th style="width: 104px" class="ui-td-sticky"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
           </tr>
         </thead>
         <tbody>
@@ -70,10 +70,18 @@
               <td class="ui-cell-status">
                 <ui-status-tag [status]="stateLabel(item)" [variant]="stateVariant(item.state)" />
               </td>
-              <td (click)="$event.stopPropagation()">
-                @if (persona().canApprove && item.state === 'Pending Approval') {
-                  <ui-kebab-menu [items]="rowActions" (selected)="onRowAction(item, $event)" />
-                }
+              <!-- Same shape as the benefits table's action cell: the audit
+                   log is always reachable, the kebab only when there is
+                   something to decide. -->
+              <td class="ui-cell-actions ui-td-sticky" (click)="$event.stopPropagation()">
+                <div class="row-actions">
+                  <button ui-icon-button size="small" type="button" aria-label="Audit log" (click)="viewAudit.emit(item.benefit.id)">
+                    <ui-icon name="history" />
+                  </button>
+                  @if (persona().canApprove && item.state === 'Pending Approval') {
+                    <ui-kebab-menu [items]="rowActions" (selected)="onRowAction(item, $event)" />
+                  }
+                </div>
               </td>
             </tr>
           }

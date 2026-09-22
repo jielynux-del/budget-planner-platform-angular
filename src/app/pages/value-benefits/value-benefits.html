@@ -26,7 +26,10 @@
   <ui-filter-tabs [tabs]="pageTabs()" [(active)]="pageTab" />
 
   @if (pageTab() === 'approvals') {
-    <app-approvals [workstreamId]="workstreamId()" (decided)="onDecision($event)" />
+    <app-approvals
+    [workstreamId]="workstreamId()"
+    (decided)="onDecision($event)"
+    (viewAudit)="openAuditById($event)" />
   } @else {
 
   <!-- Status summary. Each figure filters the table.
@@ -230,11 +233,12 @@
     </header>
 
     <div class="benefit-page-body">
-      @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
+      @if (b.pendingUpdate?.status === 'Pending Approval' && !canDecide(b)) {
         <ui-info-banner
           tone="warning"
           [dismissible]="false"
-          message="This benefit is pending approval. The values shown are the ones requested — the approved ones are in the audit log." />
+          title="Pending approval"
+          message="The values below are the ones requested. No further changes can be made until the Sponsor approves them or sends them back for rework." />
       }
       @if (reworkFor(b); as note) {
         <ui-info-banner
@@ -579,7 +583,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (r of b.reportingHistory; track r.id) {
+              @for (r of reportRows(b.reportingHistory); track r.id) {
                 <tr ui-table-row>
                   <td class="cell-nowrap">{{ r.updateDate }}</td>
                   <td [class.cell-nowrap]="b.type === 'Financial'">{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
@@ -626,6 +630,12 @@
             </tbody>
           </table>
         </div>
+        @if (reportPaged(b.reportingHistory)) {
+          <ui-pagination
+            [total]="b.reportingHistory.length"
+            [(page)]="reportPage"
+            [pageSize]="5" />
+        }
         @if (summaryEdit()) {
           <button ui-button variant="plain" size="small" type="button" class="add-row" (click)="openReportingDialog()">
             <ui-icon name="plus-circle" />

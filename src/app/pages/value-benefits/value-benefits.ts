@@ -374,7 +374,14 @@ export class ValueBenefits {
   private static readonly EXIT_MS = 220;
 
   /** Row click opens the benefit; the audit icon opens just its history. */
+  /** Opens the audit overlay for a benefit named by id, from the queue. */
+  protected openAuditById(id: string) {
+    const benefit = this.benefits().find((b) => b.id === id);
+    if (benefit) this.openAudit(benefit);
+  }
+
   protected openDetail(b: Benefit) {
+    this.reportPage.set(1);
     // Navigating rather than opening: the URL is what the page reads back.
     this.router.navigate([], {
       relativeTo: this.route,
@@ -488,6 +495,28 @@ export class ValueBenefits {
     this.summaryEdit.set(false);
     this.draftUpdates.set([]);
     this.closeReportingDialog();
+  }
+
+  /* ---------------- Reporting history paging ---------------- */
+
+  /**
+   * Reporting history is append-only and read newest-last, so it grows without
+   * limit. Paged rather than scrolled: a scrolling box inside a page that also
+   * scrolls fights the wheel, whereas a pager is unambiguous. It only appears
+   * once there is a second page — a control over three rows is noise.
+   */
+  private static readonly REPORT_PAGE = 5;
+
+  protected readonly reportPage = signal(1);
+
+  protected reportRows(rows: BenefitUpdate[]) {
+    const size = ValueBenefits.REPORT_PAGE;
+    const start = (this.reportPage() - 1) * size;
+    return rows.slice(start, start + size);
+  }
+
+  protected reportPaged(rows: BenefitUpdate[]) {
+    return rows.length > ValueBenefits.REPORT_PAGE;
   }
 
   /* ---------------- Reporting lines added during an edit ---------------- */

@@ -8,6 +8,29 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-22 — The pending banner tells the reader what it costs them
+
+**Decision.** The banner now reads "Pending approval — the values below are the ones requested.
+No further changes can be made until the Sponsor approves them or sends them back for rework."
+The old wording described the state; this one says what the state PREVENTS, which is the thing
+the reader needs. It is also hidden from whoever can decide: the sponsor has an action bar in
+front of them, and telling them a decision is outstanding is telling them what they are already
+doing.
+
+**Reporting history is paged, not scrolled.** Five to a page, and the pager only appears once
+there is a second page — a control over three rows is noise. Paging rather than a fixed-height
+scroll box for the reason recorded on 15 Sep: a scrolling box inside a page that also scrolls
+fights the wheel, whereas a pager is unambiguous. No search: a reporting history is short and
+read newest-last, so a search field would sit empty of purpose at this size. Worth revisiting if
+a benefit ever carries dozens of updates.
+
+**The queue's action cell matches the benefits table** — audit log always reachable, kebab only
+when there is something to decide, in a sticky right column with no "Actions" header. The audit
+overlay itself is reused rather than rebuilt: the queue emits a benefit id and the page above
+opens the one implementation it already had.
+
+---
+
 ## 2026-09-22 — Select clears on focus, not on filled
 
 **Decision.** Every `ui-select` hides its clear affordance at rest and reveals it on focus or

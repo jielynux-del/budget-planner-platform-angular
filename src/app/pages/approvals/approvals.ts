@@ -1,8 +1,9 @@
 import { Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  UiButton, UiCard, UiColumnHeader, UiInfoBanner, UiKebabMenu, UiModalShell,
-  UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow, UiTextarea,
+  UiButton, UiCard, UiColumnHeader, UiIcon, UiIconButton, UiInfoBanner, UiKebabMenu,
+  UiModalShell, UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow,
+  UiTextarea,
   type UiMenuItem, type UiSelectOption, type UiTagVariant
 } from 'ai-dls-kit';
 import { approvalQueue, benefitsFor, type ApprovalItem } from '../../data/benefitsStore';
@@ -16,7 +17,8 @@ const ALL = 'All';
   selector: 'app-approvals',
   imports: [
     UiCard, UiInfoBanner, UiSelect, UiButton, UiKebabMenu, UiTableCard, UiTableHeader,
-    UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiModalShell, UiTextarea
+    UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiModalShell, UiTextarea,
+    UiIcon, UiIconButton
   ],
   templateUrl: './approvals.html',
   styleUrl: './approvals.scss'
@@ -32,6 +34,9 @@ export class Approvals {
    * in already owns a snackbar, and two of them would sit on top of each other.
    */
   readonly decided = output<{ message: string; benefitId: string }>();
+
+  /** The audit overlay lives on the page above; one implementation serves both. */
+  readonly viewAudit = output<string>();
 
   protected readonly persona = currentPersona;
   protected readonly all = ALL;
