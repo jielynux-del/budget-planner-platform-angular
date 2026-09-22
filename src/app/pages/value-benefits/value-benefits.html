@@ -214,23 +214,7 @@
       </div>
 
       <div class="benefit-page-actions">
-
-    @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
-      <ui-info-banner
-        tone="warning"
-        [dismissible]="false"
-        message="This benefit is pending approval. The values shown are the ones requested — the approved ones are in the audit log." />
-    }
-
         @if (!summaryEdit()) {
-          @if (canDecide(b)) {
-            <button ui-button variant="secondary" size="small" type="button" (click)="openDecision('rework')">
-              Send for rework
-            </button>
-            <button ui-button variant="primary" size="small" type="button" (click)="openDecision('approve')">
-              Approve
-            </button>
-          }
           <button ui-button variant="secondary" size="small" type="button" (click)="download(b)">
             <ui-icon name="download" />
             Download
@@ -246,6 +230,12 @@
     </header>
 
     <div class="benefit-page-body">
+      @if (b.pendingUpdate && b.pendingUpdate.status === 'Pending Approval') {
+        <ui-info-banner
+          tone="warning"
+          [dismissible]="false"
+          message="This benefit is pending approval. The values shown are the ones requested — the approved ones are in the audit log." />
+      }
       @if (reworkFor(b); as note) {
         <ui-info-banner
           tone="warning"
@@ -660,6 +650,15 @@
           type="button"
           [disabled]="!editDirty()"
           (click)="saveSummaryEdit(b)">Submit for approval</button>
+      </div>
+    } @else if (canDecide(b)) {
+      <div class="benefit-page-footer">
+        <button ui-button variant="secondary" size="small" type="button" (click)="openDecision('rework')">
+          Send for rework
+        </button>
+        <button ui-button variant="primary" size="small" type="button" (click)="openDecision('approve')">
+          Approve
+        </button>
       </div>
     }
   </section>

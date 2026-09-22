@@ -45,6 +45,13 @@ benefit's page is where it can actually be read. Everyone gets this regardless o
 unable to approve is no reason to be unable to look. That also retires the old
 `openWorkstream` no-op.
 
+**Deciding sits in the sticky footer, not the header.** Approve and Send for rework are
+commitments, and they belong in the same bar an edit submits from — not among the header's
+navigation and download controls. The header keeps only what does not change the record. The
+pending-approval banner sits at the top of the BODY with the record it describes; it had been
+left inside the header's action row when the overlay became a page, which is how it ended up
+between the title and the buttons.
+
 **A rework must say why.** The Send back button is disabled until a comment is written, in both
 the queue dialog and the one on the benefit page. The comment then does three jobs: it lands in
 the audit log, it is stored on the request, and it drives a banner on the benefit that CANNOT be
