@@ -8,6 +8,31 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-22 — Select clears on focus, not on filled
+
+**Decision.** Every `ui-select` hides its clear affordance at rest and reveals it on focus or
+hover. One global rule in `src/styles.scss`; the scattered `[clearable]="false"` overrides are
+gone, since those removed the control entirely rather than deferring it.
+
+**This is a deliberate deviation from the kit, and the kit disagrees on purpose.** Its own source
+says the select draws the clear "gated on the value being non-empty rather than focus (DLS's
+Filled state, not a focus-only convenience)", and explicitly contrasts it with `ui-text-input`,
+which is clear-on-focus. So DLS reserves this behaviour for inputs and not selects.
+
+**Why deviate anyway.** A selector at rest should read as the value it holds, not as a control
+with a dismiss button bolted on; and a row of filled filters otherwise carries a row of ✕s
+competing with the data behind them. The prototype has several such rows.
+
+Recorded at length because this is exactly the kind of override someone reading the component in
+isolation will "correct" back — the same failure mode the kit's own 24px filter-height comment
+exists to prevent.
+
+**`visibility`, not `display`.** Revealing the control must not reflow the trigger, or the label
+shifts under the pointer as focus lands. Verified: label left edge and trigger width unchanged
+between rest and focus.
+
+---
+
 ## 2026-09-22 — Deciding happens where the request can be read
 
 **Decision logic moved into `data/decisions.ts`.** A sponsor can now reach a decision from two

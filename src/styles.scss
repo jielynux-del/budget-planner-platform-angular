@@ -4,3 +4,26 @@
    pushed below the fold and its item list scrolls instead. */
 html, body { height: 100%; margin: 0; }
 app-root { display: block; height: 100%; }
+
+/* ── Select: clear on focus, not on filled ───────────────────────────────
+   DELIBERATE DEVIATION from the kit, recorded here so it is not "corrected"
+   back by someone reading the component in isolation.
+
+   `ui-select` draws its clear affordance whenever the value is non-empty —
+   DLS's Filled state. The kit's own source says so, and contrasts it with
+   `ui-text-input`, which draws the same control on focus instead. This
+   prototype wants the select to behave like the input: a selector at rest
+   should read as the value it holds, not as a control with a dismiss button
+   attached, and a row of filled filters otherwise carries a row of ✕s
+   competing with the data behind them.
+
+   `visibility` rather than `display`, so revealing it on focus does not
+   reflow the trigger and shift the label under the pointer. */
+ui-select .ui-select-clear {
+  visibility: hidden;
+}
+
+ui-select:focus-within .ui-select-clear,
+ui-select:hover .ui-select-clear {
+  visibility: visible;
+}

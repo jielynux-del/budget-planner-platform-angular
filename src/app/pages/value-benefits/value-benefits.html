@@ -459,9 +459,9 @@
                     <tbody>
                       @for (row of editLines(); track row.id) {
                         <tr ui-table-row>
-                          <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setEditLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" [clearable]="false" /></td>
-                          <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setEditLine(row.id, 'driver', $event)" placeholder="Select" [clearable]="false" /></td>
-                          <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setEditLine(row.id, 'measure', $event)" placeholder="Select" [clearable]="false" /></td>
+                          <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setEditLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
+                          <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setEditLine(row.id, 'driver', $event)" placeholder="Select" /></td>
+                          <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setEditLine(row.id, 'measure', $event)" placeholder="Select" /></td>
                           @for (y of editYears(); track y) {
                             <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setEditLineValue(row.id, y, $event)" placeholder="0" /></td>
                           }
@@ -822,9 +822,9 @@
               <tbody>
                 @for (row of draftLines(); track row.id) {
                   <tr ui-table-row>
-                    <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" [clearable]="false" /></td>
-                    <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" [clearable]="false" /></td>
-                    <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" [clearable]="false" /></td>
+                    <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
+                    <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" /></td>
+                    <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" /></td>
                     @for (y of years(); track y) {
                       <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setLineValue(row.id, y, $event)" placeholder="0" /></td>
                     }
