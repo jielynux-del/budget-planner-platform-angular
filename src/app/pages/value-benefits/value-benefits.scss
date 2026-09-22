@@ -188,12 +188,17 @@ ui-modal-shell.sheet-closing ::ng-deep .panel {
    already has one, and the two land 1px apart in the same colour — a doubled
    stroke down both sides. The accordion owns the container; the table only
    draws what is inside it. */
-ui-modal-shell ::ng-deep ui-accordion table[ui-table] {
+ui-modal-shell ::ng-deep ui-accordion table[ui-table],
+.benefit-page ui-accordion table[ui-table] {
   border: none;
   border-radius: 0;
 }
 
-ui-modal-shell ::ng-deep table[ui-table] {
+/* These were written when the benefit record was an overlay. It is a page now,
+   so every one of them has to name BOTH — scoped to the shell alone they
+   silently stopped applying and the tables lost their outer edge and radius. */
+ui-modal-shell ::ng-deep table[ui-table],
+.benefit-page table[ui-table] {
   border: 1px solid var(--color-border-decorative);
   border-radius: var(--radius-sm, 4px);
   border-collapse: separate;
@@ -201,12 +206,16 @@ ui-modal-shell ::ng-deep table[ui-table] {
   overflow: hidden;
 }
 ui-modal-shell ::ng-deep table[ui-table] th:not(:last-child),
-ui-modal-shell ::ng-deep table[ui-table] td:not(:last-child) {
+ui-modal-shell ::ng-deep table[ui-table] td:not(:last-child),
+.benefit-page table[ui-table] th:not(:last-child),
+.benefit-page table[ui-table] td:not(:last-child) {
   border-right: 1px solid var(--color-border-decorative);
 }
 // A figure must never wrap mid-number.
 ui-modal-shell ::ng-deep table[ui-table] .ui-cell-number,
-ui-modal-shell ::ng-deep table[ui-table] th { white-space: nowrap; }
+ui-modal-shell ::ng-deep table[ui-table] th,
+.benefit-page table[ui-table] .ui-cell-number,
+.benefit-page table[ui-table] th { white-space: nowrap; }
 
 /* The kit rules its panel titles at heading(sm); these read better a step down. */
 ui-table-header ::ng-deep .title { @include type.heading(xs); }
@@ -562,11 +571,25 @@ ui-date-input ::ng-deep input.ui-date-input {
 
 /* The overlay's header becomes the page's, minus the close button: leaving is
    a back step now, not a dismissal, so the control sits at the START of the
-   row where a reader looks to go back. */
+   row where a reader looks to go back.
+
+   It is a WHITE BAND running the full width of the content column, matching
+   how the workstream's own header sits above its body. The page renders
+   inside `.detail-body`, which carries the content padding, so the band
+   cancels that padding with a matching negative margin and reapplies it as
+   its own — otherwise the white stops short of both edges and reads as a
+   card rather than a header. */
 .benefit-page-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  margin:
+    calc(var(--padding-panel-v-lg) * -1)
+    calc(var(--padding-panel-h-xl) * -1)
+    0;
+  padding: var(--padding-panel-v-lg) var(--padding-panel-h-xl);
+  background: var(--color-bg-level1);
+  border-bottom: 1px solid var(--color-border-decorative);
 }
 
 .benefit-page-back { margin-top: 2px; }
@@ -612,4 +635,14 @@ ui-date-input ::ng-deep input.ui-date-input {
   padding: 12px 0;
   background: var(--color-bg-app);
   border-top: 1px solid var(--color-border-decorative);
+}
+
+/* The record tables inside the Baseline accordions carry a lot of columns —
+   id, value, three dates, two people, a status and a reason. Left to fit the
+   card they compress every column; a floor lets `.vb-scroll` scroll instead.
+   The reason column takes the slack, since it is the one that reads as prose. */
+.benefit-page ui-accordion table[ui-table] {
+  min-width: 900px;
+
+  th:last-child, td:last-child { min-width: 240px; }
 }

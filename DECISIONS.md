@@ -39,6 +39,17 @@ something else was fixed:**
    Checking `hasAttribute('hidden')` reported success while the header was plainly on screen —
    measure the rendered height, not the attribute.
 
+**The page header is a white band, not a card.** It cancels `.detail-body`'s content padding
+with a matching negative margin and reapplies it as its own, so the white runs edge to edge of
+the content column exactly as the workstream's own header does. Left inside the padding it read
+as a floating card rather than a header.
+
+**Every table rule had been scoped to `ui-modal-shell`** — the outer border, the vertical
+dividers, the nowrap, and the rule stopping an accordion's table drawing its own edge. The
+record stopped being a modal shell, so all of them silently stopped applying and the tables lost
+their edge and radius. They now name both the shell and `.benefit-page`. A rule scoped to a
+container is only as durable as the container.
+
 **Consequences worth recording:**
 
 - The list stands down behind the page (`@if (!detailId())`) rather than scrolling underneath it.
