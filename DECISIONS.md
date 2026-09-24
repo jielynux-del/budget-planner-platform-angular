@@ -8,6 +8,30 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-24 — A closed benefit can be reopened
+
+**Decision.** A closed benefit's only action is Reopen, for the owner, behind a confirmation
+rather than an approval. It returns the benefit to Tracking Active so updates can be reported
+and changes raised.
+
+**Why no approval.** Reopening grants no value, moves no baseline and changes no figure — it only
+makes the record editable again. Every change raised afterwards still goes to the Sponsor like
+any other, so the control is already where it needs to be; putting a second gate in front of
+"let me correct this" would only delay the correction. What it does need is a trace, so it writes
+an audit entry and a snapshot.
+
+**The closed menu offers Reopen ALONE**, rather than Update and Request Closure greyed out.
+Disabled items suggest they might become available on their own; from Closed they never will.
+`actionDisabled` no longer treats Closed as a blanket disable, since that state now has exactly
+one thing you can do with it.
+
+**Known gap.** Reopening does not reverse the closure record in the baseline or reporting
+history — nothing is unwound, and the audit log is what tells the story. That is deliberate:
+those histories are append-only everywhere else in this prototype and an exception here would be
+the surprising thing.
+
+---
+
 ## 2026-09-22 — The pending banner tells the reader what it costs them
 
 **Decision.** The banner now reads "Pending approval — the values below are the ones requested.

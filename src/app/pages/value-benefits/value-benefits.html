@@ -168,12 +168,12 @@
                     </button>
                     @if (openMenuId() === b.id) {
                       <ui-dropdown-menu class="row-menu" [class.row-menu--up]="menuUp()" role="menu">
-                        @for (a of rowActions; track a.key) {
+                        @for (a of rowActionsFor(b); track a.key) {
                           <button
                             ui-dropdown-item
                             type="button"
                             [disabled]="actionDisabled(b)"
-                            (click)="openAction($any(a.key), b, $event)">{{ a.label }}</button>
+                            (click)="a.key === 'reopen' ? askReopen(b, $event) : openAction($any(a.key), b, $event)">{{ a.label }}</button>
                         }
                       </ui-dropdown-menu>
                     }
@@ -223,10 +223,17 @@
             Download
           </button>
           @if (persona().canRequest && !pendingReview(b)) {
-            <button ui-button variant="secondary" size="small" type="button" (click)="startSummaryEdit(b)">
-              <ui-icon name="edit" />
-              Update benefit
-            </button>
+            @if (b.status === 'Closed') {
+              <button ui-button variant="secondary" size="small" type="button" (click)="askReopen(b)">
+                <ui-icon name="history" />
+                Reopen benefit
+              </button>
+            } @else {
+              <button ui-button variant="secondary" size="small" type="button" (click)="startSummaryEdit(b)">
+                <ui-icon name="edit" />
+                Update benefit
+              </button>
+            }
           }
         }
       </div>
@@ -1033,6 +1040,27 @@
       <button ui-modal-footer ui-button variant="primary" size="small" type="button" [disabled]="!actionValid()" (click)="submitClosure()">Submit Closure Request</button>
     }
   </ui-modal-shell>
+}
+
+<!-- ── Reopen a closed benefit ─────────────────────────────────────────
+     A confirmation rather than an approval: reopening changes no figure, it
+     only makes the record editable again. -->
+@if (reopenBenefit(); as b) {
+  <div class="rl-scrim" (click)="cancelReopen()"></div>
+  <div class="rl-dialog" role="dialog" aria-modal="true" aria-label="Reopen benefit">
+    <h2 class="rl-title">Reopen this benefit?</h2>
+    <p class="rl-subtitle">{{ b.benefitRef }} · {{ b.name }}</p>
+    <div class="rl-body">
+      <p class="empty">
+        It returns to Tracking Active so updates can be reported and changes raised. Any change
+        still goes to the Sponsor for approval, and the reopening is recorded in the audit log.
+      </p>
+    </div>
+    <div class="rl-actions">
+      <button ui-button variant="secondary" size="small" type="button" (click)="cancelReopen()">Cancel</button>
+      <button ui-button variant="primary" size="small" type="button" (click)="confirmReopen(b)">Reopen benefit</button>
+    </div>
+  </div>
 }
 
 <!-- ── Decide on this benefit's request, from its own page ─────────────── -->

@@ -142,21 +142,34 @@ export class ValueBenefits {
   protected readonly audit = computed(() =>
     this.benefits().find((b) => b.id === this.auditId()) ?? null);
 
-  protected readonly rowActions: UiMenuItem[] = [
+  private static readonly LIVE_ACTIONS: UiMenuItem[] = [
     { key: 'update', label: 'Update Benefit' },
     { key: 'closure', label: 'Request Closure' }
   ];
 
+  private static readonly CLOSED_ACTIONS: UiMenuItem[] = [
+    { key: 'reopen', label: 'Reopen Benefit' }
+  ];
+
+  /**
+   * A closed benefit offers only Reopen. Updating or closing it again are
+   * meaningless from that state, and listing them greyed out would suggest
+   * they might become available on their own.
+   */
+  protected rowActionsFor(b: Benefit) {
+    return b.status === 'Closed' ? ValueBenefits.CLOSED_ACTIONS : ValueBenefits.LIVE_ACTIONS;
+  }
+
   /**
    * Row actions raise requests, so they belong to whoever can raise one — the
    * Sponsor decides, it does not submit. They are also closed off while a
-   * request is already outstanding or the benefit is closed: a second request
-   * on the same record would give the approver two things to decide about one
-   * benefit.
+   * request is already outstanding: a second request on the same record would
+   * give the approver two things to decide about one benefit. A closed benefit
+   * is NOT disabled here — its one action, Reopen, is exactly what that state
+   * is for.
    */
   protected actionDisabled(b: Benefit) {
     return !this.persona().canRequest
-      || b.status === 'Closed'
       || b.status === 'Closure Pending Approval'
       || b.pendingUpdate?.status === 'Pending Approval';
   }
@@ -942,6 +955,50 @@ export class ValueBenefits {
   protected readonly formComments = signal('');
   protected readonly formStart = signal('');
   protected readonly formEnd = signal('');
+
+  /* ---------------- Reopening a closed benefit ---------------- */
+
+  /**
+   * Held by id rather than by record so the confirmation survives the list
+   * re-rendering underneath it.
+   */
+  protected readonly reopening = signal<string | null>(null);
+
+  protected readonly reopenBenefit = computed(() =>
+    this.benefits().find((b) => b.id === this.reopening()) ?? null);
+
+  protected askReopen(b: Benefit, event?: Event) {
+    event?.stopPropagation();
+    this.openMenuId.set(null);
+    this.reopening.set(b.id);
+  }
+
+  protected cancelReopen() { this.reopening.set(null); }
+
+  /**
+   * Reopening needs no approval: it grants no value and changes no figure, it
+   * only makes the record editable again so a correction can be raised — and
+   * that correction still goes to the Sponsor like any other. What it does
+   * need is a trace, so it is written to the audit log.
+   */
+  protected confirmReopen(b: Benefit) {
+    this.patch(b.id, (cur) => ({
+      ...cur,
+      status: 'Tracking Active',
+      closureNote: undefined,
+      auditLog: [...cur.auditLog, {
+        id: `ba-${Date.now()}`,
+        date: this.today(),
+        user: CURRENT_USER,
+        action: 'Benefit Reopened',
+        comments: 'Reopened for further updates. Tracking is active again.',
+        snapshot: snapshotOf({ ...cur, status: 'Tracking Active' })
+      }]
+    }));
+    this.reopening.set(null);
+    this.toastBenefitId.set(b.id);
+    this.toast.set('Benefit reopened — tracking is active again');
+  }
 
   protected openAction(kind: 'update' | 'closure', b: Benefit, event: Event) {
     event.stopPropagation();
