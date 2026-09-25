@@ -4,7 +4,7 @@ import { inject } from '@angular/core';
 import {
   UiButton, UiColumnHeader, UiIcon, UiIconButton, UiInfoBanner,
   UiCard, UiPageHeader, UiPagination, UiPill, UiSelect, UiStatusTag, UiTable, UiTableCard,
-  UiTableHeader, UiTableRow, UiTextInput, UiTooltipDirective,
+  UiMultiSelect, UiTableHeader, UiTableRow, UiTextInput, UiTooltipDirective,
   type UiPillColor, type UiTagVariant
 } from 'ai-dls-kit';
 import {
@@ -38,7 +38,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
   imports: [
     UiSelect, UiPageHeader, UiIcon, UiIconButton, UiInfoBanner, UiButton,
     UiCard, UiPill, UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow,
-    UiStatusTag, UiPagination, UiTextInput, UiTooltipDirective
+    UiStatusTag, UiPagination, UiTextInput, UiMultiSelect, UiTooltipDirective
   ],
   templateUrl: './ats-listing.html',
   styleUrl: './ats-listing.scss'
@@ -60,14 +60,17 @@ export class AtsListing {
   protected readonly currency = signal(ATS_CURRENCIES[0]);
 
   protected readonly noticeOpen = signal(true);
-  protected readonly filtersShown = signal(true);
 
-  /** Column filters — free text where the value is an identifier, a list where it is not. */
-  protected readonly colWorkType = signal(ALL);
-  protected readonly colPlatform = signal(ALL);
-  protected readonly colSubPlatform = signal(ALL);
-  protected readonly colSubType = signal(ALL);
-  protected readonly colStatus = signal(ALL);
+  /**
+   * Column filters — a multi-select where the value comes from a known set, a
+   * text box where it is a free identifier. Multi rather than single so the
+   * column filters behave the way Value/Benefits' do.
+   */
+  protected readonly colWorkType = signal<string[]>([]);
+  protected readonly colPlatform = signal<string[]>([]);
+  protected readonly colSubPlatform = signal<string[]>([]);
+  protected readonly colSubType = signal<string[]>([]);
+  protected readonly colStatus = signal<string[]>([]);
   protected readonly colSubAtsName = signal('');
   protected readonly colMasterName = signal('');
   protected readonly colLePc = signal('');
@@ -76,11 +79,11 @@ export class AtsListing {
   protected readonly colManager = signal('');
   protected readonly colApprover = signal('');
 
-  protected readonly workTypeOptions = [ALL, ...ATS_WORK_TYPES];
-  protected readonly subTypeOptions = [ALL, ...ATS_SUB_TYPES];
-  protected readonly statusOptions = [ALL, ...ATS_STATUSES];
-  protected readonly subPlatformOptions = computed(() =>
-    [ALL, ...new Set(ATS_RECORDS.map((a) => a.subPlatform))]);
+  protected readonly workTypeChoices = [...ATS_WORK_TYPES];
+  protected readonly subTypeChoices = [...ATS_SUB_TYPES];
+  protected readonly statusChoices = [...ATS_STATUSES];
+  protected readonly platformChoices = PLATFORMS.slice(1);
+  protected readonly subPlatformChoices = [...new Set(ATS_RECORDS.map((a) => a.subPlatform))];
 
   /**
    * The summary card above the table. Each figure filters, and the counts are
@@ -111,10 +114,10 @@ export class AtsListing {
     const like = (v: string, q: string) => !q || v.toLowerCase().includes(q.trim().toLowerCase());
     return ATS_RECORDS.filter((a) =>
       (this.platform() === PLATFORMS[0] || a.platform === this.platform()) &&
-      (this.colWorkType() === ALL || a.workType === this.colWorkType()) &&
-      (this.colPlatform() === ALL || a.platform === this.colPlatform()) &&
-      (this.colSubPlatform() === ALL || a.subPlatform === this.colSubPlatform()) &&
-      (this.colSubType() === ALL || a.masterType === this.colSubType()) &&
+      (!this.colWorkType().length || this.colWorkType().includes(a.workType)) &&
+      (!this.colPlatform().length || this.colPlatform().includes(a.platform)) &&
+      (!this.colSubPlatform().length || this.colSubPlatform().includes(a.subPlatform)) &&
+      (!this.colSubType().length || this.colSubType().includes(a.masterType)) &&
       like(a.subAts[0]?.name ?? a.name, this.colSubAtsName()) &&
       like(a.name, this.colMasterName()) &&
       like(a.lePcCode, this.colLePc()) &&
@@ -127,7 +130,7 @@ export class AtsListing {
   protected readonly filtered = computed(() => {
     const byStatus = this.beforeStatus().filter((a) =>
       (this.statusTile() === ALL || a.status === this.statusTile()) &&
-      (this.colStatus() === ALL || a.status === this.colStatus()));
+      (!this.colStatus().length || this.colStatus().includes(a.status)));
     return byStatus;
   });
 
@@ -156,8 +159,6 @@ export class AtsListing {
   protected openAts(a: Ats) {
     this.router.navigate(['/approval-to-spend', a.id]);
   }
-
-  protected toggleFilters() { this.filtersShown.update((v) => !v); }
 
   /** Clicking the active tile clears it, so the card never becomes a trap. */
   protected toggleStatus(key: string) {

@@ -46,57 +46,85 @@
 
   <ui-table-card>
     <ui-table-header title="Approval To Spend">
-      <div class="ats-toolbar">
-        <ui-select class="ats-toolbar-select" [options]="costTypeOptions" [(value)]="costType" [emptyValue]="costTypeOptions[0]" />
-        <ui-select class="ats-toolbar-select" [options]="currencyOptions" [(value)]="currency" [emptyValue]="currencyOptions[0]" />
-        <button ui-button variant="secondary" size="small" type="button" (click)="toggleFilters()">
-          {{ filtersShown() ? 'Hide Filters' : 'Show Filters' }}
-        </button>
-        <button ui-button variant="primary" size="small" type="button">
-          <ui-icon name="plus" />
-          Create ATS Request
-        </button>
-      </div>
+      <ui-select class="ats-toolbar-select" [options]="costTypeOptions" [(value)]="costType" [emptyValue]="costTypeOptions[0]" />
+      <ui-select class="ats-toolbar-select" [options]="currencyOptions" [(value)]="currency" [emptyValue]="currencyOptions[0]" />
+
+      <button uiTableActions ui-button variant="primary" size="small" type="button">
+        <ui-icon name="plus" />
+        Create ATS Request
+      </button>
     </ui-table-header>
 
     <div class="vb-scroll">
       <table ui-table size="sm" class="ats-table">
         <thead>
+          <!-- Filters are projected into the column headers, which is where the
+               kit puts them: a separate filter <tr> sat outside the header's
+               own padding and border, so the strokes never lined up. -->
           <tr>
-            <th><ui-column-header label="Work Type" size="sm" [first]="true" /></th>
-            <th><ui-column-header label="Platform Name" size="sm" [sortable]="true" /></th>
-            <th><ui-column-header label="WS Sub-Platform" size="sm" /></th>
-            <th><ui-column-header label="Sub-ATS Type" size="sm" /></th>
-            <th><ui-column-header label="Sub-ATS Name & ID" size="sm" /></th>
-            <th><ui-column-header label="Master ATS Name & ID" size="sm" [sortable]="true" /></th>
-            <th><ui-column-header label="LE-PC Code" size="sm" /></th>
-            <th><ui-column-header label="Sub-Workstream Name & ID" size="sm" /></th>
-            <th><ui-column-header label="ATS Requestor" size="sm" /></th>
-            <th><ui-column-header label="Portfolio Work Manager(s)" size="sm" /></th>
-            <th><ui-column-header label="DOA Approver(s)" size="sm" /></th>
+            <th>
+              <ui-column-header label="Work Type" size="sm" [first]="true" [filtered]="!!colWorkType().length">
+                <ui-multi-select class="col-filter" [items]="workTypeChoices" [(selected)]="colWorkType" placeholder="All" display="count" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 200px">
+              <ui-column-header label="Platform Name" size="sm" [sortable]="true" [filtered]="!!colPlatform().length">
+                <ui-multi-select class="col-filter" [items]="platformChoices" [(selected)]="colPlatform" placeholder="All" display="count" />
+              </ui-column-header>
+            </th>
+            <th>
+              <ui-column-header label="WS Sub-Platform" size="sm" [filtered]="!!colSubPlatform().length">
+                <ui-multi-select class="col-filter" [items]="subPlatformChoices" [(selected)]="colSubPlatform" placeholder="All" display="count" />
+              </ui-column-header>
+            </th>
+            <th>
+              <ui-column-header label="Sub-ATS Type" size="sm" [filtered]="!!colSubType().length">
+                <ui-multi-select class="col-filter" [items]="subTypeChoices" [(selected)]="colSubType" placeholder="All" display="count" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 230px">
+              <ui-column-header label="Sub-ATS Name &amp; ID" size="sm" [filtered]="!!colSubAtsName()">
+                <ui-text-input class="col-filter" [(value)]="colSubAtsName" placeholder="All" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 230px">
+              <ui-column-header label="Master ATS Name &amp; ID" size="sm" [sortable]="true" [filtered]="!!colMasterName()">
+                <ui-text-input class="col-filter" [(value)]="colMasterName" placeholder="All" />
+              </ui-column-header>
+            </th>
+            <th>
+              <ui-column-header label="LE-PC Code" size="sm" [filtered]="!!colLePc()">
+                <ui-text-input class="col-filter" [(value)]="colLePc" placeholder="All" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 230px">
+              <ui-column-header label="Sub-Workstream Name &amp; ID" size="sm" [filtered]="!!colSubWorkstream()">
+                <ui-text-input class="col-filter" [(value)]="colSubWorkstream" placeholder="All" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 160px">
+              <ui-column-header label="ATS Requestor" size="sm" [filtered]="!!colRequestor()">
+                <ui-text-input class="col-filter" [(value)]="colRequestor" placeholder="All" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 160px">
+              <ui-column-header label="Portfolio Work Manager(s)" size="sm" [filtered]="!!colManager()">
+                <ui-text-input class="col-filter" [(value)]="colManager" placeholder="All" />
+              </ui-column-header>
+            </th>
+            <th style="min-width: 160px">
+              <ui-column-header label="DOA Approver(s)" size="sm" [filtered]="!!colApprover()">
+                <ui-text-input class="col-filter" [(value)]="colApprover" placeholder="All" />
+              </ui-column-header>
+            </th>
             <th><ui-column-header label="Total Investment" size="sm" align="end" /></th>
             <th><ui-column-header label="Total P&amp;L" size="sm" align="end" /></th>
-            <th><ui-column-header label="Status" size="sm" [last]="true" /></th>
+            <th>
+              <ui-column-header label="Status" size="sm" [last]="true" [filtered]="!!colStatus().length">
+                <ui-multi-select class="col-filter" [items]="statusChoices" [(selected)]="colStatus" placeholder="All" display="count" />
+              </ui-column-header>
+            </th>
           </tr>
-
-          @if (filtersShown()) {
-            <tr class="ats-filter-row">
-              <td><ui-select [options]="workTypeOptions" [(value)]="colWorkType" [emptyValue]="all" /></td>
-              <td><ui-select [options]="platformOptions" [(value)]="colPlatform" [emptyValue]="all" [searchable]="true" /></td>
-              <td><ui-select [options]="subPlatformOptions()" [(value)]="colSubPlatform" [emptyValue]="all" /></td>
-              <td><ui-select [options]="subTypeOptions" [(value)]="colSubType" [emptyValue]="all" /></td>
-              <td><ui-text-input [(value)]="colSubAtsName" placeholder="Filter" /></td>
-              <td><ui-text-input [(value)]="colMasterName" placeholder="Filter" /></td>
-              <td><ui-text-input [(value)]="colLePc" placeholder="Filter" /></td>
-              <td><ui-text-input [(value)]="colSubWorkstream" placeholder="Filter" /></td>
-              <td><ui-text-input [(value)]="colRequestor" placeholder="Filter" /></td>
-              <td><ui-text-input [(value)]="colManager" placeholder="Filter" /></td>
-              <td><ui-text-input [(value)]="colApprover" placeholder="Filter" /></td>
-              <td></td>
-              <td></td>
-              <td><ui-select [options]="statusOptions" [(value)]="colStatus" [emptyValue]="all" /></td>
-            </tr>
-          }
         </thead>
 
         <tbody>

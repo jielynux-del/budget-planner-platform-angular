@@ -27,23 +27,12 @@
 // scrolling. Same rule value-benefits.scss applies to its own host children.
 .page-content > * { min-width: 0; }
 
-.ats-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
+// Every control projected into the header's left slot must be sized — the
+// kit's own note: an unsized sibling takes the row and the others collapse.
 .ats-toolbar-select { width: 160px; }
 
-// ui-table-header wraps projected content in `.control-row > .control-left`,
-// which sizes to its content — so the toolbar can only reach the row's right
-// edge once those wrappers take the full width.
-ui-table-header ::ng-deep .control-row,
-ui-table-header ::ng-deep .control-left {
-  flex: 1 1 auto;
-  width: 100%;
-}
+// Matches value-benefits.scss, so a column filter is the same width on both.
+.col-filter { width: 132px; }
 
 /* ── status summary ─────────────────────────────────────────── */
 // Lifted from value-benefits.scss so the two summaries stay identical; the
@@ -121,13 +110,6 @@ ui-table-header ::ng-deep .control-left {
   table-layout: auto;
 
   th { white-space: nowrap; }
-}
-
-// The filter row sits inside <thead> so it stays with the headers when the
-// table scrolls sideways.
-.ats-filter-row td {
-  padding: 4px 8px 8px;
-  vertical-align: top;
 }
 
 .work-type {
