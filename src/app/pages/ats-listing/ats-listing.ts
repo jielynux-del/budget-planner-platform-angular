@@ -2,10 +2,10 @@ import { Component, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { inject } from '@angular/core';
 import {
-  UiButton, UiColumnHeader, UiFilterTabs, UiIcon, UiIconButton, UiInfoBanner,
-  UiPageHeader, UiPagination, UiSelect, UiStatusTag, UiTable, UiTableCard, UiTableHeader,
-  UiTableRow, UiTextInput, UiTooltipDirective,
-  type UiFilterTab, type UiTagVariant
+  UiButton, UiColumnHeader, UiIcon, UiIconButton, UiInfoBanner,
+  UiCard, UiPageHeader, UiPagination, UiPill, UiSelect, UiStatusTag, UiTable, UiTableCard,
+  UiTableHeader, UiTableRow, UiTextInput, UiTooltipDirective,
+  type UiPillColor, type UiTagVariant
 } from 'ai-dls-kit';
 import {
   ATS_COST_TYPES, ATS_CURRENCIES, ATS_RECORDS, ATS_STATUSES, ATS_SUB_TYPES, ATS_WORK_TYPES,
@@ -24,11 +24,20 @@ const STATUS_VARIANT: Record<string, UiTagVariant> = {
   'Closed': 'neutral'
 };
 
+/** Dot colour per status, matching the Value/Benefits summary card. */
+const STATUS_DOT: Record<string, UiPillColor> = {
+  'Approved': 'green',
+  'Pending Approval': 'yellow',
+  'Sent for Rework': 'yellow',
+  'Draft': 'grey',
+  'Closed': 'grey'
+};
+
 @Component({
   selector: 'app-ats-listing',
   imports: [
     UiSelect, UiPageHeader, UiIcon, UiIconButton, UiInfoBanner, UiButton,
-    UiFilterTabs, UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow,
+    UiCard, UiPill, UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow,
     UiStatusTag, UiPagination, UiTextInput, UiTooltipDirective
   ],
   templateUrl: './ats-listing.html',
@@ -73,20 +82,23 @@ export class AtsListing {
   protected readonly subPlatformOptions = computed(() =>
     [ALL, ...new Set(ATS_RECORDS.map((a) => a.subPlatform))]);
 
-  /** The status pills above the table. 'All' first, then each status with its count. */
-  protected readonly statusTabs = computed<UiFilterTab[]>(() => {
+  /**
+   * The summary card above the table. Each figure filters, and the counts are
+   * taken before the status filter so a tile still says what selecting it
+   * would show once another tile is active.
+   */
+  protected readonly summaryTotal = computed(() => this.beforeStatus().length);
+
+  protected readonly summary = computed(() => {
     const rows = this.beforeStatus();
-    return [
-      { key: ALL, label: 'All', count: rows.length },
-      ...ATS_STATUSES.map((s) => ({
-        key: s,
-        label: s,
-        count: rows.filter((a) => a.status === s).length
-      }))
-    ];
+    const pct = (n: number) => (rows.length ? Math.round((n / rows.length) * 100) : 0);
+    return ATS_STATUSES.map((s) => {
+      const n = rows.filter((a) => a.status === s).length;
+      return { key: s, label: s, count: n, pct: pct(n), dot: STATUS_DOT[s] };
+    });
   });
 
-  protected readonly statusTab = signal(ALL);
+  protected readonly statusTile = signal(ALL);
 
   protected readonly page = signal(1);
   protected readonly pageSize = signal(10);
@@ -114,7 +126,7 @@ export class AtsListing {
 
   protected readonly filtered = computed(() => {
     const byStatus = this.beforeStatus().filter((a) =>
-      (this.statusTab() === ALL || a.status === this.statusTab()) &&
+      (this.statusTile() === ALL || a.status === this.statusTile()) &&
       (this.colStatus() === ALL || a.status === this.colStatus()));
     return byStatus;
   });
@@ -147,9 +159,9 @@ export class AtsListing {
 
   protected toggleFilters() { this.filtersShown.update((v) => !v); }
 
-  protected setStatusTab(key: string | undefined) {
-    if (!key) return;
-    this.statusTab.set(key);
+  /** Clicking the active tile clears it, so the card never becomes a trap. */
+  protected toggleStatus(key: string) {
+    this.statusTile.set(this.statusTile() === key ? ALL : key);
     this.page.set(1);
   }
 }

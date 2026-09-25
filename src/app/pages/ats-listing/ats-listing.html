@@ -21,12 +21,31 @@
       (closed)="noticeOpen.set(false)" />
   }
 
-  <ui-table-card>
-    <ui-table-header layout="inline">
-      <!-- Status pills carry their own counts, so the row doubles as the
-           summary. A separate count card would only restate them. -->
-      <ui-filter-tabs [tabs]="statusTabs()" [active]="statusTab()" (activeChange)="setStatusTab($event)" />
+  <!-- Status summary. Each figure filters the table, matching the Value /
+       Benefits card. Stat button needed because the kit's summary card is
+       display-only. -->
+  <ui-card>
+    <div class="summary">
+      <div class="summary-total">
+        <span class="summary-count">{{ summaryTotal() }}</span>
+        <span class="summary-label">Total</span>
+      </div>
+      @for (s of summary(); track s.key) {
+        <button type="button" class="stat" [class.stat--active]="statusTile() === s.key" [attr.aria-pressed]="statusTile() === s.key" (click)="toggleStatus(s.key)"> <!-- boundary-allow: clickable summary figure — ui-summary-card is display-only -->
+          <span class="stat-top">
+            <span class="summary-count">{{ s.count }}</span>
+            <ui-pill [label]="s.pct + '%'" color="grey" [dot]="false" />
+          </span>
+          <span class="stat-label">
+            <span class="dot" [class]="'dot dot--' + s.dot"></span>{{ s.label }}
+          </span>
+        </button>
+      }
+    </div>
+  </ui-card>
 
+  <ui-table-card>
+    <ui-table-header title="Approval To Spend">
       <div class="ats-toolbar">
         <ui-select class="ats-toolbar-select" [options]="costTypeOptions" [(value)]="costType" [emptyValue]="costTypeOptions[0]" />
         <ui-select class="ats-toolbar-select" [options]="currencyOptions" [(value)]="currency" [emptyValue]="currencyOptions[0]" />

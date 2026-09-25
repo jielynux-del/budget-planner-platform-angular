@@ -45,27 +45,69 @@ ui-table-header ::ng-deep .control-left {
   width: 100%;
 }
 
-// Now that the card is bounded by the viewport rather than by the table, the
-// pills and the toolbar can run out of room. `.control-left` ships as
-// flex-wrap: nowrap, so the two cannot split across lines and the rigid
-// toolbar crushes the pills to a sliver instead. Allowing it to wrap drops the
-// toolbar onto a second line and gives the pills the full width back.
-ui-table-header ::ng-deep .control-left {
+/* ── status summary ─────────────────────────────────────────── */
+// Lifted from value-benefits.scss so the two summaries stay identical; the
+// kit has no clickable summary card, so each figure is a button.
+.summary {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0;
+  // Six tiles rather than Value/Benefits' five: below roughly 1200px they
+  // wrap onto a second row instead of clipping "Sent for Rework" mid-word.
   flex-wrap: wrap;
-  row-gap: 12px;
 }
 
-// A last resort below that: the pills scroll sideways rather than stacking
-// six-high and pushing the table off the first screen.
-ui-filter-tabs {
-  flex: 1 1 auto;
+// Every tile is the same width, Total included, so the row reads as one object.
+.summary-total {
+  flex: 1 1 150px;
   min-width: 0;
-  overflow-x: auto;
-
-  ::ng-deep > * { flex-wrap: nowrap; }
+  padding: 4px 12px;
+  position: relative;
 }
 
-.ats-toolbar { flex: 0 0 auto; }
+// Dividers are drawn between tiles rather than as borders, so a selected
+// tile's own border is never clipped by its neighbour's.
+.summary-total::after,
+.stat:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--color-border-decorative);
+}
+
+.summary-count { @include type.heading(sm); color: var(--color-text-strong); display: block; }
+.summary-label { @include type.label(xs); color: var(--color-text-subtle); }
+
+.stat {
+  position: relative;
+  flex: 1 1 150px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.stat:hover { background: var(--color-bg-hover); }
+.stat--active { background: var(--color-primary-subtle); border-color: var(--color-primary); }
+.stat-top { display: flex; align-items: center; gap: 8px; }
+.stat-label { @include type.label(xs); color: var(--color-text-subtle); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex: none; }
+.dot--green { background: var(--color-icon-selected); }
+.dot--yellow { background: var(--color-warning-strong); }
+.dot--grey { background: var(--color-icon-decorative); }
 
 .vb-scroll {
   overflow-x: auto;
