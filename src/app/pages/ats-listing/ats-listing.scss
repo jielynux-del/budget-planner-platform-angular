@@ -1,0 +1,74 @@
+@use 'ai-dls-kit/tokens/type';
+@use 'ai-dls-kit/tokens/layout';
+
+.global-bar {
+  display: flex;
+  gap: 12px;
+  padding: 12px var(--padding-panel-h-xl);
+  background: var(--color-bg-level1);
+  border-bottom: 1px solid var(--color-border-decorative);
+}
+
+.page-content {
+  @include layout.content-padding;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  // The table is the widest thing on the page; without this the grid track
+  // resolves to its scroll width and pushes the header off-screen (RULES #17).
+  min-width: 0;
+}
+
+.ats-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ats-toolbar-select { width: 160px; }
+
+// ui-table-header wraps projected content in `.control-row > .control-left`,
+// which sizes to its content — so the toolbar can only reach the row's right
+// edge once those wrappers take the full width.
+ui-table-header ::ng-deep .control-row,
+ui-table-header ::ng-deep .control-left {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.vb-scroll {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+// Fourteen columns will not fit any viewport, so the table states a floor and
+// scrolls rather than crushing every column to unreadability.
+.ats-table {
+  min-width: 2100px;
+  table-layout: auto;
+
+  th { white-space: nowrap; }
+}
+
+// The filter row sits inside <thead> so it stays with the headers when the
+// table scrolls sideways.
+.ats-filter-row td {
+  padding: 4px 8px 8px;
+  vertical-align: top;
+}
+
+.work-type {
+  @include type.label(2xs);
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg-level2);
+  color: var(--color-text-strong);
+  cursor: help;
+}
+
+.cell-name { @include type.label(sm); color: var(--color-text-strong); }
+.cell-meta { @include type.body(sm); color: var(--color-text-subtle); }
+.cell-nowrap { white-space: nowrap; }
+.empty { @include type.body(sm); color: var(--color-text-subtle); text-align: center; padding: 24px 0; }

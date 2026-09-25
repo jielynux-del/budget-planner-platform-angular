@@ -8,6 +8,50 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-25 — Approval to Spend built as two standalone pages
+
+ATS arrives as a listing and a record page, deliberately unconnected to
+Value/Benefits and Workstreams. The real system links them, but the relationship
+was not specified and inventing one would have baked a guess into the data model
+that later work would have to unpick. `data/ats.ts` therefore carries no
+workstream or benefit reference at all — the join can be added once it is known,
+and nothing has to be removed first.
+
+**Only two of the five tabs are real.** Drawdown Against Budget, Drawdown
+Against ATS and DOA Query are out of scope for this round; they render an
+explicit "not built yet" rather than being hidden, so a demo audience can see
+the shape of the record without being misled about what works.
+
+**Status pill counts exclude the status filter itself.** `beforeStatus()` applies
+every filter *except* the pills, so each pill's count says what selecting it
+would show. Counting after the status filter would make every unselected pill
+read zero, which is true and useless.
+
+**The listing's headline figures carry their split beneath them.** Total
+Investment shows the total first, then CAPEX/OPEX; Total P&L shows the total,
+then depreciation and own cost. An approver reads the total and only descends
+into the composition when it matters.
+
+**The financials table sizes to its content, not to a fixed width.** Monthly has
+fifteen columns and must scroll; Quarterly and Yearly have seven and should not.
+A single `min-width` cannot serve both — it either squashes the months into each
+other or strands the quarters in whitespace — so the table is `width: max-content`
+with `min-width: 100%`. The row-label column is sticky and 160px: without a width
+of its own it collapsed to a month's width and "Total Investment" overran the Jan
+figure.
+
+**De-identification.** Descriptions were rewritten to drop in-house system
+acronyms, and platforms and people come from the existing de-identified lookups.
+Business-unit names are the two the client agreed may stay.
+
+### Known gaps
+- The three unbuilt tabs above.
+- Create ATS Request is a button with no flow behind it.
+- Sub-ATS rows in the tree are navigable in appearance only; the tree selects but
+  does not yet load a different record.
+
+---
+
 ## 2026-09-25 — Nav restructured toward Work Accounting
 
 **Decision.** The rail now carries Control Towers (Beta) at the top, and Work Accounting becomes

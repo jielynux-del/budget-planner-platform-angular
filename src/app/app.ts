@@ -59,7 +59,7 @@ export class App {
       children: [
         // The one we intend to build next; the rest establish the section it
         // belongs to rather than promising screens.
-        { label: 'Approval to Spend' },
+        { label: 'Approval to Spend', route: '/approval-to-spend' },
         { label: 'Accrual Review' },
         { label: 'Recovery Review' },
         { label: 'Recovery Adjustment' }

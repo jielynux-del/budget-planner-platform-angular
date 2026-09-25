@@ -1,0 +1,186 @@
+@use 'ai-dls-kit/tokens/layout' as layout;
+@use 'ai-dls-kit/tokens/type' as type;
+
+:host { display: block; height: 100%; }
+
+/* ── back link ──────────────────────────────────────────────────────
+   Sits above the nav-panel/main shell, at the page's own top padding —
+   not inside either column, since it is a step back out of the record
+   entirely rather than part of the nav tree or the main content. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 40px 0;
+  @include type.body(sm, $bold: true);
+  color: var(--color-text-subtle);
+  text-decoration: none;
+
+  ui-icon { width: 16px; height: 16px; }
+
+  &:hover { color: var(--color-text-strong); }
+}
+
+/* ── shell (ui-nav-panel is absolutely positioned — RULES.md #ui-nav-panel) */
+.detail-shell { position: relative; height: calc(100% - 36px); min-height: 0; }
+
+.detail-main.panel-collapsed { margin-left: var(--nav-secondary-w-collapsed); }
+
+.detail-main {
+  margin-left: var(--nav-secondary-w);
+  transition: margin-left 160ms ease;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* ── nav panel content ─────────────────────────────────────────────── */
+.guidelines-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 12px 4px;
+  width: calc(100% - 24px);
+  justify-content: flex-start;
+}
+
+/* ── main header band ──────────────────────────────────────────────
+   White full-width band, same pattern as value-benefits' .benefit-page-header. */
+.benefit-page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 40px 16px;
+  background: var(--color-bg-level1);
+}
+
+.benefit-page-identity { min-width: 0; }
+.benefit-page-title { @include type.heading(sm); color: var(--color-text-strong); margin: 0; }
+
+.ats-id { @include type.body(sm); color: var(--color-text-subtle); margin-top: 2px; }
+
+.ats-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+}
+.ats-meta-sep { color: var(--color-border-decorative); }
+
+.detail-tabs {
+  background: var(--color-bg-level1);
+  padding: 0 40px;
+  border-bottom: 1px solid var(--color-border-decorative);
+}
+
+.detail-body {
+  @include layout.content-padding;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.scenario-row {
+  display: flex;
+  gap: 12px;
+
+  ui-select { width: 220px; }
+}
+
+/* ── section layout: title column left, content right ──────────────
+   Matches value-benefits.scss's .entity-section — kept local since
+   component styles are view-encapsulated and cannot be shared as-is. */
+.entity-section {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.entity-section-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.entity-section-title {
+  @include type.heading(2xs);
+  color: var(--color-text-strong);
+  margin: 0;
+}
+
+.entity-section-note {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 0;
+}
+
+.entity-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 28px;
+  margin: 0;
+
+  dt { @include type.body(sm); color: var(--color-text-subtle); margin-bottom: 4px; }
+  dd { @include type.label(sm); color: var(--color-text-strong); margin: 0; }
+
+  .span-2 { grid-column: 1 / -1; }
+}
+
+.empty { @include type.body(sm); color: var(--color-text-subtle); margin: 0; }
+
+/* ── financials table ───────────────────────────────────────────────
+   RULES.md #17: a horizontally scrolling table needs min-width: 0 on every
+   flex/grid ancestor between its wrapper and the page, or the 12-month
+   width propagates up and pushes the rest of the page off-screen. */
+.vb-scroll { overflow-x: auto; min-width: 0; }
+
+.financials-table {
+  /* Sized to its own content rather than a fixed width: Monthly needs to
+     scroll, Quarterly and Yearly do not, and a single min-width cannot be
+     right for both — it either squashes the months or strands the quarters
+     in whitespace. min-width fills the card when the columns are few. */
+  width: max-content;
+  min-width: 100%;
+
+  th, td { white-space: nowrap; }
+
+  .ui-cell-number { min-width: 88px; }
+
+  /* The row label is what makes a figure mean anything, so it is the one
+     column that stays put while the months scroll under it. Without a width
+     of its own it collapses to a month's width and the label overruns Jan. */
+  .fin-label {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 160px;
+    min-width: 160px;
+    background: var(--color-bg-level1);
+  }
+}
+
+.cell-total { @include type.label(sm); color: var(--color-text-strong); }
+
+/* A figure never wraps mid-number — same rule value-benefits.scss states
+   for its own money columns. */
+.cell-nowrap { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .entity-section { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .detail-grid { grid-template-columns: minmax(0, 1fr); }
+}

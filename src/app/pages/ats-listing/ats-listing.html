@@ -1,0 +1,141 @@
+<div class="global-bar">
+  <ui-select [options]="locationOptions" [(value)]="location" [emptyValue]="locationOptions[0]" />
+  <ui-select [options]="techUnitOptions" [(value)]="techUnit" [emptyValue]="techUnitOptions[0]" />
+  <ui-select [options]="platformOptions" [(value)]="platform" [emptyValue]="platformOptions[0]" [searchable]="true" />
+</div>
+
+<ui-page-header title="Approval To Spend (ATS)">
+  <button uiPageHeaderActions ui-icon-button size="small" type="button" aria-label="Help">
+    <ui-icon name="circle-question" />
+  </button>
+  <button uiPageHeaderActions ui-icon-button size="small" type="button" aria-label="Expand view">
+    <ui-icon name="maximize" />
+  </button>
+</ui-page-header>
+
+<div class="page-content">
+  @if (noticeOpen()) {
+    <ui-info-banner
+      tone="info"
+      message="ATS Listing shows all Master ATS records — Approved, Draft, Pending Approval, Sent for Rework and Closed. Select a row to see its details."
+      (closed)="noticeOpen.set(false)" />
+  }
+
+  <ui-table-card>
+    <ui-table-header layout="inline">
+      <!-- Status pills carry their own counts, so the row doubles as the
+           summary. A separate count card would only restate them. -->
+      <ui-filter-tabs [tabs]="statusTabs()" [active]="statusTab()" (activeChange)="setStatusTab($event)" />
+
+      <div class="ats-toolbar">
+        <ui-select class="ats-toolbar-select" [options]="costTypeOptions" [(value)]="costType" [emptyValue]="costTypeOptions[0]" />
+        <ui-select class="ats-toolbar-select" [options]="currencyOptions" [(value)]="currency" [emptyValue]="currencyOptions[0]" />
+        <button ui-button variant="secondary" size="small" type="button" (click)="toggleFilters()">
+          {{ filtersShown() ? 'Hide Filters' : 'Show Filters' }}
+        </button>
+        <button ui-button variant="primary" size="small" type="button">
+          <ui-icon name="plus" />
+          Create ATS Request
+        </button>
+      </div>
+    </ui-table-header>
+
+    <div class="vb-scroll">
+      <table ui-table size="sm" class="ats-table">
+        <thead>
+          <tr>
+            <th><ui-column-header label="Work Type" size="sm" [first]="true" /></th>
+            <th><ui-column-header label="Platform Name" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="WS Sub-Platform" size="sm" /></th>
+            <th><ui-column-header label="Sub-ATS Type" size="sm" /></th>
+            <th><ui-column-header label="Sub-ATS Name & ID" size="sm" /></th>
+            <th><ui-column-header label="Master ATS Name & ID" size="sm" [sortable]="true" /></th>
+            <th><ui-column-header label="LE-PC Code" size="sm" /></th>
+            <th><ui-column-header label="Sub-Workstream Name & ID" size="sm" /></th>
+            <th><ui-column-header label="ATS Requestor" size="sm" /></th>
+            <th><ui-column-header label="Portfolio Work Manager(s)" size="sm" /></th>
+            <th><ui-column-header label="DOA Approver(s)" size="sm" /></th>
+            <th><ui-column-header label="Total Investment" size="sm" align="end" /></th>
+            <th><ui-column-header label="Total P&amp;L" size="sm" align="end" /></th>
+            <th><ui-column-header label="Status" size="sm" [last]="true" /></th>
+          </tr>
+
+          @if (filtersShown()) {
+            <tr class="ats-filter-row">
+              <td><ui-select [options]="workTypeOptions" [(value)]="colWorkType" [emptyValue]="all" /></td>
+              <td><ui-select [options]="platformOptions" [(value)]="colPlatform" [emptyValue]="all" [searchable]="true" /></td>
+              <td><ui-select [options]="subPlatformOptions()" [(value)]="colSubPlatform" [emptyValue]="all" /></td>
+              <td><ui-select [options]="subTypeOptions" [(value)]="colSubType" [emptyValue]="all" /></td>
+              <td><ui-text-input [(value)]="colSubAtsName" placeholder="Filter" /></td>
+              <td><ui-text-input [(value)]="colMasterName" placeholder="Filter" /></td>
+              <td><ui-text-input [(value)]="colLePc" placeholder="Filter" /></td>
+              <td><ui-text-input [(value)]="colSubWorkstream" placeholder="Filter" /></td>
+              <td><ui-text-input [(value)]="colRequestor" placeholder="Filter" /></td>
+              <td><ui-text-input [(value)]="colManager" placeholder="Filter" /></td>
+              <td><ui-text-input [(value)]="colApprover" placeholder="Filter" /></td>
+              <td></td>
+              <td></td>
+              <td><ui-select [options]="statusOptions" [(value)]="colStatus" [emptyValue]="all" /></td>
+            </tr>
+          }
+        </thead>
+
+        <tbody>
+          @for (a of rows(); track a.id) {
+            <tr ui-table-row interactive (activate)="openAts(a)">
+              <td>
+                <span class="work-type" [uiTooltip]="workTypeTip(a.workType)" tabindex="0">{{ workTypeCode(a.workType) }}</span>
+              </td>
+              <td>{{ a.platform }}</td>
+              <td>{{ a.subPlatform }}</td>
+              <td>{{ a.masterType }}</td>
+              <td>
+                <div class="cell-name">{{ a.subAts[0]?.name ?? '-' }}</div>
+                <div class="cell-meta">{{ a.subAts[0]?.id ?? '-' }}</div>
+              </td>
+              <td>
+                <div class="cell-name">{{ a.name }}</div>
+                <div class="cell-meta">{{ a.id }}</div>
+              </td>
+              <td class="cell-nowrap">{{ a.lePcCode }}</td>
+              <td>
+                <div>{{ a.subWorkstreamName }}</div>
+                <div class="cell-meta">{{ a.subWorkstreamCode }}</div>
+              </td>
+              <td>{{ a.requestor }}</td>
+              <td>{{ a.portfolioManagers.join(', ') }}</td>
+              <td>
+                @for (p of a.doaApprovers; track p) {
+                  <div>{{ p }}</div>
+                }
+              </td>
+              <!-- The headline figure with its split beneath: an approver reads
+                   the total first and the composition only if it matters. -->
+              <td class="ui-cell-number">
+                <div class="cell-name cell-nowrap">{{ money(total(a.totalInvestment)) }}</div>
+                <div class="cell-meta cell-nowrap">CAPEX: {{ money(a.totalInvestment.capex) }}</div>
+                <div class="cell-meta cell-nowrap">OPEX: {{ money(a.totalInvestment.opex) }}</div>
+              </td>
+              <td class="ui-cell-number">
+                <div class="cell-name cell-nowrap">{{ money(total(a.totalPnl)) }}</div>
+                <div class="cell-meta cell-nowrap">DEPRE: {{ money(a.totalPnl.depreciation) }}</div>
+                <div class="cell-meta cell-nowrap">OWN: {{ money(a.totalPnl.ownCost) }}</div>
+              </td>
+              <td class="ui-cell-status">
+                <ui-status-tag [status]="a.status" [variant]="statusVariant(a.status)" />
+              </td>
+            </tr>
+          }
+
+          @if (!rows().length) {
+            <tr ui-table-row>
+              <td colspan="14" class="empty">No ATS records match these filters.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <ui-pagination [total]="filtered().length" [(page)]="page" [(pageSize)]="pageSize" />
+  </ui-table-card>
+</div>

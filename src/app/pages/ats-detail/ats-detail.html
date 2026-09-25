@@ -1,0 +1,132 @@
+<!-- Back link sits above the nav-panel/main shell, not inside either column —
+     it belongs to the page as a whole, same level as the shell itself. -->
+<a class="back-link" routerLink="/approval-to-spend">
+  <ui-icon name="arrow-left" />
+  Approval to Spend Listing
+</a>
+
+@if (record(); as r) {
+  <div class="detail-shell">
+    <ui-nav-panel [(expanded)]="panelExpanded">
+      <button class="guidelines-btn" ui-button variant="plain" size="small" type="button" (click)="openGuidelines()">
+        <ui-icon name="circle-information" />
+        ATS Type Guidelines
+      </button>
+
+      <ui-nav-group label="MASTER & SUB-ATS TREE" [defaultExpanded]="true">
+        <span ui-nav-sub-item [label]="r.name" [active]="true" [status]="navStatus(r.status)"></span>
+      </ui-nav-group>
+
+      <!-- Only the revisions — the original set-up (revision 0) is the Master
+           record itself, already shown in the tree above. -->
+      <ui-nav-group label="ATS REVISION(S)" [defaultExpanded]="true">
+        @for (sub of r.subAts; track sub.id) {
+          @if (sub.revision > 0) {
+            <span ui-nav-sub-item [label]="sub.name" [status]="navStatus(sub.status)"></span>
+          }
+        }
+      </ui-nav-group>
+    </ui-nav-panel>
+
+    <div class="detail-main" [class.panel-collapsed]="!panelExpanded()">
+      <header class="benefit-page-header">
+        <div class="benefit-page-identity">
+          <h1 class="benefit-page-title">{{ r.name }}</h1>
+          <div class="ats-id">{{ r.id }}</div>
+          <div class="ats-meta">
+            <span>Created by {{ r.createdBy }} on {{ r.createdOn }}</span>
+            <span class="ats-meta-sep">·</span>
+            <span>Last edited by {{ r.lastEditedBy }} on {{ r.lastEditedOn }}</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="detail-tabs">
+        <ui-tabs [tabs]="tabs()" [(active)]="activeTab" />
+      </div>
+
+      <div class="detail-body">
+        @if (!bannerDismissed()) {
+          <ui-info-banner
+            tone="info"
+            message="You are at Master ATS section. The first Sub-ATS set-up represents the original ATS; any revision after its approval is counted as the next revision. The Master ATS sums the original plus its revisions."
+            (closed)="bannerDismissed.set(true)" />
+        }
+
+        @if (activeTab() === 'details') {
+          <div class="scenario-row">
+            <ui-select [options]="scenarioOptions" [(value)]="scenario" />
+            <ui-select [options]="currencyOptions" [(value)]="currency" />
+          </div>
+
+          <ui-card>
+            <div class="entity-section">
+              <div class="entity-section-head">
+                <h2 class="entity-section-title">Master ATS Details</h2>
+                <p class="entity-section-note">The record's own identity and headline figures.</p>
+              </div>
+              <div class="entity-section-body">
+                <dl class="detail-grid">
+                  <div><dt>Master ATS Name</dt><dd>{{ r.name }}</dd></div>
+                  <div><dt>Master ATS ID</dt><dd>{{ r.id }}</dd></div>
+                  <div><dt>Master ATS Type</dt><dd>{{ r.masterType }}</dd></div>
+                  <div><dt>Est Start Date</dt><dd>{{ r.estStartDate }}</dd></div>
+                  <div><dt>Master ATS Approved Date</dt><dd>{{ r.approvedDate }}</dd></div>
+                  <div><dt>Est Go Live Date</dt><dd>{{ r.estGoLiveDate }}</dd></div>
+                  <div><dt>Work Type</dt><dd>{{ r.workType }}</dd></div>
+                  <div><dt>Total Investment</dt><dd>{{ currency() }} {{ money(totalInvestment(r)) }}</dd></div>
+                  <div class="span-2"><dt>Master ATS Description</dt><dd>{{ r.description }}</dd></div>
+                </dl>
+              </div>
+            </div>
+          </ui-card>
+
+          <ui-card>
+            <div class="entity-section">
+              <div class="entity-section-head">
+                <h2 class="entity-section-title">Total Financials</h2>
+                <p class="entity-section-note">Investment and P&L, phased across 2026.</p>
+              </div>
+              <div class="entity-section-body">
+                <ui-tabs [tabs]="periodTabs" [(active)]="period" />
+
+                <div class="vb-scroll">
+                  <table ui-table size="sm" class="financials-table">
+                    <thead>
+                      <tr>
+                        <th class="fin-label"><ui-column-header label="" [first]="true" /></th>
+                        @for (col of periodColumns(); track col) {
+                          <th><ui-column-header [label]="col" align="end" /></th>
+                        }
+                        <th><ui-column-header label="2026 Total" align="end" /></th>
+                        <th><ui-column-header label="Grand Total" align="end" [last]="true" /></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of financialRows(); track row.label) {
+                        <tr ui-table-row>
+                          <td class="fin-label">{{ row.label }}</td>
+                          @for (v of row.values; track $index) {
+                            <td class="ui-cell-number cell-nowrap">{{ money(v) }}</td>
+                          }
+                          <td class="ui-cell-number cell-nowrap cell-total">{{ money(rowYearTotal(row)) }}</td>
+                          <td class="ui-cell-number cell-nowrap cell-total">{{ money(rowGrandTotal(row)) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </ui-card>
+        } @else if (activeTab() === 'alerts') {
+          <ui-card><p class="empty">Drawdown Alerts is not built yet.</p></ui-card>
+        } @else {
+          <ui-card><p class="empty">ATS Owners is not built yet.</p></ui-card>
+        }
+      </div>
+    </div>
+  </div>
+} @else {
+  <ui-card><p class="empty">ATS not found.</p></ui-card>
+}
