@@ -8,6 +8,30 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-25 — Nav restructured toward Work Accounting
+
+**Decision.** The rail now carries Control Towers (Beta) at the top, and Work Accounting becomes
+an expandable group holding Approval to Spend, Accrual Review, Recovery Review and Recovery
+Adjustment, followed by User Maintenance and Administration. Work Management keeps its children —
+that is where the built prototype lives.
+
+**Approval to Spend is the target.** The other three sub-items establish the section it belongs
+to rather than promising screens; none of them route anywhere yet, like most of the rail.
+
+**On de-identification: almost nothing in these labels carries risk.** The identifying material
+in the reference was the product name, the branding and the internal URL — none of which appear
+in a nav label. What is left is ordinary finance and platform vocabulary: approval to spend,
+accruals, recoveries, user maintenance, administration. Renaming those would make the prototype
+read as invented without removing anything traceable, and would cost the demo its credibility
+with the people who use these words daily. The de-risking effort belongs where it was applied
+before — system names, in-house framework terms and seeded content.
+
+**The one judgement call flagged rather than taken:** "(Beta)" states an internal release stage.
+Harmless in itself, but it is the only label here that says something about the organisation
+rather than about finance. Left as-is pending a view.
+
+---
+
 ## 2026-09-24 — A closed benefit can be reopened
 
 **Decision.** A closed benefit's only action is Reopen, for the owner, behind a confirmation

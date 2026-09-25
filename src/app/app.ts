@@ -35,6 +35,7 @@ export class App {
   protected readonly active = signal('Build Workstream Listing');
 
   protected readonly items: RailItem[] = [
+    { icon: 'radar', label: 'Control Towers (Beta)' },
     { icon: 'bar-chart', label: 'Current Year Insights' },
     { icon: 'document-chart', label: 'Next Year Demand Dashboard' },
     { icon: 'people-conversation', label: 'Workforce Management' },
@@ -52,7 +53,20 @@ export class App {
       ]
     },
     { icon: 'table', label: 'Driver Based Forecast' },
-    { icon: 'money-bank-calculator', label: 'Work Accounting' }
+    {
+      icon: 'money-bank-calculator',
+      label: 'Work Accounting',
+      children: [
+        // The one we intend to build next; the rest establish the section it
+        // belongs to rather than promising screens.
+        { label: 'Approval to Spend' },
+        { label: 'Accrual Review' },
+        { label: 'Recovery Review' },
+        { label: 'Recovery Adjustment' }
+      ]
+    },
+    { icon: 'users', label: 'User Maintenance' },
+    { icon: 'settings', label: 'Administration' }
   ];
 
   protected readonly utility: RailItem[] = [
