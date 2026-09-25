@@ -11,6 +11,7 @@
 
 .page-content {
   @include layout.content-padding;
+  padding-top: 0;                 // ui-page-header owns the 24px below its rule (RULES.md #5)
   display: grid;
   gap: 16px;
   align-content: start;
@@ -18,6 +19,13 @@
   // resolves to its scroll width and pushes the header off-screen (RULES #17).
   min-width: 0;
 }
+
+// min-width:0 has to reach the card as well, not just the grid. A grid item's
+// automatic minimum is its content, so without this the card sizes to the
+// table's 2100px, the scroller never becomes narrower than what it contains,
+// and the right-hand columns are clipped somewhere unreachable instead of
+// scrolling. Same rule value-benefits.scss applies to its own host children.
+.page-content > * { min-width: 0; }
 
 .ats-toolbar {
   display: flex;
@@ -36,6 +44,28 @@ ui-table-header ::ng-deep .control-left {
   flex: 1 1 auto;
   width: 100%;
 }
+
+// Now that the card is bounded by the viewport rather than by the table, the
+// pills and the toolbar can run out of room. `.control-left` ships as
+// flex-wrap: nowrap, so the two cannot split across lines and the rigid
+// toolbar crushes the pills to a sliver instead. Allowing it to wrap drops the
+// toolbar onto a second line and gives the pills the full width back.
+ui-table-header ::ng-deep .control-left {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+// A last resort below that: the pills scroll sideways rather than stacking
+// six-high and pushing the table off the first screen.
+ui-filter-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+
+  ::ng-deep > * { flex-wrap: nowrap; }
+}
+
+.ats-toolbar { flex: 0 0 auto; }
 
 .vb-scroll {
   overflow-x: auto;

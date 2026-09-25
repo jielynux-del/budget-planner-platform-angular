@@ -1,9 +1,11 @@
 <!-- Back link sits above the nav-panel/main shell, not inside either column —
      it belongs to the page as a whole, same level as the shell itself. -->
-<a class="back-link" routerLink="/approval-to-spend">
-  <ui-icon name="arrow-left" />
-  Approval to Spend Listing
-</a>
+<div class="back-bar">
+  <a class="back-link" routerLink="/approval-to-spend">
+    <ui-icon name="arrow-left" />
+    Approval to Spend Listing
+  </a>
+</div>
 
 @if (record(); as r) {
   <div class="detail-shell">
