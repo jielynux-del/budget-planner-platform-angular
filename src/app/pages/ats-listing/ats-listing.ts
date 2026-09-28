@@ -24,7 +24,7 @@ const STATUS_VARIANT: Record<string, UiTagVariant> = {
   'Closed': 'neutral'
 };
 
-/** Dot colour per status, matching the Value/Benefits summary card. */
+/** Dot colour per status, matching the Value Benefits summary card. */
 const STATUS_DOT: Record<string, UiPillColor> = {
   'Approved': 'green',
   'Pending Approval': 'yellow',
@@ -64,7 +64,7 @@ export class AtsListing {
   /**
    * Column filters — a multi-select where the value comes from a known set, a
    * text box where it is a free identifier. Multi rather than single so the
-   * column filters behave the way Value/Benefits' do.
+   * column filters behave the way Value Benefits' do.
    */
   protected readonly colWorkType = signal<string[]>([]);
   protected readonly colPlatform = signal<string[]>([]);

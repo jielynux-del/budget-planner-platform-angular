@@ -1,20 +1,12 @@
 import { Component, ElementRef, computed, effect, inject, input, linkedSignal, output, signal } from '@angular/core';
 import {
-  UiAccordion, UiAmountInput, UiButton, UiCard, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiInfoBanner,
-  UiDropdownMenu, UiIcon, UiIconButton, UiModalShell, UiPagination, UiPill, UiPopover,
-  UiFilterTabs, UiMultiSelect, UiSectionHeader, UiSegmented, UiSelect, UiStatusTag, UiTable, UiTableCard,
-  UiTableHeader, UiTableRow, UiTextarea, UiTextInput,
-  UiLink, UiRadio, UiSnackbar, UiTabs, UiTooltipDirective,
-  type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiTab, type UiTagVariant
+  UiAccordion, UiAmountInput, UiButton, UiCard, UiCardButton, UiCheckbox, UiColumnHeader, UiDateInput, UiDropdownItem, UiDropdownMenu, UiFileDrop, UiFileRow, UiFilterTabs, UiIcon, UiIconButton, UiInfoBanner, UiLink, UiModalShell, UiMultiSelect, UiPagination, UiPill, UiPopover, UiRadio, UiSectionHeader, UiSegmented, UiSelect, UiSnackbar, UiStatusTag, UiTable, UiTableCard, UiTableHeader, UiTableRow, UiTabs, UiTextInput, UiTextarea, UiTooltipDirective, UiUploadFile, type UiFilterTab, type UiMenuItem, type UiPillColor, type UiSegment, type UiTab, type UiTagVariant
 } from 'ai-dls-kit';
-import {
-  BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, financialTotal, latestUpdate,
-  nextBaselineId, nextBenefitRef, snapshotOf
-} from '../../data/benefitsData';
+import { BENEFIT_STATUSES, CURRENT_USER, NON_FINANCIAL_CATEGORIES, benefitTypeOf, financialTotal, hasFinancial, hasNonFinancial, latestUpdate, nextBaselineId, nextBenefitRef, snapshotOf } from '../../data/benefitsData';
 import {
   BENEFIT_CATEGORIES, BENEFIT_DRIVERS, BENEFIT_MEASURES, FINANCIAL_TYPES
 } from '../../data/lookups';
-import type { AuditEntry, Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate } from '../../data/models';
+import type { AuditEntry, BaselineKind, BaselineLine, Benefit, BenefitFieldChange, BenefitRow, BenefitUpdate, FinancialImpactFile } from '../../data/models';
 import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
 import { ActivatedRoute, Router } from '@angular/router';
 import { benefitsFor } from '../../data/benefitsStore';
@@ -53,7 +45,7 @@ const STATUS_DOT: Record<string, UiPillColor> = {
     UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiInfoBanner,
     UiTabs, UiTooltipDirective, UiSnackbar, UiRadio, UiLink,
     Approvals,
-    UiTextInput, UiTextarea, UiCheckbox, UiAmountInput
+    UiTextInput, UiTextarea, UiCheckbox, UiAmountInput, UiFileDrop, UiFileRow, UiUploadFile, UiCardButton
   ],
   templateUrl: './value-benefits.html',
   styleUrl: './value-benefits.scss'
@@ -423,7 +415,18 @@ export class ValueBenefits {
   protected readonly editType = signal('Financial');
   protected readonly editStatus = signal('Tracking Active');
   protected readonly editBaseline = signal('');
-  protected readonly editBaselineDescription = signal('');
+
+  /**
+   * The benefit's baselines, of both kinds. Replaces the single prose
+   * description a non-financial benefit used to carry: two readers could not
+   * agree from a sentence whether a benefit had been met.
+   */
+  protected readonly editBaselineLines = signal<BaselineLine[]>([]);
+
+  /** The type is read from the lines; nobody picks it. */
+  protected readonly editTypeDerived = computed(() => benefitTypeOf(this.editBaselineLines()));
+  protected readonly editHasFinancial = computed(() =>
+    this.editBaselineLines().some((l) => l.kind === 'Financial'));
 
   /**
    * The benefit's year-phased financial lines, editable in place.
@@ -453,6 +456,276 @@ export class ValueBenefits {
     return this.editLines().reduce(
       (sum, r) => sum + years.reduce((t, y) => t + (r.values[y] ?? 0), 0), 0);
   });
+
+
+  /* ---------------- Financial impact workbook ---------------- */
+
+  /**
+   * Financial figures are not typed. They are prepared in the template, checked
+   * there, and uploaded — re-keying them into a form only adds a place for the
+   * two to diverge. One file is held per benefit, so a correction is a fresh
+   * upload rather than an edit, and the previous numbers leave a trail in the
+   * audit log rather than being quietly overwritten.
+   */
+  protected readonly editFile = signal<FinancialImpactFile | null>(null);
+  protected readonly draftFile = signal<FinancialImpactFile | null>(null);
+
+  /** Which form the in-flight upload belongs to — the wizard or the edit form. */
+  protected readonly uploadFor = signal<'edit' | 'draft'>('edit');
+
+  private fileSignal(target: 'edit' | 'draft' = this.uploadFor()) {
+    return target === 'edit' ? this.editFile : this.draftFile;
+  }
+
+  private linesSignal(target: 'edit' | 'draft' = this.uploadFor()) {
+    return target === 'edit' ? this.editLines : this.draftLines;
+  }
+
+  private baselineLinesFor(target: 'edit' | 'draft' = this.uploadFor()) {
+    return target === 'edit' ? this.editBaselineLines() : this.draftBaselineLines();
+  }
+
+  private yearsFor(target: 'edit' | 'draft' = this.uploadFor()): number[] {
+    return target === 'edit' ? this.editYears() : this.years();
+  }
+
+  /** In-flight upload. Null when there is nothing being transferred. */
+  protected readonly upload = signal<{
+    name: string;
+    size: string;
+    status: 'uploading' | 'validating' | 'failed';
+    progress: number;
+    error: string;
+  } | null>(null);
+
+  private uploadTimers: ReturnType<typeof setTimeout>[] = [];
+
+  private clearUploadTimers() {
+    this.uploadTimers.forEach(clearTimeout);
+    this.uploadTimers = [];
+  }
+
+  protected downloadTemplate() {
+    this.toast.set('Financial impact template downloaded');
+  }
+
+  /**
+   * The kit's drop zone is a mock — it reports that a file was chosen and
+   * leaves the host to invent one. The transfer and the validation pass are
+   * staged on timers so the prototype shows the states a real upload passes
+   * through rather than snapping straight to a filled table.
+   */
+  protected browseFinancialFile(target: 'edit' | 'draft' = 'edit') {
+    if (this.upload()) return;
+    this.uploadFor.set(target);
+    this.clearUploadTimers();
+
+    const name = target === 'draft'
+      ? 'new-benefit-financial-impact.xlsx'
+      : `${this.detail()?.benefitRef ?? 'benefit'}-financial-impact.xlsx`;
+    this.upload.set({ name, size: '3.2 MB', status: 'uploading', progress: 0, error: '' });
+
+    [20, 45, 70, 90, 100].forEach((pct, i) => {
+      this.uploadTimers.push(setTimeout(() => {
+        this.upload.update((u) => (u && u.status === 'uploading' ? { ...u, progress: pct } : u));
+      }, 180 * (i + 1)));
+    });
+
+    this.uploadTimers.push(setTimeout(() => {
+      this.upload.update((u) => (u ? { ...u, status: 'validating' as const } : u));
+    }, 1000));
+
+    this.uploadTimers.push(setTimeout(() => this.finishUpload(name), 1900));
+  }
+
+  /**
+   * What the prototype actually checks, rather than failing at random: the
+   * template's year columns come from the benefit's dates, and its rows post
+   * against the financial baselines. Either one missing and there is nothing
+   * to read the figures into. Both are reachable in a demo, which is the point
+   * — a failure state nobody can get to is not a failure state.
+   */
+  private finishUpload(name: string) {
+    const target = this.uploadFor();
+    const fin = this.baselineLinesFor(target).filter((l) => l.kind === 'Financial');
+    const datesSet = target === 'edit' ? this.datesSetEdit() : this.datesSet();
+    const unpriced = fin.filter((l) => !l.value);
+
+    const problem = !datesSet
+      ? 'the benefit has no start and end date, so the template has no year columns to post against'
+      : unpriced.length
+        ? `${unpriced.length} financial baseline${unpriced.length === 1 ? ' has' : 's have'} no value set (${unpriced.map((l) => l.name).join(', ')})`
+        : '';
+
+    if (problem) {
+      this.upload.update((u) => (u ? {
+        ...u,
+        status: 'failed' as const,
+        error: `Errors detected — ${problem}. Download this file to view and correct the errors.`
+      } : u));
+      return;
+    }
+
+    this.linesSignal(target).set(this.mockUploadedRows(target));
+    this.fileSignal(target).set({
+      name,
+      size: '3.2 MB',
+      uploadedBy: CURRENT_USER,
+      uploadedOn: new Date().toISOString().slice(0, 10)
+    });
+    this.upload.set(null);
+  }
+
+  /** Stands in for parsing the workbook: one row per financial baseline line. */
+  private mockUploadedRows(target: 'edit' | 'draft'): BenefitRow[] {
+    const years = this.yearsFor(target);
+    const ref = target === 'draft' ? '' : (this.detail()?.benefitRef ?? '');
+    return this.baselineLinesFor(target)
+      .filter((l) => l.kind === 'Financial')
+      .map((l, i) => {
+        const total = l.value ?? 0;
+        const per = Math.round(total / years.length);
+        const values: Record<number, number> = {};
+        years.forEach((y: number, n: number) => { values[y] = n === years.length - 1 ? total - per * (years.length - 1) : per; });
+        return {
+          id: `fr-up-${i}-${Date.now()}`,
+          benefitRef: ref,
+          typeOfFinancial: total >= 0 ? 'Cost Save' : 'Cost Avoidance',
+          driver: l.name,
+          measure: 'S$ Value',
+          values,
+          comments: 'Read from the uploaded financial impact template.'
+        };
+      });
+  }
+
+  protected cancelUpload() {
+    this.clearUploadTimers();
+    this.upload.set(null);
+  }
+
+  protected downloadErrorFile() {
+    this.toast.set('File downloaded with errors marked');
+  }
+
+  /** A file must be removed before another can replace it — the reference flow. */
+  protected removeFinancialFile(target: 'edit' | 'draft' = 'edit') {
+    this.fileSignal(target).set(null);
+    this.linesSignal(target).set([]);
+  }
+
+  /* ---------------- Baseline lines ---------------- */
+
+  /** Exposed for the template — a benefit's own contents decide what it shows. */
+  protected hasFin(b: Benefit | null) { return !!b && hasFinancial(b); }
+  protected hasNonFin(b: Benefit | null) { return !!b && hasNonFinancial(b); }
+
+  /** What a set of baselines amounts to, for an approver's diff. */
+  protected baselineSummary(lines: readonly BaselineLine[]) {
+    if (!lines.length) return this.emptyValue;
+    const fin = lines.filter((l) => l.kind === 'Financial').length;
+    const non = lines.length - fin;
+    const parts: string[] = [];
+    if (fin) parts.push(`${fin} financial`);
+    if (non) parts.push(`${non} non-financial`);
+    return `${lines.length} baseline${lines.length === 1 ? '' : 's'} (${parts.join(', ')})`;
+  }
+
+  /**
+   * The add-baseline dialog. Kind is chosen first and then fixed for that line,
+   * because the two ask for entirely different things — a figure against a
+   * definition — and a form that morphs under the reader loses what they typed.
+   */
+  protected readonly blOpen = signal(false);
+  protected readonly blFor = signal<'edit' | 'draft'>('edit');
+  protected readonly blKind = signal<BaselineKind | null>(null);
+  protected readonly blEditingId = signal<string | null>(null);
+  protected readonly blName = signal('');
+  protected readonly blValue = signal('');
+  protected readonly blMeasure = signal('');
+  protected readonly blUnit = signal('');
+  protected readonly blStartingPoint = signal('');
+  protected readonly blTargetCondition = signal('');
+  protected readonly blMethod = signal('');
+  protected readonly blFrequency = signal('');
+
+  protected readonly frequencyOptions = ['Monthly', 'Quarterly', 'Half-yearly', 'Annually', 'At milestone'];
+
+  protected openBaselineDialog(target: 'edit' | 'draft') {
+    this.blFor.set(target);
+    this.blEditingId.set(null);
+    this.blKind.set(null);
+    this.blName.set('');
+    this.blValue.set('');
+    this.blMeasure.set('');
+    this.blUnit.set('');
+    this.blStartingPoint.set('');
+    this.blTargetCondition.set('');
+    this.blMethod.set('');
+    this.blFrequency.set('');
+    this.blOpen.set(true);
+  }
+
+  protected editBaselineLine(target: 'edit' | 'draft', line: BaselineLine) {
+    this.blFor.set(target);
+    this.blEditingId.set(line.id);
+    this.blKind.set(line.kind);
+    this.blName.set(line.name);
+    this.blValue.set(line.value === null ? '' : String(line.value));
+    this.blMeasure.set(line.measure);
+    this.blUnit.set(line.unit);
+    this.blStartingPoint.set(line.startingPoint);
+    this.blTargetCondition.set(line.target);
+    this.blMethod.set(line.method);
+    this.blFrequency.set(line.frequency);
+    this.blOpen.set(true);
+  }
+
+  protected closeBaselineDialog() { this.blOpen.set(false); }
+
+  /** Enough to be worth saving — a name, plus the pass condition when it is one. */
+  protected readonly blValid = computed(() => {
+    if (!this.blKind() || !this.blName().trim()) return false;
+    return this.blKind() === 'Financial'
+      ? this.blValue().trim() !== ''
+      : this.blMeasure().trim() !== '' && this.blTargetCondition().trim() !== '';
+  });
+
+  protected saveBaselineLine() {
+    if (!this.blValid()) return;
+    const kind = this.blKind() as BaselineKind;
+    const financial = kind === 'Financial';
+    const id = this.blEditingId() ?? `bl-${Date.now()}`;
+    const line: BaselineLine = {
+      id,
+      kind,
+      name: this.blName().trim(),
+      value: financial ? Number(this.blValue().replace(/[^0-9.-]/g, '')) || 0 : null,
+      measure: financial ? '' : this.blMeasure().trim(),
+      unit: financial ? '' : this.blUnit().trim(),
+      startingPoint: financial ? '' : this.blStartingPoint().trim(),
+      target: financial ? '' : this.blTargetCondition().trim(),
+      method: financial ? '' : this.blMethod().trim(),
+      frequency: financial ? '' : this.blFrequency().trim()
+    };
+
+    const sig = this.blFor() === 'edit' ? this.editBaselineLines : this.draftBaselineLines;
+    sig.update((rows) => this.blEditingId()
+      ? rows.map((r) => (r.id === id ? line : r))
+      : [...rows, line]);
+
+    // A financial baseline that has just appeared can invalidate an uploaded
+    // workbook, and one that has just gone leaves its figures stranded.
+    const t = this.blFor();
+    if (!this.baselineLinesFor(t).some((l) => l.kind === 'Financial')) this.removeFinancialFile(t);
+    this.blOpen.set(false);
+  }
+
+  protected removeBaselineLine(target: 'edit' | 'draft', id: string) {
+    const sig = target === 'edit' ? this.editBaselineLines : this.draftBaselineLines;
+    sig.update((rows) => rows.filter((r) => r.id !== id));
+    if (!this.baselineLinesFor(target).some((l) => l.kind === 'Financial')) this.removeFinancialFile(target);
+  }
 
   /** Both dates set — the table's year columns depend on them. */
   protected readonly datesSetEdit = computed(() =>
@@ -484,7 +757,25 @@ export class ValueBenefits {
   protected readonly editBusinessUnits = computed(() =>
     businessUnitsFor(this.editOwners()));
 
+  /**
+   * Opens the edit form.
+   *
+   * A benefit sent back for rework still carries the request that was
+   * returned: the field values the owner proposed, and any reporting lines
+   * staged in the same edit. Those have NOT been written onto the benefit —
+   * only an approval does that — so reading the benefit's own fields would
+   * silently discard the owner's work and ask them to type it again. The
+   * returned request is therefore what the form opens on, which is also what
+   * makes the Sponsor's comments actionable: the owner amends what was
+   * returned rather than rebuilding it.
+   */
   protected startSummaryEdit(b: Benefit) {
+    const returned = b.pendingUpdate?.status === 'Rework' ? b.pendingUpdate : null;
+    const proposed = returned
+      ? returned.fields.reduce<Record<string, unknown>>((acc, f) => { acc[f.key] = f.value; return acc; }, {})
+      : {};
+    b = { ...b, ...proposed } as Benefit;
+
     this.editName.set(b.name);
     this.editOwners.set([...b.owners]);
     this.editCategories.set([...b.categories]);
@@ -495,12 +786,14 @@ export class ValueBenefits {
     this.editType.set(b.type);
     this.editStatus.set(b.status);
     this.editBaseline.set(b.currentApprovedBaseline !== null ? String(b.currentApprovedBaseline) : '');
-    this.editBaselineDescription.set(b.baselineDescription);
-    this.editLines.set(b.financialRows.length
-      ? b.financialRows.map((r) => ({ ...r, values: { ...r.values } }))
-      : [this.blankLine()]);
+    this.editBaselineLines.set(b.baselineLines.map((l) => ({ ...l })));
+    this.editLines.set(b.financialRows.map((r) => ({ ...r, values: { ...r.values } })));
+    this.editFile.set(b.financialFile ? { ...b.financialFile } : null);
+    this.upload.set(null);
     this.editReason.set('');
-    this.draftUpdates.set([]);
+    // Staged lines come back with the request so they can still be amended or
+    // removed; they are not in reportingHistory because they were never approved.
+    this.draftUpdates.set((returned?.reportingLines ?? []).map((r) => ({ ...r })));
     this.summaryEdit.set(true);
   }
 
@@ -565,13 +858,13 @@ export class ValueBenefits {
   protected readonly reportingLineValid = computed(() => {
     const b = this.detail();
     if (!b || !this.rlDate()) return false;
-    return b.type === 'Financial'
+    return hasFinancial(b)
       ? this.rlActual().trim() !== ''
       : this.rlProgress().trim() !== '';
   });
 
   protected addReportingLine(b: Benefit) {
-    const financial = b.type === 'Financial';
+    const financial = hasFinancial(b);
     const actual = financial ? this.num(this.rlActual()) : null;
     const base = b.currentApprovedBaseline;
     this.draftUpdates.update((rows) => [...rows, {
@@ -698,8 +991,10 @@ export class ValueBenefits {
       a.length === c.length && a.every((v, i) => v === c[i]);
     if (this.baselineChanged()) return true;
     return this.editName().trim() !== b.name
-      || this.editType() !== b.type
-      || this.editBaselineDescription().trim() !== b.baselineDescription
+      || this.editTypeDerived() !== b.type
+      || JSON.stringify(this.editBaselineLines()) !== JSON.stringify(b.baselineLines)
+      || this.editFile()?.name !== b.financialFile?.name
+      || this.editFile()?.uploadedOn !== b.financialFile?.uploadedOn
       || this.editDescription().trim() !== b.description
       || this.editValidationSource().trim() !== b.validationSource
       || this.editStart() !== b.startDate
@@ -755,7 +1050,7 @@ export class ValueBenefits {
   /** The baseline figure changed, so a baseline approval is needed too. */
   protected readonly baselineChanged = computed(() => {
     const b = this.detail();
-    if (!b || this.editType() !== 'Financial') return false;
+    if (!b || !this.editHasFinancial()) return false;
     return this.editBaselineTotal() !== b.currentApprovedBaseline;
   });
 
@@ -779,11 +1074,13 @@ export class ValueBenefits {
     add('validationSource', 'Validation Source', b.validationSource, this.editValidationSource().trim(), this.editValidationSource().trim());
     add('startDate', 'Start date', b.startDate, this.editStart(), this.editStart());
     add('endDate', 'End date', b.endDate, this.editEnd(), this.editEnd());
-    add('type', 'Benefit Type', b.type, this.editType(), this.editType());
+    // Type is derived, so it is recorded as a consequence of the baselines
+    // changing rather than as something the owner chose.
+    add('type', 'Benefit Type', b.type, this.editTypeDerived(), this.editTypeDerived());
 
     // The baseline travels in the SAME package: updating a baseline is now part
     // of updating the benefit, not a separate request with its own approver.
-    const proposed = this.editType() === 'Financial' ? this.editBaselineTotal() : null;
+    const proposed = this.editHasFinancial() ? this.editBaselineTotal() : null;
     const baselineMoved = this.baselineChanged();
     if (baselineMoved) {
       changes.push({
@@ -794,18 +1091,35 @@ export class ValueBenefits {
         value: proposed
       });
     }
-    add('baselineDescription', 'Baseline description', b.baselineDescription,
-      this.editBaselineDescription().trim(), this.editBaselineDescription().trim());
-    if (baselineMoved) {
+    if (JSON.stringify(this.editBaselineLines()) !== JSON.stringify(b.baselineLines)) {
+      changes.push({
+        key: 'baselineLines',
+        label: 'Baseline definition',
+        from: this.baselineSummary(b.baselineLines),
+        to: this.baselineSummary(this.editBaselineLines()),
+        value: this.editBaselineLines()
+      });
+    }
+
+    // A replaced workbook is a change to the numbers themselves, so it travels
+    // in the same package and is applied only on approval.
+    const file = this.editFile();
+    if (file?.name !== b.financialFile?.name || file?.uploadedOn !== b.financialFile?.uploadedOn) {
+      changes.push({
+        key: 'financialFile',
+        label: 'Financial impact file',
+        from: b.financialFile ? `${b.financialFile.name} (${b.financialFile.uploadedOn})` : this.emptyValue,
+        to: file ? `${file.name} (${file.uploadedOn})` : this.emptyValue,
+        value: file ?? undefined
+      });
       changes.push({
         key: 'financialRows',
-        label: 'Financial lines',
+        label: 'Financial impact values',
         from: `${b.financialRows.length} line${b.financialRows.length === 1 ? '' : 's'}`,
         to: `${this.editLines().length} line${this.editLines().length === 1 ? '' : 's'}`,
         value: this.editLines()
       });
     }
-
     const staged = this.draftUpdates();
     if (!changes.length && !staged.length) {
       this.summaryEdit.set(false);
@@ -1009,7 +1323,7 @@ export class ValueBenefits {
     this.formExplanation.set('');
     this.formRootCause.set('');
     this.formCorrective.set('');
-    this.formOutcome.set(b.type === 'Financial'
+    this.formOutcome.set(hasFinancial(b)
       ? String(latestUpdate(b)?.actualValue ?? '')
       : latestUpdate(b)?.progressUpdate ?? '');
     this.formComments.set('');
@@ -1042,7 +1356,7 @@ export class ValueBenefits {
   protected saveUpdate() {
     const b = this.actionBenefit();
     if (!b) return;
-    const financial = b.type === 'Financial';
+    const financial = hasFinancial(b);
     const actual = financial ? this.num(this.formActual()) : null;
     const pct = financial && b.currentApprovedBaseline
       ? Math.round(((actual! - b.currentApprovedBaseline) / b.currentApprovedBaseline) * 1000) / 10
@@ -1096,7 +1410,7 @@ export class ValueBenefits {
       auditLog: [...cur.auditLog, {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
         action: 'Closure Submitted',
-        comments: (cur.type === 'Financial'
+        comments: (hasFinancial(cur)
           ? `Final realised value ${this.money(this.num(outcome))} submitted for approval.`
           : `${outcome} submitted for approval.`) +
           (this.formComments().trim() ? ` ${this.formComments().trim()}` : ''),
@@ -1114,7 +1428,10 @@ export class ValueBenefits {
     const b = this.actionBenefit();
     if (!b) return false;
     if (this.actionKind() === 'update') {
-      return b.type === 'Financial' ? this.formActual().trim() !== '' : this.formProgress().trim() !== '';
+      // Mixed benefits need both halves answered; a single-kind benefit only its own.
+      const wantActual = hasFinancial(b) ? this.formActual().trim() !== '' : true;
+      const wantProgress = hasNonFinancial(b) ? this.formProgress().trim() !== '' : true;
+      return wantActual && wantProgress;
     }
     return this.formOutcome().trim() !== '';
   });
@@ -1129,7 +1446,11 @@ export class ValueBenefits {
   protected readonly draftDescription = signal('');
   protected readonly draftValidationSource = signal('');
   /** The prose baseline a non-financial benefit carries instead of a figure. */
-  protected readonly draftBaselineDescription = signal('');
+  /** Baselines being defined for a new benefit, of either kind. */
+  protected readonly draftBaselineLines = signal<BaselineLine[]>([]);
+  protected readonly draftTypeDerived = computed(() => benefitTypeOf(this.draftBaselineLines()));
+  protected readonly draftHasFinancial = computed(() =>
+    this.draftBaselineLines().some((l) => l.kind === 'Financial'));
 
   /** Derived, never edited — RULES #8: a field the user cannot set is read-only. */
   protected readonly draftBusinessUnits = computed(() =>
@@ -1226,7 +1547,7 @@ export class ValueBenefits {
    * empty would create a benefit with nothing to measure against.
    */
   protected readonly baselineValid = computed(() => {
-    if (!this.draftFinancial()) return this.draftBaselineDescription().trim() !== '';
+    if (!this.draftFinancial()) return this.draftBaselineLines().length > 0;
     return (this.draftBaseline() ?? 0) > 0;
   });
 
@@ -1252,7 +1573,9 @@ export class ValueBenefits {
     this.draftOwners.set([]);
     this.draftCategories.set([]);
     this.draftValidationSource.set('');
-    this.draftBaselineDescription.set('');
+    this.draftBaselineLines.set([]);
+    this.draftFile.set(null);
+    this.upload.set(null);
     this.draftDescription.set('');
     this.draftFinancial.set(true);
     this.draftStart.set('');
@@ -1309,7 +1632,7 @@ export class ValueBenefits {
       id: `bf-${Date.now()}`,
       benefitRef: ref,
       name: this.draftName().trim(),
-      type: financial ? 'Financial' : 'Non-Financial',
+      type: this.draftTypeDerived(),
       categories: this.draftCategories(),
       description: this.draftDescription().trim(),
       validationSource: this.draftValidationSource().trim(),
@@ -1319,14 +1642,17 @@ export class ValueBenefits {
       currentApprovedBaseline: baseline,
       startDate: this.draftStart(),
       endDate: this.draftEnd(),
-      baselineDescription: financial ? '' : this.draftBaselineDescription().trim(),
+      baselineLines: this.draftBaselineLines().map((l) => ({ ...l })),
       // Creation is not a change to anything, so there is nothing to approve:
       // the benefit starts tracking and only later EDITS go to the Sponsor.
       approvalStatus: 'Approved',
       approvedBy: CURRENT_USER,
       approvalDate: today,
       status: 'Tracking Active',
-      financialRows: financial ? this.draftLines().map((r) => ({ ...r, benefitRef: ref })) : [],
+      // Financial figures only ever arrive by upload, so a new benefit starts
+      // with none until its template has been attached.
+      financialRows: this.draftFile() ? this.draftLines().map((r) => ({ ...r, benefitRef: ref })) : [],
+      financialFile: this.draftFile() ?? undefined,
       baselineHistory: [{
         baselineId,
         baselineValue: baseline,

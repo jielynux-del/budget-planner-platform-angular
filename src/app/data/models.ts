@@ -106,7 +106,7 @@ export interface TreeNode {
   children?: TreeNode[];
 }
 
-/* ---- Value / Benefits ---- */
+/* ---- Value Benefits ---- */
 export type FinancialType =
   | 'Revenue Uplift'
   | 'Cost Save'
@@ -161,7 +161,13 @@ export interface AppNotification {
 
 /* ---- Benefit lifecycle: definition -> baseline -> tracking ---- */
 
-export type BenefitType = 'Financial' | 'Non-Financial';
+/**
+ * Read from a benefit's baseline lines, never chosen by hand — a benefit that
+ * holds both kinds of baseline is 'Mixed'. Stored rather than computed at every
+ * read so existing filters and columns keep working, but only ever written by
+ * `benefitTypeOf`.
+ */
+export type BenefitType = 'Financial' | 'Non-Financial' | 'Mixed';
 
 /**
  * 'Rework' is sent back to the requester to amend and resubmit — the request
@@ -292,6 +298,63 @@ export interface AuditEntry {
  * the Benefits Tracking table — its baseline lives inside it, not in a view
  * of its own.
  */
+/**
+ * Which kind of baseline a line is. The choice is made when the line is added,
+ * because a single benefit may carry both — a cost saving and a service-level
+ * improvement are one benefit to the business, not two.
+ */
+export type BaselineKind = 'Financial' | 'Non-Financial';
+
+/**
+ * One baseline within a benefit.
+ *
+ * A non-financial baseline used to be a sentence of prose, which meant two
+ * people could read the same benefit and disagree about whether it had been
+ * met. It is now stated in the same terms a financial one is: what is being
+ * measured, from where, where it stands today, and the condition that counts
+ * as meeting it.
+ */
+export interface BaselineLine {
+  id: string;
+  kind: BaselineKind;
+  /** What this baseline is called, e.g. 'Straight-through processing rate'. */
+  name: string;
+
+  /* ---- Financial only. The year-phased detail comes from the uploaded
+     template, never from typing, so only the headline figure lives here. ---- */
+  value: number | null;
+
+  /* ---- Non-financial only. ---- */
+  /** What it intends to measure. */
+  measure: string;
+  /** The unit that measure is counted in — days, %, NPS points, incidents. */
+  unit: string;
+  /** Where it stands today, so the improvement can be read against something. */
+  startingPoint: string;
+  /** What constitutes meeting the baseline. The pass condition, stated plainly. */
+  target: string;
+  /** How it will be measured, and from which system or report. */
+  method: string;
+  /** How often it is measured. */
+  frequency: string;
+}
+
+/**
+ * The financial impact workbook.
+ *
+ * Financial figures arrive as a filled template rather than by typing: the
+ * numbers are prepared and checked in Excel, and re-keying them into a form
+ * only adds a place for them to diverge. One file is kept per benefit, so a
+ * correction is a fresh upload rather than an edit, and the audit log records
+ * every replacement.
+ */
+export interface FinancialImpactFile {
+  name: string;
+  size: string;
+  uploadedBy: string;
+  uploadedOn: string;
+}
+
 export interface Benefit {
   id: string;
   benefitRef: string;              // B01, B02, ...
@@ -316,8 +379,12 @@ export interface Benefit {
   startDate: string;
   /** Where the benefit is targeted to be realised. */
   endDate: string;
-  /** Non-financial benefits state their baseline in prose, not a figure. */
-  baselineDescription: string;
+  /**
+   * Every baseline on this benefit, financial and non-financial alike. The
+   * benefit's own type is read from these rather than stored separately, so it
+   * can never contradict what the benefit actually contains.
+   */
+  baselineLines: BaselineLine[];
   approvalStatus: BaselineApprovalStatus;
   approvedBy: string;
   approvalDate: string;
@@ -335,8 +402,15 @@ export interface Benefit {
   /** Why a closure request was sent back, so the requester knows what to fix. */
   closureNote?: string;
 
-  /** Year-phased financial lines captured at definition (financial benefits). */
+  /**
+   * Year-phased financial lines. Read-only in the UI: they are written by
+   * uploading a template and replaced wholesale by uploading another, never
+   * edited in place.
+   */
   financialRows: BenefitRow[];
+
+  /** Where those rows came from. Absent until a template has been uploaded. */
+  financialFile?: FinancialImpactFile;
 
   baselineHistory: BaselineRecord[];
   reportingHistory: BenefitUpdate[];

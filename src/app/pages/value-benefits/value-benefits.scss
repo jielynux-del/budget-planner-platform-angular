@@ -671,3 +671,101 @@ ui-date-input ::ng-deep input.ui-date-input {
   @include type.body(sm);
   color: var(--color-warning-strong);
 }
+
+/* ── Baseline definition ─────────────────────────────────────── */
+
+.bl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bl-empty {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 0;
+}
+
+// A card per baseline rather than a table row: a non-financial baseline has
+// six fields of prose, which a row would either crush or force to scroll.
+.bl-card {
+  border: 1px solid var(--color-border-decorative);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.bl-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bl-card-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bl-card-actions { display: flex; gap: 4px; flex: none; }
+.bl-name { @include type.label(sm); color: var(--color-text-strong); }
+
+.bl-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin: 0;
+
+  dt { @include type.label(xs); color: var(--color-text-subtle); margin-bottom: 2px; }
+  dd { @include type.body(sm); color: var(--color-text); margin: 0; }
+
+  .span-2 { grid-column: 1 / -1; }
+}
+
+/* ── Choosing a baseline's kind ──────────────────────────────── */
+
+.bl-kind-choice { display: grid; gap: 8px; }
+
+.bl-kind {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-decorative);
+  border-radius: var(--radius-md, 8px);
+  background: none;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover { background: var(--color-bg-hover); border-color: var(--color-border-hover); }
+}
+
+.bl-kind-name { @include type.label(sm); color: var(--color-text-strong); }
+.bl-kind-note { @include type.body(sm); color: var(--color-text-subtle); }
+
+.bl-kind-chosen { display: flex; align-items: center; gap: 12px; }
+
+/* ── Financial impact upload ─────────────────────────────────── */
+
+// Label on the left, control on the right — the reference layout, which keeps
+// the explanation beside what it explains rather than above it.
+.fi-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 24px;
+  padding: 16px 0;
+  align-items: start;
+
+  & + .fi-row { border-top: 1px solid var(--color-border-decorative); }
+}
+
+.fi-label { display: grid; gap: 4px; }
+.fi-title { @include type.label(sm); color: var(--color-text-strong); }
+.fi-note { @include type.body(sm); color: var(--color-text-subtle); margin: 0; }
+
+.fi-upload { display: grid; gap: 12px; min-width: 0; }
+.fi-error-actions { display: flex; justify-content: flex-end; }
+
+@media (max-width: 760px) {
+  .fi-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .bl-grid { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,4 +1,4 @@
-import type { Benefit, BenefitSnapshot, BenefitUpdate } from './models';
+import type { BaselineLine, Benefit, BenefitSnapshot, BenefitType, BenefitUpdate } from './models';
 import type { Workstream } from './models';
 import { businessUnitsFor } from './people';
 
@@ -76,7 +76,7 @@ export function snapshotOf(b: Benefit): BenefitSnapshot {
  * explain. Row totals are preserved exactly — the money is re-phased, not
  * changed — so every baseline figure still ties out.
  */
-function realignFinancialYears(b: Benefit): Benefit {
+function realignFinancialYears(b: SeedBenefit): SeedBenefit {
   const from = Number(b.startDate.slice(0, 4));
   const to = Number(b.endDate.slice(0, 4));
   if (!from || !to || to < from) return b;
@@ -136,6 +136,141 @@ function withSeedSnapshots(b: Benefit): Benefit {
   };
 }
 
+
+/**
+ * A benefit's type, read from the baselines it holds. The single place this is
+ * decided — nothing else may set `Benefit.type`.
+ */
+export function benefitTypeOf(lines: readonly BaselineLine[]): BenefitType {
+  const fin = lines.some((l) => l.kind === 'Financial');
+  const non = lines.some((l) => l.kind === 'Non-Financial');
+  if (fin && non) return 'Mixed';
+  if (fin) return 'Financial';
+  return 'Non-Financial';
+}
+
+/** Whether a benefit carries a baseline of each kind — what actually gates the UI. */
+export const hasFinancial = (b: Benefit) => b.baselineLines.some((l) => l.kind === 'Financial');
+export const hasNonFinancial = (b: Benefit) => b.baselineLines.some((l) => l.kind === 'Non-Financial');
+
+/**
+ * Baseline lines per benefit.
+ *
+ * Authored rather than derived: a non-financial baseline now has to say what
+ * it measures and what counts as meeting it, and neither of those can be
+ * invented from a prose sentence. B01 and B03 deliberately carry both kinds,
+ * because a benefit that saves money and shortens a queue is one benefit to
+ * the business, not two.
+ */
+const BASELINE_LINES: Record<string, BaselineLine[]> = {
+  B01: [
+    {
+      id: 'bl-b01-1', kind: 'Financial', name: 'Manual effort released across hubs',
+      value: 71000000,
+      measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
+    },
+    {
+      id: 'bl-b01-2', kind: 'Non-Financial', name: 'Straight-through processing rate', value: null,
+      measure: 'Share of cash and trade instructions completing with no manual touch.',
+      unit: '% of instructions',
+      startingPoint: '61% at March 2026, averaged across the four in-scope hubs.',
+      target: 'Sustains 85% or above for three consecutive months.',
+      method: 'Workflow audit extract, counted against total instructions received.',
+      frequency: 'Monthly'
+    }
+  ],
+  B02: [
+    {
+      id: 'bl-b02-1', kind: 'Financial', name: 'Incremental cross-border payment revenue',
+      value: 31800000,
+      measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
+    }
+  ],
+  B03: [
+    {
+      id: 'bl-b03-1', kind: 'Non-Financial', name: 'Time to onboard a corporate client', value: null,
+      measure: 'Working days from signed mandate to first live transaction.',
+      unit: 'Working days',
+      startingPoint: '18 days median across the 2025 cohort.',
+      target: 'Median of 7 days or fewer, held for two consecutive quarters.',
+      method: 'Onboarding case records, median of all completions in the period.',
+      frequency: 'Quarterly'
+    },
+    {
+      id: 'bl-b03-2', kind: 'Non-Financial', name: 'Control exceptions raised at onboarding', value: null,
+      measure: 'Exceptions logged by second-line review on completed onboarding files.',
+      unit: 'Exceptions per 100 files',
+      startingPoint: '12 per 100 files in the 2025 review cycle.',
+      target: 'Fewer than 4 per 100 files, with no critical-severity exceptions.',
+      method: 'Second-line quality review sample, extrapolated to the full population.',
+      frequency: 'Quarterly'
+    }
+  ],
+  B04: [
+    {
+      id: 'bl-b04-1', kind: 'Non-Financial', name: 'Digital asset settlement capability', value: null,
+      measure: 'Corridors able to settle a tokenised instrument end to end in production.',
+      unit: 'Live corridors',
+      startingPoint: 'None in production at March 2026; two in pilot.',
+      target: 'At least four corridors live, each having settled a real client transaction.',
+      method: 'Production settlement records, confirmed with the corridor operations lead.',
+      frequency: 'Quarterly'
+    }
+  ],
+  B05: [
+    {
+      id: 'bl-b05-1', kind: 'Financial', name: 'Licence and support cost removed on vendor exit',
+      value: 8900000,
+      measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
+    }
+  ],
+  B06: [
+    {
+      id: 'bl-b06-1', kind: 'Non-Financial', name: 'Change failure rate', value: null,
+      measure: 'Production changes that cause an incident or need rollback.',
+      unit: '% of changes',
+      startingPoint: '9.4% across the 2025 release history.',
+      target: 'At or below 3% over a rolling twelve-week window.',
+      method: 'Change records matched against the incident log.',
+      frequency: 'Monthly'
+    },
+    {
+      id: 'bl-b06-2', kind: 'Non-Financial', name: 'Mean time to restore service', value: null,
+      measure: 'Elapsed time from a severity-1 incident being raised to service restored.',
+      unit: 'Minutes',
+      startingPoint: '148 minutes mean across 2025 severity-1 incidents.',
+      target: 'Mean of 45 minutes or fewer across a rolling quarter.',
+      method: 'Incident management records, severity-1 only.',
+      frequency: 'Monthly'
+    }
+  ]
+};
+
+/**
+ * Attaches the baseline lines, and — where a benefit already carries financial
+ * rows — the upload they are supposed to have come from. Financial figures are
+ * only ever written by uploading a template, so seeded rows with no file
+ * behind them would show a state the UI cannot otherwise produce.
+ */
+function withBaselines(b: SeedBenefit): Benefit {
+  const lines = BASELINE_LINES[b.benefitRef] ?? [];
+  return {
+    ...b,
+    baselineLines: lines.map((l) => ({ ...l })),
+    // The seeded `type` is whatever the literal said; the baselines are now the
+    // authority, so it is recomputed here rather than trusted.
+    type: benefitTypeOf(lines),
+    financialFile: b.financialRows.length
+      ? {
+          name: `${b.benefitRef}-financial-impact.xlsx`,
+          size: '3.2 MB',
+          uploadedBy: b.owners[0] ?? 'tanhuiling',
+          uploadedOn: b.baselineHistory[b.baselineHistory.length - 1]?.approvalDate ?? b.startDate
+        }
+      : undefined
+  };
+}
+
 /** Total of a benefit's year-phased financial lines — its baseline value. */
 export const financialTotal = (rows: Benefit['financialRows']) =>
   rows.reduce((sum, r) => sum + Object.values(r.values).reduce((s, v) => s + (v ?? 0), 0), 0);
@@ -147,10 +282,17 @@ export const financialTotal = (rows: Benefit['financialRows']) =>
 export function defaultBenefits(ws: Workstream): Benefit[] {
   if (ws.workStatus === 'Cancelled') return [];
 
-  return seedBenefits().map(realignFinancialYears).map(withSeedSnapshots);
+  return seedBenefits().map(realignFinancialYears).map(withBaselines).map(withSeedSnapshots);
 }
 
-function seedBenefits(): Benefit[] {
+/**
+ * The seed literals, before baselines are attached. Typed without
+ * `baselineLines` so the records themselves stay readable — `withBaselines`
+ * is the single place those are authored.
+ */
+type SeedBenefit = Omit<Benefit, 'baselineLines'>;
+
+function seedBenefits(): SeedBenefit[] {
   return [
     {
       id: 'bf-1',
@@ -166,7 +308,6 @@ function seedBenefits(): Benefit[] {
       currentApprovedBaseline: 71000000,
       startDate: '2026-04-01',
       endDate: '2027-12-31',
-      baselineDescription: '',
       approvalStatus: 'Approved',
       approvedBy: 'kelvinlimws',
       approvalDate: '2026-03-24',
@@ -212,7 +353,6 @@ function seedBenefits(): Benefit[] {
       currentApprovedBaseline: 31800000,
       startDate: '2026-10-01',
       endDate: '2028-06-30',
-      baselineDescription: '',
       approvalStatus: 'Pending Approval',
       approvedBy: '-',
       approvalDate: '-',
@@ -254,7 +394,6 @@ function seedBenefits(): Benefit[] {
       currentApprovedBaseline: null,
       startDate: '2025-01-01',
       endDate: '2027-06-30',
-      baselineDescription: '',
       approvalStatus: 'Approved',
       approvedBy: 'chanwaikit',
       approvalDate: '2024-12-18',
@@ -289,7 +428,6 @@ function seedBenefits(): Benefit[] {
       currentApprovedBaseline: null,
       startDate: '2025-04-01',
       endDate: '2026-12-31',
-      baselineDescription: '',
       approvalStatus: 'Approved',
       approvedBy: 'yuriatantono',
       approvalDate: '2025-03-19',
@@ -323,7 +461,6 @@ function seedBenefits(): Benefit[] {
       currentApprovedBaseline: 8900000,
       startDate: '2025-07-01',
       endDate: '2026-06-30',
-      baselineDescription: '',
       approvalStatus: 'Approved',
       approvedBy: 'yuriatantono',
       approvalDate: '2025-06-11',
@@ -366,7 +503,6 @@ function seedBenefits(): Benefit[] {
       currentApprovedBaseline: null,
       startDate: '2025-01-01',
       endDate: '2026-03-31',
-      baselineDescription: '',
       approvalStatus: 'Approved',
       approvedBy: 'chanwaikit',
       approvalDate: '2024-12-18',

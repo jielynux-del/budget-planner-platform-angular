@@ -55,7 +55,7 @@
   </ui-card>
 
   <ui-table-card>
-    <ui-table-header title="Value / Benefits">
+    <ui-table-header title="Value Benefits">
 
       <ui-popover uiTableActions title="Filters" [(open)]="filtersOpen" [width]="360" placement="bottom-end">
         <button uiPopoverTrigger ui-button variant="secondary" size="small" type="button">
@@ -206,7 +206,7 @@
         size="small"
         type="button"
         class="benefit-page-back"
-        aria-label="Back to Value / Benefits"
+        aria-label="Back to Value Benefits"
         (click)="closeDetail()">
         <ui-icon name="chevron-left" />
       </button>
@@ -391,15 +391,16 @@
                   @if (previously(record, 'currentApprovedBaseline'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
-              @if (b.type === 'Non-Financial' && b.baselineDescription) {
-                <div class="span-2"><dt>Baseline description</dt><dd>{{ b.baselineDescription }}</dd></div>
-              }
+
             </dl>
           } @else {
             <div class="create-grid">
+              <!-- Read from the baselines below. A benefit that holds both a
+                   cost saving and a service measure is Mixed, and nobody has to
+                   remember to keep a separate field in step. -->
               <div class="filter-field">
                 <span class="filter-label">Benefit Type</span>
-                <ui-select [options]="typeChoices" [(value)]="editType" />
+                <p class="readonly-field">{{ editTypeDerived() }}</p>
               </div>
               <!-- Assigned by the system when a baseline change is approved. -->
               <div class="filter-field">
@@ -411,17 +412,12 @@
                 <span class="filter-label">Original Approved Baseline</span>
                 <p class="readonly-field">{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</p>
               </div>
-              @if (editType() === 'Financial') {
-                <!-- Derived from the lines below, never typed: a baseline figure
-                     should always be able to show its working. -->
+              @if (editHasFinancial()) {
+                <!-- Read from the uploaded workbook, never typed: a baseline
+                     figure should always be able to show its working. -->
                 <div class="filter-field">
                   <span class="filter-label">Proposed Baseline (S$)</span>
                   <p class="readonly-field">{{ money(editBaselineTotal()) }}</p>
-                </div>
-              } @else {
-                <div class="filter-field span-2">
-                  <span class="filter-label">Baseline description</span>
-                  <ui-textarea [(value)]="editBaselineDescription" placeholder="The starting position this benefit is measured against" />
                 </div>
               }
               @if (baselineChanged()) {
@@ -435,16 +431,138 @@
           }
         </div>
 
-        @if (summaryEdit() && editType() === 'Financial') {
+        <!-- ── Baseline definition ──────────────────────────────────────
+             Every baseline the benefit carries, of either kind. A
+             non-financial baseline states what it measures and what counts as
+             meeting it, so two readers reach the same verdict. -->
+        <div class="entity-section-wide">
+          <div class="baseline-lines">
+            <div class="bl-head">
+              <span class="filter-label">Baseline Definition</span>
+              @if (summaryEdit()) {
+                <button ui-button variant="secondary" size="small" type="button" (click)="openBaselineDialog('edit')">
+                  <ui-icon name="plus" />
+                  Add Baseline
+                </button>
+              }
+            </div>
+
+            @let blines = summaryEdit() ? editBaselineLines() : shown(record).baselineLines;
+
+            @if (!blines.length) {
+              <p class="bl-empty">No baseline defined yet.</p>
+            }
+
+            @for (l of blines; track l.id) {
+              <div class="bl-card">
+                <div class="bl-card-head">
+                  <div class="bl-card-title">
+                    <span class="bl-name">{{ l.name }}</span>
+                    <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
+                  </div>
+                  @if (summaryEdit()) {
+                    <div class="bl-card-actions">
+                      <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Edit this baseline" (click)="editBaselineLine('edit', l)">
+                        <ui-icon name="edit" [size]="16" />
+                      </button>
+                      <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Remove this baseline" (click)="removeBaselineLine('edit', l.id)">
+                        <ui-icon name="delete" [size]="16" />
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                @if (l.kind === 'Financial') {
+                  <dl class="bl-grid">
+                    <div><dt>Baseline value</dt><dd>{{ l.value === null ? emptyValue : money(l.value) }}</dd></div>
+                    <div><dt>Year-phased detail</dt><dd>From the uploaded financial impact template</dd></div>
+                  </dl>
+                } @else {
+                  <dl class="bl-grid">
+                    <div class="span-2"><dt>What it measures</dt><dd>{{ l.measure || emptyValue }}</dd></div>
+                    <div><dt>Unit of measure</dt><dd>{{ l.unit || emptyValue }}</dd></div>
+                    <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
+                    <div class="span-2"><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
+                    <div class="span-2"><dt>What counts as meeting it</dt><dd>{{ l.target || emptyValue }}</dd></div>
+                    <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
+                  </dl>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- ── Financial impact ─────────────────────────────────────────
+             Figures arrive as a filled template and are shown read-only.
+             Correcting them means uploading a replacement, which the audit
+             log records — never an in-place edit. -->
+        @if (summaryEdit() ? editHasFinancial() : hasFin(record)) {
           <div class="entity-section-wide">
             <div class="baseline-lines">
-                <span class="filter-label">Financial and Stat Impact</span>
-                @if (!datesSetEdit()) {
-                  <ui-info-banner
-                    tone="warning"
-                    [dismissible]="false"
-                    message="Set a start and end date above — the years below follow that range." />
-                }
+              <span class="filter-label">Financial Impact</span>
+
+              @if (summaryEdit()) {
+                <div class="fi-row">
+                  <div class="fi-label">
+                    <span class="fi-title">Download Template</span>
+                    <p class="fi-note">Enter the figures for each baseline and year in this template.</p>
+                  </div>
+                  <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
+                    <ui-icon name="download" [size]="16" />
+                    Financial Impact Template (Excel)
+                  </button>
+                </div>
+
+                <div class="fi-row">
+                  <div class="fi-label">
+                    <span class="fi-title">Upload</span>
+                    <p class="fi-note">Upload your filled template. The values are validated and then shown read-only.</p>
+                  </div>
+                  <div class="fi-upload">
+                    <ui-info-banner
+                      tone="info"
+                      [dismissible]="false"
+                      message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
+
+                    @if (upload(); as u) {
+                      <ui-upload-file
+                        [name]="u.name"
+                        [status]="u.status === 'failed' ? 'failed' : u.status === 'validating' ? 'indeterminate' : 'uploading'"
+                        [meta]="u.status === 'validating' ? '100% — Validating values' : u.progress + '%'"
+                        [progress]="u.progress"
+                        [errorMessage]="u.error"
+                        (cancel)="cancelUpload()"
+                        (retry)="browseFinancialFile('edit')" />
+                      @if (u.status === 'failed') {
+                        <div class="fi-error-actions">
+                          <button ui-button variant="secondary" size="small" type="button" (click)="downloadErrorFile()">
+                            <ui-icon name="download" [size]="16" />
+                            Download File with Errors
+                          </button>
+                        </div>
+                      }
+                    } @else if (editFile(); as f) {
+                      <ui-file-row
+                        [name]="f.name"
+                        [size]="f.size"
+                        [downloadable]="true"
+                        (download)="downloadTemplate()"
+                        (remove)="removeFinancialFile('edit')" />
+                      <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}. Remove the file to upload a replacement.</p>
+                    } @else {
+                      <ui-file-drop
+                        hint="Supports XLS or XLSX (up to 5MB)"
+                        (browse)="browseFinancialFile('edit')" />
+                    }
+                  </div>
+                </div>
+              } @else if (shown(record).financialFile; as f) {
+                <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
+                <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}.</p>
+              }
+
+              @let frows = summaryEdit() ? editLines() : shown(record).financialRows;
+              @if (frows.length) {
                 <div class="vb-scroll">
                   <table ui-table size="sm" class="lines-table">
                     <thead>
@@ -455,43 +573,25 @@
                         @for (y of editYears(); track y) {
                           <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
                         }
-                        <th><ui-column-header label="Total" size="sm" align="end" /></th>
-                        <th style="width: 56px"><ui-column-header variant="blank" size="sm" [last]="true" /></th>
+                        <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
                       </tr>
                     </thead>
                     <tbody>
-                      @for (row of editLines(); track row.id) {
+                      @for (row of frows; track row.id) {
                         <tr ui-table-row>
-                          <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setEditLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
-                          <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setEditLine(row.id, 'driver', $event)" placeholder="Select" /></td>
-                          <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setEditLine(row.id, 'measure', $event)" placeholder="Select" /></td>
+                          <td>{{ row.typeOfFinancial }}</td>
+                          <td>{{ row.driver }}</td>
+                          <td>{{ row.measure }}</td>
                           @for (y of editYears(); track y) {
-                            <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setEditLineValue(row.id, y, $event)" placeholder="0" /></td>
+                            <td class="ui-cell-number cell-nowrap">{{ money(row.values[y] ?? 0) }}</td>
                           }
                           <td class="ui-cell-number cell-name cell-nowrap">{{ money(editLineTotal(row)) }}</td>
-                          <td class="rl-remove-cell">
-                            @if (editLines().length > 1) {
-                              <button
-                                ui-icon-button
-                                variant="ghost"
-                                size="small"
-                                type="button"
-                                class="rl-remove"
-                                aria-label="Remove this line"
-                                (click)="removeEditLine(row.id)">
-                                <ui-icon name="delete" [size]="16" />
-                              </button>
-                            }
-                          </td>
                         </tr>
                       }
                     </tbody>
                   </table>
                 </div>
-                <button ui-button variant="plain" size="small" type="button" class="add-row" (click)="addEditLine()">
-                  <ui-icon name="plus-circle" />
-                  Add new
-                </button>
+              }
             </div>
           </div>
         }
@@ -806,66 +906,150 @@
     }
 
     @if (wizardTab() === 'baseline') {
+      <!-- The kind is chosen per baseline, not once for the benefit: a benefit
+           that saves money and shortens a queue is one benefit, not two. -->
       <ui-card title="Baseline Definition">
-        <div class="filter-field">
-          <span class="filter-label">With financial impact?</span>
-          <ui-radio
-            name="with-financial-impact"
-            [options]="yesNoOptions"
-            [value]="draftFinancial() ? 'yes' : 'no'"
-            (valueChange)="setFinancial($event === 'yes')" />
+        <div class="bl-head">
+          <p class="fi-note">Add each baseline this benefit will be measured against. A benefit may hold both financial and non-financial baselines.</p>
+          <button ui-button variant="secondary" size="small" type="button" (click)="openBaselineDialog('draft')">
+            <ui-icon name="plus" />
+            Add Baseline
+          </button>
         </div>
+
+        @if (!draftBaselineLines().length) {
+          <p class="bl-empty">No baseline defined yet.</p>
+        }
+
+        @for (l of draftBaselineLines(); track l.id) {
+          <div class="bl-card">
+            <div class="bl-card-head">
+              <div class="bl-card-title">
+                <span class="bl-name">{{ l.name }}</span>
+                <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
+              </div>
+              <div class="bl-card-actions">
+                <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Edit this baseline" (click)="editBaselineLine('draft', l)">
+                  <ui-icon name="edit" [size]="16" />
+                </button>
+                <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Remove this baseline" (click)="removeBaselineLine('draft', l.id)">
+                  <ui-icon name="delete" [size]="16" />
+                </button>
+              </div>
+            </div>
+
+            @if (l.kind === 'Financial') {
+              <dl class="bl-grid">
+                <div><dt>Baseline value</dt><dd>{{ l.value === null ? emptyValue : money(l.value) }}</dd></div>
+                <div><dt>Year-phased detail</dt><dd>From the uploaded financial impact template</dd></div>
+              </dl>
+            } @else {
+              <dl class="bl-grid">
+                <div class="span-2"><dt>What it measures</dt><dd>{{ l.measure || emptyValue }}</dd></div>
+                <div><dt>Unit of measure</dt><dd>{{ l.unit || emptyValue }}</dd></div>
+                <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
+                <div class="span-2"><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
+                <div class="span-2"><dt>What counts as meeting it</dt><dd>{{ l.target || emptyValue }}</dd></div>
+                <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
+              </dl>
+            }
+          </div>
+        }
       </ui-card>
 
-      @if (draftFinancial()) {
-        <ui-card title="Financial and Stat Impact">
+      @if (draftHasFinancial()) {
+        <ui-card title="Financial Impact">
           @if (!datesSet()) {
             <ui-info-banner
               tone="warning"
-              message="Set a start and end date on Benefit Details — the years below follow that range." />
+              [dismissible]="false"
+              message="Set a start and end date on Benefit Details — the template's year columns follow that range." />
           }
-          <div class="vb-scroll">
-            <table ui-table size="sm" class="lines-table">
-              <thead>
-                <tr>
-                  <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
-                  <th><ui-column-header label="Drivers" size="sm" /></th>
-                  <th><ui-column-header label="Measure" size="sm" /></th>
-                  @for (y of years(); track y) {
-                    <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
-                  }
-                  <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of draftLines(); track row.id) {
-                  <tr ui-table-row>
-                    <td><ui-select [options]="financialTypes" [value]="row.typeOfFinancial" (valueChange)="setLine(row.id, 'typeOfFinancial', $event)" placeholder="Select" /></td>
-                    <td><ui-select [options]="driverOptions" [value]="row.driver" (valueChange)="setLine(row.id, 'driver', $event)" placeholder="Select" /></td>
-                    <td><ui-select [options]="measureOptions" [value]="row.measure" (valueChange)="setLine(row.id, 'measure', $event)" placeholder="Select" /></td>
-                    @for (y of years(); track y) {
-                      <td><ui-text-input [value]="lineValue(row, y)" (valueChange)="setLineValue(row.id, y, $event)" placeholder="0" /></td>
-                    }
-                    <td class="ui-cell-number cell-name">{{ money(lineTotal(row)) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <button ui-button variant="secondary" size="small" type="button" class="add-line" (click)="addLine()">
-            <ui-icon name="plus" />
-            Add Benefit Line
-          </button>
 
-        </ui-card>
-      } @else {
-        <ui-card title="Baseline Description">
-          <div class="filter-field">
-            <span class="filter-label">Baseline description</span>
-            <ui-textarea
-              [(value)]="draftBaselineDescription"
-              placeholder="Describe the starting position this benefit is measured against" />
+          <div class="fi-row">
+            <div class="fi-label">
+              <span class="fi-title">Download Template</span>
+              <p class="fi-note">Enter the figures for each baseline and year in this template.</p>
+            </div>
+            <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
+              <ui-icon name="download" [size]="16" />
+              Financial Impact Template (Excel)
+            </button>
           </div>
+
+          <div class="fi-row">
+            <div class="fi-label">
+              <span class="fi-title">Upload</span>
+              <p class="fi-note">Upload your filled template. The values are validated and then shown read-only.</p>
+            </div>
+            <div class="fi-upload">
+              <ui-info-banner
+                tone="info"
+                [dismissible]="false"
+                message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
+
+              @if (upload(); as u) {
+                <ui-upload-file
+                  [name]="u.name"
+                  [status]="u.status === 'failed' ? 'failed' : u.status === 'validating' ? 'indeterminate' : 'uploading'"
+                  [meta]="u.status === 'validating' ? '100% — Validating values' : u.progress + '%'"
+                  [progress]="u.progress"
+                  [errorMessage]="u.error"
+                  (cancel)="cancelUpload()"
+                  (retry)="browseFinancialFile('draft')" />
+                @if (u.status === 'failed') {
+                  <div class="fi-error-actions">
+                    <button ui-button variant="secondary" size="small" type="button" (click)="downloadErrorFile()">
+                      <ui-icon name="download" [size]="16" />
+                      Download File with Errors
+                    </button>
+                  </div>
+                }
+              } @else if (draftFile(); as f) {
+                <ui-file-row
+                  [name]="f.name"
+                  [size]="f.size"
+                  (download)="downloadTemplate()"
+                  (remove)="removeFinancialFile('draft')" />
+                <p class="fi-note">Remove the file to upload a replacement.</p>
+              } @else {
+                <ui-file-drop
+                  hint="Supports XLS or XLSX (up to 5MB)"
+                  (browse)="browseFinancialFile('draft')" />
+              }
+            </div>
+          </div>
+
+          @if (draftLines().length) {
+            <div class="vb-scroll">
+              <table ui-table size="sm" class="lines-table">
+                <thead>
+                  <tr>
+                    <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                    <th><ui-column-header label="Drivers" size="sm" /></th>
+                    <th><ui-column-header label="Measure" size="sm" /></th>
+                    @for (y of years(); track y) {
+                      <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
+                    }
+                    <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of draftLines(); track row.id) {
+                    <tr ui-table-row>
+                      <td>{{ row.typeOfFinancial }}</td>
+                      <td>{{ row.driver }}</td>
+                      <td>{{ row.measure }}</td>
+                      @for (y of years(); track y) {
+                        <td class="ui-cell-number cell-nowrap">{{ money(row.values[y] ?? 0) }}</td>
+                      }
+                      <td class="ui-cell-number cell-name cell-nowrap">{{ money(lineTotal(row)) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         </ui-card>
       }
     }
@@ -886,18 +1070,42 @@
 
       <ui-card title="Baseline Definition">
         <dl class="detail-grid">
-          <div><dt>With financial impact?</dt><dd>{{ draftFinancial() ? 'Yes' : 'No' }}</dd></div>
-          <div><dt>Benefit Type</dt><dd>{{ draftFinancial() ? 'Financial' : 'Non-Financial' }}</dd></div>
-          @if (draftFinancial()) {
+          <!-- Read from the baselines below rather than chosen, so the review
+               cannot show a type the benefit does not actually have. -->
+          <div><dt>Benefit Type</dt><dd>{{ draftTypeDerived() }}</dd></div>
+          <div><dt>Baselines defined</dt><dd>{{ baselineSummary(draftBaselineLines()) }}</dd></div>
+          @if (draftHasFinancial()) {
             <div><dt>Opening Baseline</dt><dd>{{ draftBaseline() === null ? emptyValue : money(draftBaseline()) }}</dd></div>
-          } @else {
-            <div><dt>Baseline description</dt><dd>{{ draftBaselineDescription() || emptyValue }}</dd></div>
+            <div><dt>Financial impact file</dt><dd>{{ draftFile()?.name || emptyValue }}</dd></div>
           }
           <div><dt>Baseline ID</dt><dd>Assigned on creation</dd></div>
         </dl>
+
+        @for (l of draftBaselineLines(); track l.id) {
+          <div class="bl-card">
+            <div class="bl-card-title">
+              <span class="bl-name">{{ l.name }}</span>
+              <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
+            </div>
+            @if (l.kind === 'Financial') {
+              <dl class="bl-grid">
+                <div><dt>Baseline value</dt><dd>{{ l.value === null ? emptyValue : money(l.value) }}</dd></div>
+              </dl>
+            } @else {
+              <dl class="bl-grid">
+                <div class="span-2"><dt>What it measures</dt><dd>{{ l.measure || emptyValue }}</dd></div>
+                <div><dt>Unit of measure</dt><dd>{{ l.unit || emptyValue }}</dd></div>
+                <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
+                <div class="span-2"><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
+                <div class="span-2"><dt>What counts as meeting it</dt><dd>{{ l.target || emptyValue }}</dd></div>
+                <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
+              </dl>
+            }
+          </div>
+        }
       </ui-card>
 
-      @if (draftFinancial() && draftLines().length) {
+      @if (draftHasFinancial() && draftLines().length) {
         <ui-card title="Financial and Stat Impact">
           <div class="vb-scroll">
             <table ui-table size="sm" class="lines-table">
@@ -1150,7 +1358,7 @@
         <span class="filter-label">Update Date</span>
         <ui-date-input [(value)]="rlDate" />
       </div>
-      @if (b.type === 'Financial') {
+      @if (hasFin(b)) {
         <div class="filter-field">
           <span class="filter-label">Actual Benefit Value (S$)</span>
           <ui-text-input [(value)]="rlActual" placeholder="0" />
@@ -1190,5 +1398,92 @@
       [actionLabel]="toastBenefitId() ? 'View benefit' : ''"
       (action)="viewToastBenefit()"
       (dismissed)="dismissToast()" />
+  </div>
+}
+
+<!-- ── Add / edit a baseline ───────────────────────────────────────────
+     The kind is chosen first and then fixed for the line. The two ask for
+     entirely different things — a figure against a definition — and a form
+     that rearranges itself under the reader loses what they already typed. -->
+@if (blOpen()) {
+  <div class="rl-scrim" (click)="closeBaselineDialog()"></div>
+  <div class="rl-dialog" role="dialog" aria-modal="true" aria-label="Add baseline">
+    <h2 class="rl-title">{{ blEditingId() ? 'Edit Baseline' : 'Add Baseline' }}</h2>
+    <div class="rl-body">
+
+      @if (!blKind()) {
+        <p class="fi-note">What kind of baseline is this? This cannot be changed once the baseline is saved.</p>
+        <div class="bl-kind-choice">
+          <button
+            ui-card-button
+            type="button"
+            label="Financial"
+            description="A money figure. The year-phased detail comes from the uploaded template, not from typing."
+            (click)="blKind.set('Financial')">
+            <ui-icon ui-card-button-icon name="dollar-sign" [size]="24" />
+          </button>
+          <button
+            ui-card-button
+            type="button"
+            label="Non-Financial"
+            description="A measure with a pass condition — a rate, a duration, a count."
+            (click)="blKind.set('Non-Financial')">
+            <ui-icon ui-card-button-icon name="chart-up" [size]="24" />
+          </button>
+        </div>
+      } @else {
+        <div class="bl-kind-chosen">
+          <ui-pill [label]="blKind() || ''" [color]="blKind() === 'Financial' ? 'green' : 'grey'" [dot]="false" />
+          @if (!blEditingId()) {
+            <button ui-link variant="product" type="button" (click)="blKind.set(null)">Change</button>
+          }
+        </div>
+
+        <div class="filter-field">
+          <span class="filter-label">Baseline Name</span>
+          <ui-text-input [(value)]="blName" placeholder="e.g. Straight-through processing rate" />
+        </div>
+
+        @if (blKind() === 'Financial') {
+          <div class="filter-field">
+            <span class="filter-label">Baseline Value (S$)</span>
+            <ui-text-input [(value)]="blValue" placeholder="0" />
+          </div>
+          <p class="fi-note">Year-by-year figures are read from the financial impact template, which is uploaded once this baseline is saved.</p>
+        } @else {
+          <div class="filter-field">
+            <span class="filter-label">What it measures</span>
+            <ui-textarea [(value)]="blMeasure" placeholder="e.g. Share of instructions completing with no manual touch" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Unit of Measure</span>
+            <ui-text-input [(value)]="blUnit" placeholder="e.g. % of instructions, working days, incidents" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Starting Point</span>
+            <ui-textarea [(value)]="blStartingPoint" placeholder="Where it stands today, and as at when" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">What counts as meeting it</span>
+            <ui-textarea [(value)]="blTargetCondition" placeholder="The pass condition, stated so two readers reach the same verdict" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">How it is measured</span>
+            <ui-textarea [(value)]="blMethod" placeholder="The report or system the figure is read from" />
+          </div>
+          <div class="filter-field">
+            <span class="filter-label">Measurement Frequency</span>
+            <ui-select [options]="frequencyOptions" [(value)]="blFrequency" placeholder="Select" />
+          </div>
+        }
+      }
+    </div>
+
+    <div class="rl-actions">
+      <button ui-button variant="secondary" size="small" type="button" (click)="closeBaselineDialog()">Cancel</button>
+      <button ui-button variant="primary" size="small" type="button" [disabled]="!blValid()" (click)="saveBaselineLine()">
+        {{ blEditingId() ? 'Save Baseline' : 'Add Baseline' }}
+      </button>
+    </div>
   </div>
 }
