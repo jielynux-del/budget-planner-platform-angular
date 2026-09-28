@@ -143,10 +143,11 @@
                 <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
                 <td>
                   @if (latest(b); as u) {
-                    @if (b.type === 'Financial') {
+                    @if (hasFin(b) && u.actualValue !== null) {
                       <span class="cell-name">{{ money(u.actualValue) }}</span>
                       <ui-pill class="cell-delta" [label]="variance(u.variancePct)" [color]="varianceColour(u.variancePct)" [dot]="false" />
-                    } @else {
+                    }
+                    @if (hasNonFin(b) && u.progressUpdate) {
                       {{ u.progressUpdate }}
                     }
                   } @else {
@@ -501,61 +502,16 @@
             <div class="baseline-lines">
               <span class="filter-label">Financial Impact</span>
 
+              <!-- Read-only here. The template is downloaded and uploaded from
+                   the add-baseline dialog, where the financial baseline it
+                   belongs to is defined. -->
               @if (summaryEdit()) {
-                <div class="fi-row">
-                  <div class="fi-label">
-                    <span class="fi-title">Download Template</span>
-                    <p class="fi-note">Enter the figures for each baseline and year in this template.</p>
-                  </div>
-                  <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
-                    <ui-icon name="download" [size]="16" />
-                    Financial Impact Template (Excel)
-                  </button>
-                </div>
-
-                <div class="fi-row">
-                  <div class="fi-label">
-                    <span class="fi-title">Upload</span>
-                    <p class="fi-note">Upload your filled template. The values are validated and then shown read-only.</p>
-                  </div>
-                  <div class="fi-upload">
-                    <ui-info-banner
-                      tone="info"
-                      [dismissible]="false"
-                      message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
-
-                    @if (upload(); as u) {
-                      <ui-upload-file
-                        [name]="u.name"
-                        [status]="u.status === 'failed' ? 'failed' : u.status === 'validating' ? 'indeterminate' : 'uploading'"
-                        [meta]="u.status === 'validating' ? '100% — Validating values' : u.progress + '%'"
-                        [progress]="u.progress"
-                        [errorMessage]="u.error"
-                        (cancel)="cancelUpload()"
-                        (retry)="browseFinancialFile('edit')" />
-                      @if (u.status === 'failed') {
-                        <div class="fi-error-actions">
-                          <button ui-button variant="secondary" size="small" type="button" (click)="downloadErrorFile()">
-                            <ui-icon name="download" [size]="16" />
-                            Download File with Errors
-                          </button>
-                        </div>
-                      }
-                    } @else if (editFile(); as f) {
-                      <ui-file-row
-                        [name]="f.name"
-                        [size]="f.size"
-                        [downloadable]="true"
-                        (download)="downloadTemplate()"
-                        (remove)="removeFinancialFile('edit')" />
-                      <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}. Remove the file to upload a replacement.</p>
-                    } @else {
-                      <ui-file-drop
-                        hint="Supports XLS or XLSX (up to 5MB)"
-                        (browse)="browseFinancialFile('edit')" />
-                    }
-                  </div>
-                </div>
+                @if (editFile(); as f) {
+                  <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
+                  <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}. Edit a financial baseline to replace it.</p>
+                } @else {
+                  <p class="fi-note">No template uploaded yet. Edit a financial baseline to attach one.</p>
+                }
               } @else if (shown(record).financialFile; as f) {
                 <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
                 <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}.</p>
@@ -678,8 +634,15 @@
             <thead>
               <tr>
                 <th><ui-column-header label="Update Date" size="sm" [first]="true" /></th>
-                <th><ui-column-header [label]="b.type === 'Financial' ? 'Value' : 'Progress Update'" size="sm" /></th>
-                @if (b.type === 'Financial') {
+                <!-- A mixed benefit reports both halves, so the columns follow
+                     what the benefit actually holds rather than one label. -->
+                @if (hasFin(b)) {
+                  <th><ui-column-header label="Value" size="sm" /></th>
+                }
+                @if (hasNonFin(b)) {
+                  <th><ui-column-header label="Progress Update" size="sm" /></th>
+                }
+                @if (hasFin(b)) {
                   <th><ui-column-header label="Variance %" size="sm" align="end" /></th>
                   <th><ui-column-header label="Variance Explanation" size="sm" /></th>
                   <th><ui-column-header label="Root Cause" size="sm" /></th>
@@ -695,8 +658,13 @@
               @for (r of reportRows(b.reportingHistory); track r.id) {
                 <tr ui-table-row>
                   <td class="cell-nowrap">{{ r.updateDate }}</td>
-                  <td [class.cell-nowrap]="b.type === 'Financial'">{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
-                  @if (b.type === 'Financial') {
+                  @if (hasFin(b)) {
+                    <td class="cell-nowrap">{{ r.actualValue === null ? emptyValue : money(r.actualValue) }}</td>
+                  }
+                  @if (hasNonFin(b)) {
+                    <td>{{ r.progressUpdate || emptyValue }}</td>
+                  }
+                  @if (hasFin(b)) {
                     <td class="ui-cell-number">
                       <ui-pill [label]="variance(r.variancePct)" [color]="varianceColour(r.variancePct)" [dot]="false" />
                     </td>
@@ -712,8 +680,13 @@
               @for (r of draftUpdates(); track r.id) {
                 <tr ui-table-row>
                   <td class="cell-nowrap">{{ r.updateDate }}</td>
-                  <td [class.cell-nowrap]="b.type === 'Financial'">{{ b.type === 'Financial' ? money(r.actualValue) : r.progressUpdate }}</td>
-                  @if (b.type === 'Financial') {
+                  @if (hasFin(b)) {
+                    <td class="cell-nowrap">{{ r.actualValue === null ? emptyValue : money(r.actualValue) }}</td>
+                  }
+                  @if (hasNonFin(b)) {
+                    <td>{{ r.progressUpdate || emptyValue }}</td>
+                  }
+                  @if (hasFin(b)) {
                     <td class="ui-cell-number">
                       <ui-pill [label]="variance(r.variancePct)" [color]="varianceColour(r.variancePct)" [dot]="false" />
                     </td>
@@ -966,59 +939,13 @@
               message="Set a start and end date on Benefit Details — the template's year columns follow that range." />
           }
 
-          <div class="fi-row">
-            <div class="fi-label">
-              <span class="fi-title">Download Template</span>
-              <p class="fi-note">Enter the figures for each baseline and year in this template.</p>
-            </div>
-            <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
-              <ui-icon name="download" [size]="16" />
-              Financial Impact Template (Excel)
-            </button>
-          </div>
-
-          <div class="fi-row">
-            <div class="fi-label">
-              <span class="fi-title">Upload</span>
-              <p class="fi-note">Upload your filled template. The values are validated and then shown read-only.</p>
-            </div>
-            <div class="fi-upload">
-              <ui-info-banner
-                tone="info"
-                [dismissible]="false"
-                message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
-
-              @if (upload(); as u) {
-                <ui-upload-file
-                  [name]="u.name"
-                  [status]="u.status === 'failed' ? 'failed' : u.status === 'validating' ? 'indeterminate' : 'uploading'"
-                  [meta]="u.status === 'validating' ? '100% — Validating values' : u.progress + '%'"
-                  [progress]="u.progress"
-                  [errorMessage]="u.error"
-                  (cancel)="cancelUpload()"
-                  (retry)="browseFinancialFile('draft')" />
-                @if (u.status === 'failed') {
-                  <div class="fi-error-actions">
-                    <button ui-button variant="secondary" size="small" type="button" (click)="downloadErrorFile()">
-                      <ui-icon name="download" [size]="16" />
-                      Download File with Errors
-                    </button>
-                  </div>
-                }
-              } @else if (draftFile(); as f) {
-                <ui-file-row
-                  [name]="f.name"
-                  [size]="f.size"
-                  (download)="downloadTemplate()"
-                  (remove)="removeFinancialFile('draft')" />
-                <p class="fi-note">Remove the file to upload a replacement.</p>
-              } @else {
-                <ui-file-drop
-                  hint="Supports XLS or XLSX (up to 5MB)"
-                  (browse)="browseFinancialFile('draft')" />
-              }
-            </div>
-          </div>
+          <!-- Read-only here; the template is attached from the add-baseline
+               dialog, alongside the financial baseline it belongs to. -->
+          @if (draftFile(); as f) {
+            <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
+          } @else {
+            <p class="fi-note">No template uploaded yet. Edit a financial baseline to attach one.</p>
+          }
 
           @if (draftLines().length) {
             <div class="vb-scroll">
@@ -1180,7 +1107,7 @@
     @if (actionKind() === 'update') {
       <ui-card title="Update Benefit">
         <div class="create-grid">
-          @if (b.type === 'Financial') {
+          @if (hasFin(b)) {
             <div class="filter-field">
               <span class="filter-label">Actual Benefit Value (S$)</span>
               <ui-text-input [(value)]="formActual" placeholder="0" />
@@ -1222,10 +1149,10 @@
       <ui-card title="Request Closure">
         <div class="create-grid">
           <div class="filter-field">
-            <span class="filter-label">{{ b.type === 'Financial' ? 'Final Realised Value (S$)' : 'Final Outcome' }}</span>
+            <span class="filter-label">{{ hasFin(b) ? 'Final Realised Value (S$)' : 'Final Outcome' }}</span>
             <ui-text-input [(value)]="formOutcome" />
           </div>
-          @if (b.type === 'Financial') {
+          @if (hasFin(b)) {
             <div class="filter-field">
               <span class="filter-label">Current Approved Baseline</span>
               <div class="readonly">{{ money(b.currentApprovedBaseline) }}</div>
@@ -1449,7 +1376,57 @@
             <span class="filter-label">Baseline Value (S$)</span>
             <ui-text-input [(value)]="blValue" placeholder="0" />
           </div>
-          <p class="fi-note">Year-by-year figures are read from the financial impact template, which is uploaded once this baseline is saved.</p>
+
+          <!-- The template belongs to the kind, not to a separate section: a
+               financial baseline's year-by-year detail IS the workbook, so it
+               is asked for here alongside the figure, exactly as the
+               non-financial branch asks for its own fields. -->
+          <div class="fi-dialog-block">
+            <div class="fi-label">
+              <span class="fi-title">Financial Impact Template</span>
+              <p class="fi-note">Enter the figures for each baseline and year, then upload the filled template. Values are shown read-only once validated.</p>
+            </div>
+
+            <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
+              <ui-icon name="download" [size]="16" />
+              Download Template (Excel)
+            </button>
+
+            <ui-info-banner
+              tone="info"
+              [dismissible]="false"
+              message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
+
+            @if (upload(); as u) {
+              <ui-upload-file
+                [name]="u.name"
+                [status]="u.status === 'failed' ? 'failed' : u.status === 'validating' ? 'indeterminate' : 'uploading'"
+                [meta]="u.status === 'validating' ? '100% — Validating values' : u.progress + '%'"
+                [progress]="u.progress"
+                [errorMessage]="u.error"
+                (cancel)="cancelUpload()"
+                (retry)="browseFinancialFile(blFor())" />
+              @if (u.status === 'failed') {
+                <div class="fi-error-actions">
+                  <button ui-button variant="secondary" size="small" type="button" (click)="downloadErrorFile()">
+                    <ui-icon name="download" [size]="16" />
+                    Download File with Errors
+                  </button>
+                </div>
+              }
+            } @else if (dialogFile(); as f) {
+              <ui-file-row
+                [name]="f.name"
+                [size]="f.size"
+                (download)="downloadTemplate()"
+                (remove)="removeFinancialFile(blFor())" />
+              <p class="fi-note">Remove the file to upload a replacement.</p>
+            } @else {
+              <ui-file-drop
+                hint="Supports XLS or XLSX (up to 5MB)"
+                (browse)="browseFinancialFile(blFor())" />
+            }
+          </div>
         } @else {
           <div class="filter-field">
             <span class="filter-label">What it measures</span>

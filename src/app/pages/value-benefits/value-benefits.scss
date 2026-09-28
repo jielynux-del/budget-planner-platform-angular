@@ -13,10 +13,13 @@
   align-items: stretch;
   gap: 4px;
   padding: 0;
+  // Below roughly 1100px the five tiles ran into each other and the labels
+  // overprinted. A basis rather than 0 so they wrap to a second row instead.
+  flex-wrap: wrap;
 }
 // Every tile is the same width, Total included, so the row reads as one object.
 .summary-total {
-  flex: 1 1 0;
+  flex: 1 1 150px;
   min-width: 0;
   padding: 4px 12px;
   position: relative;
@@ -38,7 +41,7 @@
 
 .stat {
   position: relative;
-  flex: 1 1 0;
+  flex: 1 1 150px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -386,11 +389,17 @@ ui-date-input ::ng-deep input.ui-date-input {
    Its own small dialog rather than a second ui-modal-shell: the shell is a
    full-viewport focus overlay, and nesting one inside another would replace
    the benefit record the user is working against instead of sitting over it. */
+/* Below the kit's own dropdown overlay, which is fixed at z-index 1100.
+   A select inside this dialog used to open its option list BEHIND the panel:
+   the field reported itself open, the list was in the DOM with a correct box,
+   and nothing was visible. Raising the dropdown instead needed a specificity
+   fight the component styles win on load order, so the dialog gives way — a
+   dropdown belongs above whatever opened it in any case. */
 .rl-scrim {
   position: fixed;
   inset: 0;
   background: var(--color-bg-scrim, rgba(16, 24, 32, 0.48));
-  z-index: 1300;
+  z-index: 1060;
 }
 
 .rl-dialog {
@@ -398,7 +407,7 @@ ui-date-input ::ng-deep input.ui-date-input {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1301;
+  z-index: 1070;
   width: min(520px, calc(100vw - 48px));
   max-height: calc(100vh - 96px);
   display: flex;
@@ -768,4 +777,14 @@ ui-date-input ::ng-deep input.ui-date-input {
 @media (max-width: 760px) {
   .fi-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .bl-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+// The template block inside the add-baseline dialog: same stack as the page
+// section, minus the two-column label/control split the narrow dialog cannot
+// carry.
+.fi-dialog-block {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border-decorative);
 }

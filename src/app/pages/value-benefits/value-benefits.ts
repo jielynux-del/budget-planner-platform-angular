@@ -482,7 +482,22 @@ export class ValueBenefits {
   }
 
   private baselineLinesFor(target: 'edit' | 'draft' = this.uploadFor()) {
-    return target === 'edit' ? this.editBaselineLines() : this.draftBaselineLines();
+    const saved = target === 'edit' ? this.editBaselineLines() : this.draftBaselineLines();
+    // The template is uploaded from inside the add-baseline dialog, so the
+    // baseline it belongs to has not been saved yet. Validation and the parsed
+    // rows both have to see it, or the first upload on a new financial
+    // baseline would always fail for a baseline the user is looking at.
+    if (!this.blOpen() || this.blFor() !== target || this.blKind() !== 'Financial') return saved;
+    const pending: BaselineLine = {
+      id: this.blEditingId() ?? 'bl-pending',
+      kind: 'Financial',
+      name: this.blName().trim() || 'Untitled baseline',
+      value: Number(this.blValue().replace(/[^0-9.-]/g, '')) || 0,
+      measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
+    };
+    return this.blEditingId()
+      ? saved.map((l) => (l.id === pending.id ? pending : l))
+      : [...saved, pending];
   }
 
   private yearsFor(target: 'edit' | 'draft' = this.uploadFor()): number[] {
@@ -650,6 +665,11 @@ export class ValueBenefits {
   protected readonly blFrequency = signal('');
 
   protected readonly frequencyOptions = ['Monthly', 'Quarterly', 'Half-yearly', 'Annually', 'At milestone'];
+
+
+  /** The file belonging to whichever form the dialog was opened from. */
+  protected readonly dialogFile = computed(() =>
+    this.blFor() === 'edit' ? this.editFile() : this.draftFile());
 
   protected openBaselineDialog(target: 'edit' | 'draft') {
     this.blFor.set(target);
