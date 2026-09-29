@@ -613,6 +613,7 @@ export class ValueBenefits {
         return {
           id: `fr-up-${i}-${Date.now()}`,
           benefitRef: ref,
+          baselineId: l.baselineId || l.id,
           typeOfFinancial: 'Cost Save',
           driver: l.name,
           measure: 'S$ Value',
@@ -642,6 +643,54 @@ export class ValueBenefits {
   /** Exposed for the template — a benefit's own contents decide what it shows. */
   protected hasFin(b: Benefit | null) { return !!b && hasFinancial(b); }
   protected hasNonFin(b: Benefit | null) { return !!b && hasNonFinancial(b); }
+
+  /**
+   * The year columns to show for a benefit.
+   *
+   * `editYears()` reads the edit form's dates, which are empty outside an edit
+   * session — so in view mode it fell back to the current year alone, showing
+   * one column for a benefit spanning three and a row total that disagreed
+   * with its own baseline. Reading mode takes the years from the benefit.
+   */
+  protected displayYears(b: Benefit): number[] {
+    if (this.summaryEdit()) return this.editYears();
+    const from = Number(b.startDate.slice(0, 4));
+    const to = Number(b.endDate.slice(0, 4));
+    if (!from || !to || to < from) return [new Date().getFullYear()];
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  }
+
+  /** A row's total over the years actually being shown. */
+  protected rowTotalOver(row: BenefitRow, years: readonly number[]) {
+    return years.reduce((t, y) => t + (row.values[y] ?? 0), 0);
+  }
+
+  /**
+   * The uploaded rows belonging to one baseline. The template writes one row
+   * per financial baseline, keyed by its name, so each figure can be shown
+   * under the baseline it explains rather than in a table of its own.
+   */
+  /**
+   * The year columns for a benefit being READ. `editYears` is edit-session
+   * state and is empty outside the form, where it fell back to the current
+   * year alone — which silently dropped every other year's figures and made
+   * the row total disagree with the baseline it explains.
+   */
+  protected benefitYears(b: Benefit): number[] {
+    const from = Number(b.startDate.slice(0, 4));
+    const to = Number(b.endDate.slice(0, 4));
+    if (!from || !to || to < from) return [new Date().getFullYear()];
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  }
+
+  /** Every figure on the row, whatever years it spans. */
+  protected rowTotal(row: BenefitRow) {
+    return Object.values(row.values).reduce((t, v) => t + (v ?? 0), 0);
+  }
+
+  protected rowsForBaseline(rows: readonly BenefitRow[], line: BaselineLine) {
+    return rows.filter((r) => r.baselineId === line.baselineId || r.baselineId === line.id);
+  }
 
   /** What a set of baselines amounts to, for an approver's diff. */
   protected baselineSummary(lines: readonly BaselineLine[]) {
@@ -1646,7 +1695,7 @@ export class ValueBenefits {
   private blankLine(): BenefitRow {
     return {
       id: `fr-${Date.now()}-${Math.round(Math.random() * 1e4)}`,
-      benefitRef: '', typeOfFinancial: '', driver: '', measure: '', values: {}, comments: ''
+      benefitRef: '', baselineId: '', typeOfFinancial: '', driver: '', measure: '', values: {}, comments: ''
     };
   }
 

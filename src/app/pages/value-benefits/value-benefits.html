@@ -371,153 +371,128 @@
     </ui-card>
 
     <ui-card>
+      <!-- One two-column section, like every other card on this page: the
+           heading and its note hold the left column, everything else sits
+           beside them. The baselines used to span both columns, which pushed
+           them under the heading instead of alongside it. -->
       <div class="entity-section">
         <aside class="entity-section-head">
-          <h3 class="entity-section-title">Baseline</h3>
+          <h3 class="entity-section-title">Baselines</h3>
           <p class="entity-section-note">
-            The figure this benefit is measured against. Edit it here as part of updating the
-            benefit — the change goes to the Sponsor with everything else.
+            What this benefit is measured against. A benefit may hold several, financial
+            and non-financial. Changes go to the Sponsor with everything else.
           </p>
         </aside>
 
-        <!-- The benefit-level figures used to live here, but a benefit may
-             carry several baselines and each has its own reference and its own
-             approved figures. They now sit on the baseline they belong to; the
-             only thing left at benefit level is the reason a change is being
-             requested, which covers the whole package. -->
         <div class="entity-section-body">
           @if (summaryEdit() && baselineChanged()) {
-            <div class="create-grid">
-              <div class="filter-field span-2">
-                <span class="filter-label">Baseline Change Reason</span>
-                <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
+            <div class="filter-field">
+              <span class="filter-label">Baseline Change Reason</span>
+              <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
+            </div>
+          }
+
+          @if (summaryEdit()) {
+            <div class="bl-head">
+              <button ui-button variant="secondary" size="small" type="button" (click)="openBaselineDialog('edit')">
+                <ui-icon name="plus" />
+                Add Baseline
+              </button>
+            </div>
+          }
+
+          @let blines = summaryEdit() ? editBaselineLines() : shown(record).baselineLines;
+          @let bfile = summaryEdit() ? editFile() : shown(record).financialFile;
+          @let brows = summaryEdit() ? editLines() : shown(record).financialRows;
+          @let byears = summaryEdit() ? editYears() : benefitYears(record);
+
+          @if (!blines.length) {
+            <p class="bl-empty">No baseline defined yet.</p>
+          }
+
+          <!-- A box per baseline. A financial one carries the rows read from
+               the template beneath its own name, so a figure is never shown
+               without the baseline it belongs to. -->
+          @for (l of blines; track l.id) {
+            <div class="bl-card">
+              <div class="bl-card-head">
+                <div class="bl-card-title">
+                  <span class="bl-name">{{ l.name }}</span>
+                  <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
+                </div>
+                @if (summaryEdit()) {
+                  <div class="bl-card-actions">
+                    <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Edit this baseline" (click)="editBaselineLine('edit', l)">
+                      <ui-icon name="edit" [size]="16" />
+                    </button>
+                    <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Remove this baseline" (click)="removeBaselineLine('edit', l.id)">
+                      <ui-icon name="delete" [size]="16" />
+                    </button>
+                  </div>
+                }
               </div>
+
+              @if (l.kind === 'Financial') {
+                <dl class="bl-grid">
+                  <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
+                  <div><dt>Year-phased detail</dt><dd>From the uploaded template</dd></div>
+                  <div><dt>Originally Approved</dt><dd>{{ l.originalValue === null ? emptyValue : money(l.originalValue) }}</dd></div>
+                  <div><dt>Currently Approved</dt><dd>{{ l.currentValue === null ? emptyValue : money(l.currentValue) }}</dd></div>
+                </dl>
+
+                @let lrows = rowsForBaseline(brows, l);
+                @let byears = displayYears(b);
+                @if (lrows.length) {
+                  <div class="vb-scroll">
+                    <table ui-table size="sm" class="lines-table">
+                      <thead>
+                        <tr>
+                          <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
+                          <th><ui-column-header label="Drivers" size="sm" /></th>
+                          <th><ui-column-header label="Measure" size="sm" /></th>
+                          @for (y of byears; track y) {
+                            <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
+                          }
+                          <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of lrows; track row.id) {
+                          <tr ui-table-row>
+                            <td>{{ row.typeOfFinancial }}</td>
+                            <td>{{ row.driver }}</td>
+                            <td>{{ row.measure }}</td>
+                            @for (y of byears; track y) {
+                              <td class="ui-cell-number cell-nowrap">{{ money(row.values[y] ?? 0) }}</td>
+                            }
+                            <td class="ui-cell-number cell-name cell-nowrap">{{ money(rowTotal(row)) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                @if (bfile; as f) {
+                  <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
+                  <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}.{{ summaryEdit() ? ' Edit this baseline to replace it.' : '' }}</p>
+                } @else {
+                  <p class="fi-note">No template uploaded yet.</p>
+                }
+              } @else {
+                <dl class="bl-grid">
+                  <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
+                  <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
+                  <div class="span-2"><dt>What it measures</dt><dd>{{ l.measure || emptyValue }}</dd></div>
+                  <div><dt>Unit of measure</dt><dd>{{ l.unit || emptyValue }}</dd></div>
+                  <div><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
+                  <div class="span-2"><dt>What counts as meeting it</dt><dd>{{ l.target || emptyValue }}</dd></div>
+                  <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
+                </dl>
+              }
             </div>
           }
         </div>
-
-        <!-- ── Baseline definition ──────────────────────────────────────
-             Every baseline the benefit carries, of either kind. A
-             non-financial baseline states what it measures and what counts as
-             meeting it, so two readers reach the same verdict. -->
-        <div class="entity-section-wide">
-          <div class="baseline-lines">
-            <div class="bl-head">
-              <span class="filter-label">Baseline Definition</span>
-              @if (summaryEdit()) {
-                <button ui-button variant="secondary" size="small" type="button" (click)="openBaselineDialog('edit')">
-                  <ui-icon name="plus" />
-                  Add Baseline
-                </button>
-              }
-            </div>
-
-            @let blines = summaryEdit() ? editBaselineLines() : shown(record).baselineLines;
-
-            @if (!blines.length) {
-              <p class="bl-empty">No baseline defined yet.</p>
-            }
-
-            @for (l of blines; track l.id) {
-              <div class="bl-card">
-                <div class="bl-card-head">
-                  <div class="bl-card-title">
-                    <span class="bl-name">{{ l.name }}</span>
-                    <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
-                  </div>
-                  @if (summaryEdit()) {
-                    <div class="bl-card-actions">
-                      <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Edit this baseline" (click)="editBaselineLine('edit', l)">
-                        <ui-icon name="edit" [size]="16" />
-                      </button>
-                      <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Remove this baseline" (click)="removeBaselineLine('edit', l.id)">
-                        <ui-icon name="delete" [size]="16" />
-                      </button>
-                    </div>
-                  }
-                </div>
-
-                @if (l.kind === 'Financial') {
-                  <dl class="bl-grid">
-                    <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
-                    <div><dt>Year-phased detail</dt><dd>From the uploaded financial impact template</dd></div>
-                    <div><dt>Originally Approved</dt><dd>{{ l.originalValue === null ? emptyValue : money(l.originalValue) }}</dd></div>
-                    <div><dt>Currently Approved</dt><dd>{{ l.currentValue === null ? emptyValue : money(l.currentValue) }}</dd></div>
-                  </dl>
-                } @else {
-                  <dl class="bl-grid">
-                    <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
-                    <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
-                    <div class="span-2"><dt>What it measures</dt><dd>{{ l.measure || emptyValue }}</dd></div>
-                    <div><dt>Unit of measure</dt><dd>{{ l.unit || emptyValue }}</dd></div>
-                    <div><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
-                    <div class="span-2"><dt>What counts as meeting it</dt><dd>{{ l.target || emptyValue }}</dd></div>
-                    <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
-                  </dl>
-                }
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- ── Financial impact ─────────────────────────────────────────
-             Figures arrive as a filled template and are shown read-only.
-             Correcting them means uploading a replacement, which the audit
-             log records — never an in-place edit. -->
-        @if (summaryEdit() ? editHasFinancial() : hasFin(record)) {
-          <div class="entity-section-wide">
-            <div class="baseline-lines">
-              <span class="filter-label">Financial Impact</span>
-
-              <!-- Read-only here. The template is downloaded and uploaded from
-                   the add-baseline dialog, where the financial baseline it
-                   belongs to is defined. -->
-              @if (summaryEdit()) {
-                @if (editFile(); as f) {
-                  <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
-                  <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}. Edit a financial baseline to replace it.</p>
-                } @else {
-                  <p class="fi-note">No template uploaded yet. Edit a financial baseline to attach one.</p>
-                }
-              } @else if (shown(record).financialFile; as f) {
-                <ui-file-row [name]="f.name" [size]="f.size" [removable]="false" (download)="downloadTemplate()" />
-                <p class="fi-note">Uploaded by {{ f.uploadedBy }} on {{ f.uploadedOn }}.</p>
-              }
-
-              @let frows = summaryEdit() ? editLines() : shown(record).financialRows;
-              @if (frows.length) {
-                <div class="vb-scroll">
-                  <table ui-table size="sm" class="lines-table">
-                    <thead>
-                      <tr>
-                        <th><ui-column-header label="Types of Financial" size="sm" [first]="true" /></th>
-                        <th><ui-column-header label="Drivers" size="sm" /></th>
-                        <th><ui-column-header label="Measure" size="sm" /></th>
-                        @for (y of editYears(); track y) {
-                          <th><ui-column-header [label]="'' + y" size="sm" align="end" /></th>
-                        }
-                        <th><ui-column-header label="Total" size="sm" align="end" [last]="true" /></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (row of frows; track row.id) {
-                        <tr ui-table-row>
-                          <td>{{ row.typeOfFinancial }}</td>
-                          <td>{{ row.driver }}</td>
-                          <td>{{ row.measure }}</td>
-                          @for (y of editYears(); track y) {
-                            <td class="ui-cell-number cell-nowrap">{{ money(row.values[y] ?? 0) }}</td>
-                          }
-                          <td class="ui-cell-number cell-name cell-nowrap">{{ money(editLineTotal(row)) }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-            </div>
-          </div>
-        }
 
         <div class="entity-section-wide">
           <ui-accordion title="Baseline History" [count]="b.baselineHistory.length" [defaultOpen]="false">

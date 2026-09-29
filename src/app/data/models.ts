@@ -117,6 +117,13 @@ export type FinancialType =
 export interface BenefitRow {
   id: string;
   benefitRef: string;
+  /**
+   * Which financial baseline this row posts against. The template writes rows
+   * per baseline, and the page shows each row under the baseline it explains —
+   * so the link is stored rather than inferred from `driver`, which is a
+   * business label and not an identifier.
+   */
+  baselineId: string;
   typeOfFinancial: FinancialType | '';
   driver: string;
   measure: string;

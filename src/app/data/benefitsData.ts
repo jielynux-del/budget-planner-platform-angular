@@ -270,8 +270,12 @@ function withBaselines(b: SeedBenefit): Benefit {
     originalValue: l.kind === 'Financial' ? (b.originalApprovedBaseline ?? financialTotalValue) : null,
     currentValue: l.kind === 'Financial' ? (b.currentApprovedBaseline ?? financialTotalValue) : null
   }));
+  // Seeded rows predate the per-baseline link, so they are stamped onto the
+  // benefit's first financial baseline — which is the only one the seed has.
+  const firstFinancial = withIds.find((l) => l.kind === 'Financial');
   return {
     ...b,
+    financialRows: b.financialRows.map((r) => ({ ...r, baselineId: firstFinancial?.baselineId ?? '' })),
     baselineLines: withIds,
     // The seeded `type` is whatever the literal said; the baselines are now the
     // authority, so it is recomputed here rather than trusted.
@@ -281,7 +285,12 @@ function withBaselines(b: SeedBenefit): Benefit {
           name: `${b.benefitRef}-financial-impact.xlsx`,
           size: '3.2 MB',
           uploadedBy: b.owners[0] ?? 'tanhuiling',
-          uploadedOn: b.baselineHistory[b.baselineHistory.length - 1]?.approvalDate ?? b.startDate
+          // The LAST APPROVED baseline, not simply the last: a pending one
+          // carries '-' as its approval date, which showed up as "uploaded on -".
+          uploadedOn: [...b.baselineHistory]
+            .reverse()
+            .find((h) => h.status === 'Approved' && h.approvalDate !== '-')?.approvalDate
+            ?? b.startDate
         }
       : undefined
   };
@@ -330,7 +339,7 @@ function seedBenefits(): SeedBenefit[] {
       status: 'Tracking Active',
       financialRows: [
         {
-          id: 'fr-1', benefitRef: 'B01', typeOfFinancial: 'Cost Save',
+          id: 'fr-1', benefitRef: 'B01', baselineId: '', typeOfFinancial: 'Cost Save',
           driver: 'Manual Effort Reduction', measure: 'S$ Value',
           values: { 2024: 12000000, 2025: 24000000, 2026: 35000000 },
           comments: 'Based on 42 FTE released across hubs'
@@ -375,7 +384,7 @@ function seedBenefits(): SeedBenefit[] {
       status: 'Tracking Active',
       financialRows: [
         {
-          id: 'fr-2', benefitRef: 'B02', typeOfFinancial: 'Revenue Uplift',
+          id: 'fr-2', benefitRef: 'B02', baselineId: '', typeOfFinancial: 'Revenue Uplift',
           driver: 'Digital Adoption', measure: 'S$ Value',
           values: { 2024: 4500000, 2025: 9800000, 2026: 17500000 },
           comments: 'Incremental funded accounts'
@@ -483,7 +492,7 @@ function seedBenefits(): SeedBenefit[] {
       status: 'Closed',
       financialRows: [
         {
-          id: 'fr-3', benefitRef: 'B05', typeOfFinancial: 'Cost Save',
+          id: 'fr-3', benefitRef: 'B05', baselineId: '', typeOfFinancial: 'Cost Save',
           driver: 'Platform Decommissioning', measure: 'S$ Value',
           values: { 2024: 0, 2025: 4300000, 2026: 4600000 },
           comments: 'Hosting and licence exit'
