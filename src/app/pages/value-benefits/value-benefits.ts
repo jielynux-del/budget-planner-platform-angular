@@ -92,7 +92,7 @@ export class ValueBenefits {
 
   /** A benefit lives on a workstream, so its approvals do too. */
   protected readonly pageTabs = computed<UiFilterTab[]>(() => [
-    { key: 'benefits', label: 'Value Benefits' },
+    { key: 'benefits', label: 'Benefits Tracking' },
     { key: 'approvals', label: 'Approvals', count: this.outstanding().length || undefined }
   ]);
   protected readonly pageTab = signal('benefits');

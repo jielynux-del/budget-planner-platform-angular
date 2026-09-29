@@ -106,7 +106,7 @@ export interface TreeNode {
   children?: TreeNode[];
 }
 
-/* ---- Value Benefits ---- */
+/* ---- Benefits Tracking ---- */
 export type FinancialType =
   | 'Revenue Uplift'
   | 'Cost Save'

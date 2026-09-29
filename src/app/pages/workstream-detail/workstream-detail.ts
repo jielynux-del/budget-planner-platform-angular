@@ -73,7 +73,7 @@ export class WorkstreamDetail {
   /**
    * Derived from the URL, NOT reported by the child.
    *
-   * The child lives inside the Value Benefits tab, so anything that unmounts
+   * The child lives inside the Benefits Tracking tab, so anything that unmounts
    * that tab takes the child with it — and a flag the child was supposed to
    * lower stays raised, hiding this page's header and tabs for good. The URL
    * is present either way.
@@ -91,7 +91,7 @@ export class WorkstreamDetail {
     { key: 'approvers', label: 'Approvers' },
     { key: 'financials', label: 'Financials' },
     { key: 'work-allocation', label: 'Work Allocation' },
-    { key: 'value-benefits', label: 'Value Benefits' },
+    { key: 'value-benefits', label: 'Benefits Tracking' },
     { key: 'others', label: 'Others' }
   ];
 
