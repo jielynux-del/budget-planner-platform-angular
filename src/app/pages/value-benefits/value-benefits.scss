@@ -785,6 +785,18 @@ ui-date-input ::ng-deep input.ui-date-input {
 .fi-dialog-block {
   display: grid;
   gap: 12px;
-  padding-top: 4px;
+  // The rule separates this block from the fields above it, so it needs air on
+  // both sides — at 4px it read as an underline on the heading beneath it.
+  margin-top: 8px;
+  padding-top: 20px;
   border-top: 1px solid var(--color-border-decorative);
+}
+
+// Why the primary action is unavailable, said next to it rather than left for
+// the reader to work out.
+.rl-hint {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 0;
+  padding: 0 24px 4px;
 }

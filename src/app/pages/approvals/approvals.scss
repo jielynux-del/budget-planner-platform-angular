@@ -105,3 +105,20 @@ ui-modal-shell.sheet-closing ::ng-deep .panel { animation: sheet-down 280ms cubi
   ui-modal-shell ::ng-deep .panel,
   ui-modal-shell.sheet-closing ::ng-deep .panel { animation: none; }
 }
+
+// RULES.md #15 — the frozen edge is painted inside the sticky cell, never as a
+// border-left on the first scrolling column, or it scrolls away with the
+// content. Same treatment the benefits table uses; component styles do not
+// cross between the two, so the rule is stated in both.
+.ui-td-sticky::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 1px;
+  background: var(--color-border-decorative);
+}
+
+// Sticky cells stack in DOM order, so a later row's cell paints over an open
+// menu belonging to an earlier row. The cell holding the open menu wins.
+.ui-td-sticky:has(ui-dropdown-menu) { z-index: 3; }

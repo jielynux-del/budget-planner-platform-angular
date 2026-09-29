@@ -166,11 +166,12 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
   B01: [
     {
       id: 'bl-b01-1', kind: 'Financial', name: 'Manual effort released across hubs',
-      value: 71000000,
+      baselineId: '', originalValue: null, currentValue: null,
       measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
     },
     {
-      id: 'bl-b01-2', kind: 'Non-Financial', name: 'Straight-through processing rate', value: null,
+      id: 'bl-b01-2', kind: 'Non-Financial', name: 'Straight-through processing rate',
+      baselineId: '', originalValue: null, currentValue: null,
       measure: 'Share of cash and trade instructions completing with no manual touch.',
       unit: '% of instructions',
       startingPoint: '61% at March 2026, averaged across the four in-scope hubs.',
@@ -182,13 +183,14 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
   B02: [
     {
       id: 'bl-b02-1', kind: 'Financial', name: 'Incremental cross-border payment revenue',
-      value: 31800000,
+      baselineId: '', originalValue: null, currentValue: null,
       measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
     }
   ],
   B03: [
     {
-      id: 'bl-b03-1', kind: 'Non-Financial', name: 'Time to onboard a corporate client', value: null,
+      id: 'bl-b03-1', kind: 'Non-Financial', name: 'Time to onboard a corporate client',
+      baselineId: '', originalValue: null, currentValue: null,
       measure: 'Working days from signed mandate to first live transaction.',
       unit: 'Working days',
       startingPoint: '18 days median across the 2025 cohort.',
@@ -197,7 +199,8 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
       frequency: 'Quarterly'
     },
     {
-      id: 'bl-b03-2', kind: 'Non-Financial', name: 'Control exceptions raised at onboarding', value: null,
+      id: 'bl-b03-2', kind: 'Non-Financial', name: 'Control exceptions raised at onboarding',
+      baselineId: '', originalValue: null, currentValue: null,
       measure: 'Exceptions logged by second-line review on completed onboarding files.',
       unit: 'Exceptions per 100 files',
       startingPoint: '12 per 100 files in the 2025 review cycle.',
@@ -208,7 +211,8 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
   ],
   B04: [
     {
-      id: 'bl-b04-1', kind: 'Non-Financial', name: 'Digital asset settlement capability', value: null,
+      id: 'bl-b04-1', kind: 'Non-Financial', name: 'Digital asset settlement capability',
+      baselineId: '', originalValue: null, currentValue: null,
       measure: 'Corridors able to settle a tokenised instrument end to end in production.',
       unit: 'Live corridors',
       startingPoint: 'None in production at March 2026; two in pilot.',
@@ -220,13 +224,14 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
   B05: [
     {
       id: 'bl-b05-1', kind: 'Financial', name: 'Licence and support cost removed on vendor exit',
-      value: 8900000,
+      baselineId: '', originalValue: null, currentValue: null,
       measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
     }
   ],
   B06: [
     {
-      id: 'bl-b06-1', kind: 'Non-Financial', name: 'Change failure rate', value: null,
+      id: 'bl-b06-1', kind: 'Non-Financial', name: 'Change failure rate',
+      baselineId: '', originalValue: null, currentValue: null,
       measure: 'Production changes that cause an incident or need rollback.',
       unit: '% of changes',
       startingPoint: '9.4% across the 2025 release history.',
@@ -235,7 +240,8 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
       frequency: 'Monthly'
     },
     {
-      id: 'bl-b06-2', kind: 'Non-Financial', name: 'Mean time to restore service', value: null,
+      id: 'bl-b06-2', kind: 'Non-Financial', name: 'Mean time to restore service',
+      baselineId: '', originalValue: null, currentValue: null,
       measure: 'Elapsed time from a severity-1 incident being raised to service restored.',
       unit: 'Minutes',
       startingPoint: '148 minutes mean across 2025 severity-1 incidents.',
@@ -254,9 +260,19 @@ const BASELINE_LINES: Record<string, BaselineLine[]> = {
  */
 function withBaselines(b: SeedBenefit): Benefit {
   const lines = BASELINE_LINES[b.benefitRef] ?? [];
+  // Baseline IDs run in one sequence per benefit. A financial line takes its
+  // figures from the benefit's uploaded rows, because that is the only place a
+  // financial baseline's value ever comes from.
+  const financialTotalValue = financialTotal(b.financialRows);
+  const withIds = lines.map((l, i) => ({
+    ...l,
+    baselineId: `${b.baselineId}-${String(i + 1).padStart(2, '0')}`,
+    originalValue: l.kind === 'Financial' ? (b.originalApprovedBaseline ?? financialTotalValue) : null,
+    currentValue: l.kind === 'Financial' ? (b.currentApprovedBaseline ?? financialTotalValue) : null
+  }));
   return {
     ...b,
-    baselineLines: lines.map((l) => ({ ...l })),
+    baselineLines: withIds,
     // The seeded `type` is whatever the literal said; the baselines are now the
     // authority, so it is recomputed here rather than trusted.
     type: benefitTypeOf(lines),

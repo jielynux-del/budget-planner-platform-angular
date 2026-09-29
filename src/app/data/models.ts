@@ -320,9 +320,25 @@ export interface BaselineLine {
   /** What this baseline is called, e.g. 'Straight-through processing rate'. */
   name: string;
 
-  /* ---- Financial only. The year-phased detail comes from the uploaded
-     template, never from typing, so only the headline figure lives here. ---- */
-  value: number | null;
+  /**
+   * Assigned per baseline, not per benefit: a benefit may carry several, and
+   * each moves through approval on its own reference.
+   */
+  baselineId: string;
+
+  /**
+   * The figure first approved for this baseline, and the one in force now.
+   *
+   * FINANCIAL: both are read from the uploaded template — there is no single
+   * number to type, because the workbook phases the money across years and it
+   * is the year columns that carry the meaning. A financial baseline with no
+   * file behind it has no value at all.
+   *
+   * NON-FINANCIAL: null. The pass condition below is what it is measured
+   * against, and that is prose rather than a figure.
+   */
+  originalValue: number | null;
+  currentValue: number | null;
 
   /* ---- Non-financial only. ---- */
   /** What it intends to measure. */

@@ -92,7 +92,7 @@ export class ValueBenefits {
 
   /** A benefit lives on a workstream, so its approvals do too. */
   protected readonly pageTabs = computed<UiFilterTab[]>(() => [
-    { key: 'benefits', label: 'Benefits' },
+    { key: 'benefits', label: 'Value Benefits' },
     { key: 'approvals', label: 'Approvals', count: this.outstanding().length || undefined }
   ]);
   protected readonly pageTab = signal('benefits');
@@ -492,7 +492,7 @@ export class ValueBenefits {
       id: this.blEditingId() ?? 'bl-pending',
       kind: 'Financial',
       name: this.blName().trim() || 'Untitled baseline',
-      value: Number(this.blValue().replace(/[^0-9.-]/g, '')) || 0,
+      baselineId: '', originalValue: null, currentValue: null,
       measure: '', unit: '', startingPoint: '', target: '', method: '', frequency: ''
     };
     return this.blEditingId()
@@ -562,14 +562,13 @@ export class ValueBenefits {
    */
   private finishUpload(name: string) {
     const target = this.uploadFor();
-    const fin = this.baselineLinesFor(target).filter((l) => l.kind === 'Financial');
     const datesSet = target === 'edit' ? this.datesSetEdit() : this.datesSet();
-    const unpriced = fin.filter((l) => !l.value);
+    const named = this.blName().trim();
 
     const problem = !datesSet
       ? 'the benefit has no start and end date, so the template has no year columns to post against'
-      : unpriced.length
-        ? `${unpriced.length} financial baseline${unpriced.length === 1 ? ' has' : 's have'} no value set (${unpriced.map((l) => l.name).join(', ')})`
+      : !named
+        ? 'the baseline has no name, so the template rows have nothing to post against'
         : '';
 
     if (problem) {
@@ -591,21 +590,30 @@ export class ValueBenefits {
     this.upload.set(null);
   }
 
-  /** Stands in for parsing the workbook: one row per financial baseline line. */
+  /**
+   * Stands in for parsing the workbook: one row per financial baseline, with a
+   * figure for each of the benefit's years. The money comes from here and
+   * nowhere else — there is no single number for a financial baseline, because
+   * the template phases it across years and the year columns carry the meaning.
+   *
+   * Deterministic from the baseline's own name, so the same benefit shows the
+   * same figures on every upload rather than jumping about between demos.
+   */
   private mockUploadedRows(target: 'edit' | 'draft'): BenefitRow[] {
     const years = this.yearsFor(target);
     const ref = target === 'draft' ? '' : (this.detail()?.benefitRef ?? '');
     return this.baselineLinesFor(target)
       .filter((l) => l.kind === 'Financial')
       .map((l, i) => {
-        const total = l.value ?? 0;
-        const per = Math.round(total / years.length);
+        const seed = [...l.name].reduce((t, c) => t + c.charCodeAt(0), 0);
         const values: Record<number, number> = {};
-        years.forEach((y: number, n: number) => { values[y] = n === years.length - 1 ? total - per * (years.length - 1) : per; });
+        years.forEach((y: number, n: number) => {
+          values[y] = (((seed + n * 37) % 45) + 6) * 100000;
+        });
         return {
           id: `fr-up-${i}-${Date.now()}`,
           benefitRef: ref,
-          typeOfFinancial: total >= 0 ? 'Cost Save' : 'Cost Avoidance',
+          typeOfFinancial: 'Cost Save',
           driver: l.name,
           measure: 'S$ Value',
           values,
@@ -656,7 +664,6 @@ export class ValueBenefits {
   protected readonly blKind = signal<BaselineKind | null>(null);
   protected readonly blEditingId = signal<string | null>(null);
   protected readonly blName = signal('');
-  protected readonly blValue = signal('');
   protected readonly blMeasure = signal('');
   protected readonly blUnit = signal('');
   protected readonly blStartingPoint = signal('');
@@ -667,6 +674,14 @@ export class ValueBenefits {
   protected readonly frequencyOptions = ['Monthly', 'Quarterly', 'Half-yearly', 'Annually', 'At milestone'];
 
 
+  /**
+   * Whether the form behind the dialog has the dates the template needs. A
+   * workbook's year columns come from them, so uploading before they are set
+   * can only fail — better to say so before the upload than after it.
+   */
+  protected readonly dialogDatesSet = computed(() =>
+    this.blFor() === 'edit' ? this.datesSetEdit() : this.datesSet());
+
   /** The file belonging to whichever form the dialog was opened from. */
   protected readonly dialogFile = computed(() =>
     this.blFor() === 'edit' ? this.editFile() : this.draftFile());
@@ -676,7 +691,6 @@ export class ValueBenefits {
     this.blEditingId.set(null);
     this.blKind.set(null);
     this.blName.set('');
-    this.blValue.set('');
     this.blMeasure.set('');
     this.blUnit.set('');
     this.blStartingPoint.set('');
@@ -691,7 +705,7 @@ export class ValueBenefits {
     this.blEditingId.set(line.id);
     this.blKind.set(line.kind);
     this.blName.set(line.name);
-    this.blValue.set(line.value === null ? '' : String(line.value));
+
     this.blMeasure.set(line.measure);
     this.blUnit.set(line.unit);
     this.blStartingPoint.set(line.startingPoint);
@@ -704,10 +718,16 @@ export class ValueBenefits {
   protected closeBaselineDialog() { this.blOpen.set(false); }
 
   /** Enough to be worth saving — a name, plus the pass condition when it is one. */
+  /**
+   * A financial baseline cannot be saved until its template has been uploaded
+   * and validated: its figures live only in that file, so saving one without
+   * it would create a baseline with nothing behind it and no way to type the
+   * numbers in afterwards.
+   */
   protected readonly blValid = computed(() => {
     if (!this.blKind() || !this.blName().trim()) return false;
     return this.blKind() === 'Financial'
-      ? this.blValue().trim() !== ''
+      ? !!this.dialogFile() && !this.upload()
       : this.blMeasure().trim() !== '' && this.blTargetCondition().trim() !== '';
   });
 
@@ -716,11 +736,21 @@ export class ValueBenefits {
     const kind = this.blKind() as BaselineKind;
     const financial = kind === 'Financial';
     const id = this.blEditingId() ?? `bl-${Date.now()}`;
+    const target = this.blFor();
+    const existing = (target === 'edit' ? this.editBaselineLines() : this.draftBaselineLines())
+      .find((l) => l.id === id);
+    const rows = target === 'edit' ? this.editLines() : this.draftLines();
+    const uploadedTotal = rows.reduce(
+      (sum, r) => sum + Object.values(r.values).reduce((t, v) => t + (v ?? 0), 0), 0);
     const line: BaselineLine = {
       id,
       kind,
       name: this.blName().trim(),
-      value: financial ? Number(this.blValue().replace(/[^0-9.-]/g, '')) || 0 : null,
+      baselineId: existing?.baselineId || this.nextLineBaselineId(),
+      // A financial baseline's figures are the uploaded rows' total; nothing
+      // is typed, so nothing can disagree with the workbook.
+      originalValue: financial ? (existing?.originalValue ?? uploadedTotal) : null,
+      currentValue: financial ? uploadedTotal : null,
       measure: financial ? '' : this.blMeasure().trim(),
       unit: financial ? '' : this.blUnit().trim(),
       startingPoint: financial ? '' : this.blStartingPoint().trim(),
@@ -739,6 +769,13 @@ export class ValueBenefits {
     const t = this.blFor();
     if (!this.baselineLinesFor(t).some((l) => l.kind === 'Financial')) this.removeFinancialFile(t);
     this.blOpen.set(false);
+  }
+
+  /** Baseline IDs run in one sequence across the baselines on this benefit. */
+  private nextLineBaselineId() {
+    const lines = this.blFor() === 'edit' ? this.editBaselineLines() : this.draftBaselineLines();
+    const base = this.detail()?.baselineId ?? 'BL0001';
+    return `${base}-${String(lines.length + 1).padStart(2, '0')}`;
   }
 
   protected removeBaselineLine(target: 'edit' | 'draft', id: string) {

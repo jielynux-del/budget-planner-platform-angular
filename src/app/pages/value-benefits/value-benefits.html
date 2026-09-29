@@ -380,55 +380,19 @@
           </p>
         </aside>
 
+        <!-- The benefit-level figures used to live here, but a benefit may
+             carry several baselines and each has its own reference and its own
+             approved figures. They now sit on the baseline they belong to; the
+             only thing left at benefit level is the reason a change is being
+             requested, which covers the whole package. -->
         <div class="entity-section-body">
-          @if (!summaryEdit()) {
-            <dl class="detail-grid">
-              <div><dt>Benefit Type</dt><dd>{{ b.type }}</dd></div>
-              <div><dt>Baseline ID</dt><dd>{{ b.baselineId }}</dd></div>
-              <div><dt>Original Approved Baseline</dt><dd>{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</dd></div>
-              <div>
-                <dt>Current Approved Baseline</dt>
-                <dd>{{ b.currentApprovedBaseline === null ? emptyValue : money(b.currentApprovedBaseline) }}
-                  @if (previously(record, 'currentApprovedBaseline'); as was) { <span class="was">Previously: {{ was }}</span> }
-                </dd>
-              </div>
-
-            </dl>
-          } @else {
+          @if (summaryEdit() && baselineChanged()) {
             <div class="create-grid">
-              <!-- Read from the baselines below. A benefit that holds both a
-                   cost saving and a service measure is Mixed, and nobody has to
-                   remember to keep a separate field in step. -->
-              <div class="filter-field">
-                <span class="filter-label">Benefit Type</span>
-                <p class="readonly-field">{{ editTypeDerived() }}</p>
+              <div class="filter-field span-2">
+                <span class="filter-label">Baseline Change Reason</span>
+                <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
               </div>
-              <!-- Assigned by the system when a baseline change is approved. -->
-              <div class="filter-field">
-                <span class="filter-label">Baseline ID</span>
-                <p class="readonly-field">{{ b.baselineId }}</p>
-              </div>
-              <!-- The opening figure never moves; it is what variance is read against. -->
-              <div class="filter-field">
-                <span class="filter-label">Original Approved Baseline</span>
-                <p class="readonly-field">{{ b.originalApprovedBaseline === null ? emptyValue : money(b.originalApprovedBaseline) }}</p>
-              </div>
-              @if (editHasFinancial()) {
-                <!-- Read from the uploaded workbook, never typed: a baseline
-                     figure should always be able to show its working. -->
-                <div class="filter-field">
-                  <span class="filter-label">Proposed Baseline (S$)</span>
-                  <p class="readonly-field">{{ money(editBaselineTotal()) }}</p>
-                </div>
-              }
-              @if (baselineChanged()) {
-                <div class="filter-field span-2">
-                  <span class="filter-label">Baseline Change Reason</span>
-                  <ui-text-input [(value)]="editReason" placeholder="Why the baseline is moving" />
-                </div>
-              }
             </div>
-
           }
         </div>
 
@@ -475,15 +439,18 @@
 
                 @if (l.kind === 'Financial') {
                   <dl class="bl-grid">
-                    <div><dt>Baseline value</dt><dd>{{ l.value === null ? emptyValue : money(l.value) }}</dd></div>
+                    <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
                     <div><dt>Year-phased detail</dt><dd>From the uploaded financial impact template</dd></div>
+                    <div><dt>Originally Approved</dt><dd>{{ l.originalValue === null ? emptyValue : money(l.originalValue) }}</dd></div>
+                    <div><dt>Currently Approved</dt><dd>{{ l.currentValue === null ? emptyValue : money(l.currentValue) }}</dd></div>
                   </dl>
                 } @else {
                   <dl class="bl-grid">
+                    <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
+                    <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
                     <div class="span-2"><dt>What it measures</dt><dd>{{ l.measure || emptyValue }}</dd></div>
                     <div><dt>Unit of measure</dt><dd>{{ l.unit || emptyValue }}</dd></div>
-                    <div><dt>Measured</dt><dd>{{ l.frequency || emptyValue }}</dd></div>
-                    <div class="span-2"><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
+                    <div><dt>Starting point</dt><dd>{{ l.startingPoint || emptyValue }}</dd></div>
                     <div class="span-2"><dt>What counts as meeting it</dt><dd>{{ l.target || emptyValue }}</dd></div>
                     <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
                   </dl>
@@ -913,7 +880,8 @@
 
             @if (l.kind === 'Financial') {
               <dl class="bl-grid">
-                <div><dt>Baseline value</dt><dd>{{ l.value === null ? emptyValue : money(l.value) }}</dd></div>
+                <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
+                <div><dt>Currently Approved</dt><dd>{{ l.currentValue === null ? emptyValue : money(l.currentValue) }}</dd></div>
                 <div><dt>Year-phased detail</dt><dd>From the uploaded financial impact template</dd></div>
               </dl>
             } @else {
@@ -1016,7 +984,8 @@
             </div>
             @if (l.kind === 'Financial') {
               <dl class="bl-grid">
-                <div><dt>Baseline value</dt><dd>{{ l.value === null ? emptyValue : money(l.value) }}</dd></div>
+                <div><dt>Baseline ID</dt><dd>{{ l.baselineId || emptyValue }}</dd></div>
+                <div><dt>Currently Approved</dt><dd>{{ l.currentValue === null ? emptyValue : money(l.currentValue) }}</dd></div>
               </dl>
             } @else {
               <dl class="bl-grid">
@@ -1372,11 +1341,6 @@
         </div>
 
         @if (blKind() === 'Financial') {
-          <div class="filter-field">
-            <span class="filter-label">Baseline Value (S$)</span>
-            <ui-text-input [(value)]="blValue" placeholder="0" />
-          </div>
-
           <!-- The template belongs to the kind, not to a separate section: a
                financial baseline's year-by-year detail IS the workbook, so it
                is asked for here alongside the figure, exactly as the
@@ -1384,20 +1348,32 @@
           <div class="fi-dialog-block">
             <div class="fi-label">
               <span class="fi-title">Financial Impact Template</span>
-              <p class="fi-note">Enter the figures for each baseline and year, then upload the filled template. Values are shown read-only once validated.</p>
+              <p class="fi-note">A financial baseline has no single figure — the template phases it across years, and those columns are the baseline. Upload the filled template to define it.</p>
             </div>
 
-            <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
-              <ui-icon name="download" [size]="16" />
-              Download Template (Excel)
-            </button>
+            @if (!dialogDatesSet()) {
+              <!-- Said before the upload rather than after it: without dates
+                   the template has no year columns, so an attempt could only
+                   ever fail, and a failure here reads as a dead end. -->
+              <ui-info-banner
+                tone="warning"
+                [dismissible]="false"
+                message="Set a start and end date on Benefit Details first — the template's year columns follow that range." />
+            } @else {
+              <button ui-button variant="secondary" size="small" type="button" (click)="downloadTemplate()">
+                <ui-icon name="download" [size]="16" />
+                Download Template (Excel)
+              </button>
 
-            <ui-info-banner
-              tone="info"
-              [dismissible]="false"
-              message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
+              <ui-info-banner
+                tone="info"
+                [dismissible]="false"
+                message="Only one file is held per benefit. Uploading a new file replaces the existing values." />
+            }
 
-            @if (upload(); as u) {
+            @if (!dialogDatesSet()) {
+              <!-- nothing to upload into yet -->
+            } @else if (upload(); as u) {
               <ui-upload-file
                 [name]="u.name"
                 [status]="u.status === 'failed' ? 'failed' : u.status === 'validating' ? 'indeterminate' : 'uploading'"
@@ -1455,6 +1431,10 @@
         }
       }
     </div>
+
+    @if (blKind() === 'Financial' && !dialogFile() && dialogDatesSet()) {
+      <p class="rl-hint">A financial baseline is defined by its template, so one has to be uploaded before it can be added.</p>
+    }
 
     <div class="rl-actions">
       <button ui-button variant="secondary" size="small" type="button" (click)="closeBaselineDialog()">Cancel</button>
