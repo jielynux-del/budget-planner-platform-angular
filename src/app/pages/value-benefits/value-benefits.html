@@ -414,23 +414,41 @@
                the template beneath its own name, so a figure is never shown
                without the baseline it belongs to. -->
           @for (l of blines; track l.id) {
-            <div class="bl-card">
-              <div class="bl-card-head">
-                <div class="bl-card-title">
-                  <span class="bl-name">{{ l.name }}</span>
-                  <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
-                </div>
-                @if (summaryEdit()) {
-                  <div class="bl-card-actions">
-                    <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Edit this baseline" (click)="editBaselineLine('edit', l)">
-                      <ui-icon name="edit" [size]="16" />
-                    </button>
-                    <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Remove this baseline" (click)="removeBaselineLine('edit', l.id)">
-                      <ui-icon name="delete" [size]="16" />
-                    </button>
-                  </div>
-                }
+            <!-- Same accordion the history and approval trail use below, so the
+                 section reads as one kind of thing. The action buttons are
+                 projected UNCONDITIONALLY and hidden with a style binding:
+                 content inside @if never reaches a named slot, it falls through
+                 to the body — this has caught us twice already. -->
+            <!-- `title` is a required input but a projected header does NOT
+                 replace it — passing both printed the name twice. Bound empty
+                 so only the projected header renders; the name is still in the
+                 header's own text for a screen reader. -->
+            <ui-accordion title="" [defaultOpen]="true">
+              <div accordion-header class="bl-card-title">
+                <span class="bl-name">{{ l.name }}</span>
+                <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
               </div>
+
+              <button
+                accordion-actions
+                ui-icon-button
+                size="tiny"
+                type="button"
+                aria-label="Edit this baseline"
+                [style.display]="summaryEdit() ? null : 'none'"
+                (click)="editBaselineLine('edit', l)">
+                <ui-icon name="edit" [size]="16" />
+              </button>
+              <button
+                accordion-actions
+                ui-icon-button
+                size="tiny"
+                type="button"
+                aria-label="Remove this baseline"
+                [style.display]="summaryEdit() ? null : 'none'"
+                (click)="removeBaselineLine('edit', l.id)">
+                <ui-icon name="delete" [size]="16" />
+              </button>
 
               @if (l.kind === 'Financial') {
                 <dl class="bl-grid">
@@ -441,7 +459,6 @@
                 </dl>
 
                 @let lrows = rowsForBaseline(brows, l);
-                @let byears = displayYears(b);
                 @if (lrows.length) {
                   <div class="vb-scroll">
                     <table ui-table size="sm" class="lines-table">
@@ -490,7 +507,7 @@
                   <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
                 </dl>
               }
-            </div>
+            </ui-accordion>
           }
         </div>
 
