@@ -8,6 +8,124 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-09-29 — A baseline carries its own identity; financial ones are defined by file alone
+
+**A financial baseline has no single figure to type.** The template phases the money
+across years, and those year columns *are* the baseline — a headline number typed beside
+them is a second source of truth that can only drift. The typed field is gone; the value
+is read from the uploaded rows, and a financial baseline cannot be saved until its
+template has uploaded and validated. Previously one could be created with nothing behind
+it and no way to supply the numbers afterwards.
+
+**Baseline ID and the approved figures moved from the benefit onto each baseline.** A
+benefit may carry several, and each moves through approval on its own reference, so a
+single benefit-level Baseline ID could only ever describe one of them. Only the change
+reason stays at benefit level, because one review still covers the whole package.
+
+**The upload lives in the add-baseline dialog, not in a section of its own.** Choosing
+Financial reveals the template controls beside the baseline being defined, exactly as
+choosing Non-Financial reveals what it measures and how. The page keeps the resulting
+values read-only.
+
+**A validation rule nobody can reach is not a rule.** The first version rejected a
+workbook on a benefit with no financial baseline — but the upload is only shown once one
+exists, so it could never fire. It now checks what can actually be wrong: missing dates,
+which is also now said *before* the upload rather than after, because a failure at that
+point reads as a dead end with no way out.
+
+### Known gaps
+- `Rejected` exists in `BaselineApprovalStatus` but no path in the UI produces it; every
+  decision yields Approved or Rework. Either wire it or remove it from the type.
+- Finance is read-only (`canRequest: false, canApprove: false`). If Finance is meant to
+  approve anything, that is a gap rather than a decision.
+
+---
+
+## 2026-09-28 — Non-financial baselines get a shape; financial figures arrive as a file
+
+**A sentence of prose is not a baseline.** A non-financial benefit used to state its
+baseline as free text, which meant two people could read the same benefit and disagree
+about whether it had been met. It now states what it measures, in what unit, from which
+source, how often, where it stands today, and the condition that counts as meeting it.
+
+**A benefit may hold both kinds, so the kind belongs to the line.** A cost saving and a
+service-level improvement are one benefit to the business, not two. The kind is chosen
+when a baseline is added and then fixed — the two ask for entirely different things, and
+a form that rearranges itself under the reader loses what they already typed.
+
+**Benefit type is therefore read, never chosen.** Financial, Non-Financial or Mixed,
+derived from the baselines the benefit holds, so it can never contradict its own
+contents. Reporting follows the same rule: a mixed benefit is asked for both an actual
+value and a progress note.
+
+**The rework bug, and the half of it nobody reported.** A benefit sent back for rework
+still carries the returned request, but the edit form read the benefit's own fields and
+cleared the staged lines — so the owner lost the reporting line they had added *and*
+every field change they had proposed. The form now opens on the returned request, which
+is also what makes the Sponsor's comments actionable: the owner amends what came back
+rather than rebuilding it.
+
+**Why the workbook goes through approval rather than applying on upload.** The figures
+are the baseline, and the rule already established is that one review covers the whole
+benefit. A replacement therefore travels in the same package as everything else and is
+named in the audit log, rather than quietly changing the numbers under a pending review.
+
+---
+
+## 2026-09-28 — Moving Value Benefits to ATS level: deferred, not rejected
+
+Raised as a direction, parked pending three answers. Recorded here so the current
+separation reads as a deliberate hold rather than an oversight.
+
+The move is cheap today for one reason: **`Benefit` carries no reference to its parent.**
+Ownership lives entirely in `benefitsFor(id)`, a keyed store whose key is just a string,
+and `ValueBenefits` uses its `workstreamId` input for nothing else. Roughly thirty
+references across six files.
+
+**Three questions gate it:**
+1. Does a benefit belong to the Master ATS or to a sub-ATS revision? This sets the key.
+2. Can one benefit belong to more than one ATS? Today it cannot — if it can, this is a
+   join rather than a rename, and a week rather than a day.
+3. Does DOA approval govern benefit changes, or do benefits keep their own
+   Owner → Sponsor → Finance path? ATS approves by authority limit driven by amount;
+   benefits approve by role regardless of value.
+
+**Two properties worth protecting while this is on hold:** `Benefit` must not acquire a
+workstream-shaped field, and `ats.ts` must not acquire a benefits link. Either one makes
+the next move expensive.
+
+**Known risk if the move happens:** ATS investment is phased monthly, benefit baselines
+yearly, and the two are seeded independently. On one record the obvious question is
+whether the ATS was worth it, and today the figures have no relationship at all.
+
+---
+
+## 2026-09-25 — The ATS table is rebuilt on the kit's own table pattern
+
+**The column filters were in the wrong place structurally.** They sat in a separate
+`<tr>` beneath the header row, outside `ui-column-header`'s padding and border, which is
+why the strokes and spacing never matched Value Benefits. The kit projects a filter *into*
+the column header; done that way the two tables measure identically — 80px header,
+8/8/8/24 gutter padding, one `<thead>` row.
+
+**Moving the actions into the header's own `[uiTableActions]` slot retired three
+overrides at once**: the `::ng-deep` rules forcing `.control-row` and `.control-left` to
+full width, and the flex-wrap workaround they had needed. Worth noting as a pattern — the
+overrides existed only because the component was fighting the kit's layout instead of
+using its slots.
+
+**The scroll container was sizing to the table, not the card.** `min-width: 0` was on the
+grid but had not reached the card, so the card blew out to the table's full 2100px and
+the right-hand columns were clipped somewhere unreachable rather than scrolling. The
+table now scrolls inside a card bounded by the viewport.
+
+**Status pills became a clickable summary card**, lifted from `value-benefits.scss` rather
+than rebuilt, so the two summaries cannot drift. Counts are taken before the status filter
+so a tile says what selecting it *would* show; clicking the active tile clears it, so the
+card never becomes a trap.
+
+---
+
 ## 2026-09-25 — Approval to Spend built as two standalone pages
 
 ATS arrives as a listing and a record page, deliberately unconnected to
@@ -830,8 +948,16 @@ Every override, so none of them look like accidents:
 Stated rather than hidden, per RULES.md #8:
 
 - **Nothing persists across a browser refresh.** All state is in memory.
-- **No supporting-evidence upload.** Every form in the original spec had one; the kit ships
-  `ui-file-drop` / `ui-upload-file` for it.
+- **No supporting-evidence upload on reporting lines.** The financial impact template now uses
+  `ui-file-drop` / `ui-upload-file`, but a reporting line's evidence is still a text field.
+- **The upload is a mock throughout.** `ui-file-drop` reports that a file was chosen and leaves
+  the host to invent one; the transfer, the validation pass and the parsed rows are all staged
+  on timers. Figures are derived from the baseline's name so a benefit shows the same numbers
+  on every upload rather than jumping between demos.
+- **`Rejected` is unreachable.** It exists in `BaselineApprovalStatus`, but every decision path
+  yields Approved or Rework. Wire it or drop it from the type.
+- **Finance takes no actions.** `canRequest: false, canApprove: false` — a viewer only. If the
+  role is meant to approve, that is unbuilt rather than decided.
 - **No reporting cadence.** Nothing tracks when an update is due, so no benefit can be overdue.
 - **Snapshots start from this build.** Audit entries written before the snapshot field existed
   have none, and one cannot be reconstructed — the descriptive fields are not versioned. Those
@@ -847,3 +973,10 @@ Stated rather than hidden, per RULES.md #8:
 - **`ui-status-tag` has five variants against seven workstream statuses**, so two pairs share a
   colour. `UiNavStatus` has two against the tree's five.
 - **The kit's token set is the neutral theme**, not DLS colours — `tokens.css` says so itself.
+- **`ui-dropdown-menu` is fixed at `z-index: 1100`.** Any dialog above that level hides the
+  option list of a select inside it: the field reports itself open, the panel is in the DOM
+  with a correct box, and nothing is visible. Raising it from outside loses a specificity
+  contest that component styles win on load order, so this app's dialogs sit *below* 1100
+  instead. Worth fixing in the kit — a dropdown should stack above its own invoker.
+- **ATS carries no link to benefits or workstreams**, deliberately — see the 28 Sep entry. The
+  three questions there have not been answered.
