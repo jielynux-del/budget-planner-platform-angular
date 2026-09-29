@@ -810,13 +810,17 @@ ui-date-input ::ng-deep input.ui-date-input {
 .bl-body {
   display: grid;
   gap: 16px;
-  padding: 4px 16px 16px;
+  // 16px top so the header's rule has the same air beneath it as the content
+  // has at the sides; at 4px it read as a line drawn on the first field.
+  padding: 16px;
   min-width: 0;
 }
 
+// Left, with the fields they act on, rather than pushed to the opposite edge
+// from everything else in the box.
 .bl-body-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
 }
 
