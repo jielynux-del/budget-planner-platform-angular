@@ -800,3 +800,35 @@ ui-date-input ::ng-deep input.ui-date-input {
   margin: 0;
   padding: 0 24px 4px;
 }
+
+/* ── Baseline accordion body ──────────────────────────────────
+   The kit's accordion body has no padding of its own. The history and
+   approval-trail accordions below hold a single full-bleed table, so they
+   never needed any — a baseline holds fields, a table and a file row, and
+   those have to sit on the header's own 16px inset rather than against the
+   box edge. */
+.bl-body {
+  display: grid;
+  gap: 16px;
+  padding: 4px 16px 16px;
+  min-width: 0;
+}
+
+.bl-body-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Inside a padded body the table no longer borrows the accordion's own edge,
+   so it draws its own again — the blanket rule further up removes it from any
+   table in an accordion, which is right only for the full-bleed ones. */
+.benefit-page .bl-body table[ui-table],
+ui-modal-shell ::ng-deep .bl-body table[ui-table] {
+  border: 1px solid var(--color-border-decorative);
+  border-radius: var(--radius-md, 8px);
+  /* The 900px floor belongs to the history table's eleven columns. This one
+     has six and should fit the card instead of forcing a scrollbar. */
+  min-width: 0;
+
+}

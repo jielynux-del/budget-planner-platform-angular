@@ -415,10 +415,7 @@
                without the baseline it belongs to. -->
           @for (l of blines; track l.id) {
             <!-- Same accordion the history and approval trail use below, so the
-                 section reads as one kind of thing. The action buttons are
-                 projected UNCONDITIONALLY and hidden with a style binding:
-                 content inside @if never reaches a named slot, it falls through
-                 to the body — this has caught us twice already. -->
+                 section reads as one kind of thing. -->
             <!-- `title` is a required input but a projected header does NOT
                  replace it — passing both printed the name twice. Bound empty
                  so only the projected header renders; the name is still in the
@@ -429,26 +426,23 @@
                 <ui-pill [label]="l.kind" [color]="l.kind === 'Financial' ? 'green' : 'grey'" [dot]="false" />
               </div>
 
-              <button
-                accordion-actions
-                ui-icon-button
-                size="tiny"
-                type="button"
-                aria-label="Edit this baseline"
-                [style.display]="summaryEdit() ? null : 'none'"
-                (click)="editBaselineLine('edit', l)">
-                <ui-icon name="edit" [size]="16" />
-              </button>
-              <button
-                accordion-actions
-                ui-icon-button
-                size="tiny"
-                type="button"
-                aria-label="Remove this baseline"
-                [style.display]="summaryEdit() ? null : 'none'"
-                (click)="removeBaselineLine('edit', l.id)">
-                <ui-icon name="delete" [size]="16" />
-              </button>
+              <!-- The body carries its own padding: the kit's accordion body
+                   has none, because the history and trail accordions below hold
+                   one full-bleed table and never needed any. Fields, a table and
+                   a file row have to line up with the header's 16px inset. -->
+              <div class="bl-body">
+                @if (summaryEdit()) {
+                  <div class="bl-body-actions">
+                    <button ui-button variant="secondary" size="small" type="button" (click)="editBaselineLine('edit', l)">
+                      <ui-icon name="edit" [size]="16" />
+                      Edit
+                    </button>
+                    <button ui-button variant="secondary" size="small" type="button" (click)="removeBaselineLine('edit', l.id)">
+                      <ui-icon name="delete" [size]="16" />
+                      Remove
+                    </button>
+                  </div>
+                }
 
               @if (l.kind === 'Financial') {
                 <dl class="bl-grid">
@@ -507,6 +501,7 @@
                   <div class="span-2"><dt>How it is measured</dt><dd>{{ l.method || emptyValue }}</dd></div>
                 </dl>
               }
+              </div>
             </ui-accordion>
           }
         </div>
