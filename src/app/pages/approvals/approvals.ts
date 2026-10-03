@@ -26,8 +26,8 @@ const ALL = 'All';
 export class Approvals {
   private readonly router = inject(Router);
 
-  /** Scopes the queue to one workstream — a benefit only exists on a workstream. */
-  readonly workstreamId = input<string | null>(null);
+  /** Scopes the queue to one ATS request — a benefit only exists on a request. */
+  readonly atsId = input<string | null>(null);
 
   /**
    * Reported upward rather than confirmed here: the page this queue is embedded
@@ -93,8 +93,8 @@ export class Approvals {
 
   private readonly scoped = computed(() => {
     this.version();
-    const ws = this.workstreamId();
-    return ws ? approvalQueue().filter((i) => i.workstreamId === ws) : approvalQueue();
+    const ats = this.atsId();
+    return ats ? approvalQueue().filter((i) => i.atsId === ats) : approvalQueue();
   });
 
   protected readonly queue = computed<ApprovalItem[]>(() =>
@@ -176,7 +176,7 @@ export class Approvals {
       reference: item.reference
     };
 
-    benefitsFor(item.workstreamId).update((rows) =>
+    benefitsFor(item.atsId).update((rows) =>
       rows.map((b) => (b.id === item.benefit.id ? decide(b, item.kind, decision) : b)));
 
     this.version.update((v) => v + 1);
@@ -226,8 +226,8 @@ export class Approvals {
    * can act on it: being unable to approve is no reason to be unable to look.
    */
   protected openRequest(item: ApprovalItem) {
-    this.router.navigate(['/workstreams', item.workstreamId], {
-      queryParams: { tab: 'value-benefits', benefit: item.benefit.benefitRef }
+    this.router.navigate(['/approval-to-spend', item.atsId], {
+      queryParams: { tab: 'benefits', benefit: item.benefit.benefitRef }
     });
   }
 

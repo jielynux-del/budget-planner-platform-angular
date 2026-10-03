@@ -44,7 +44,9 @@
       </header>
 
       <div class="detail-tabs">
-        <ui-tabs [tabs]="tabs()" [(active)]="activeTab" />
+        <!-- The tab lives in the URL so the approvals queue can link straight
+             to a benefit on this request. -->
+        <ui-tabs [tabs]="tabs()" [active]="activeTab()" (activeChange)="onTab($event)" />
       </div>
 
       <div class="detail-body">
@@ -123,6 +125,20 @@
           </ui-card>
         } @else if (activeTab() === 'alerts') {
           <ui-card><p class="empty">Drawdown Alerts is not built yet.</p></ui-card>
+        } @else if (activeTab() === 'benefits') {
+          @if (benefitsLocked()) {
+            <!-- The request travels as one package: nothing inside it can be
+                 changed while it is with its approver. -->
+            <ui-info-banner
+              tone="warning"
+              [dismissible]="false"
+              message="This ATS request is pending approval. Its benefits cannot be changed until it is approved or sent back for rework." />
+          }
+          <app-value-benefits
+            [benefits]="benefits()"
+            [atsId]="r.id"
+            [locked]="benefitsLocked()"
+            [openBenefitRef]="openBenefitRef()" />
         } @else {
           <ui-card><p class="empty">ATS Owners is not built yet.</p></ui-card>
         }

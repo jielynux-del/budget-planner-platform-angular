@@ -9,7 +9,6 @@ import {
 import { workstreamById } from '../../data/workstreams';
 import { hierarchy } from '../../data/tree';
 import { benefitsFor } from '../../data/benefitsStore';
-import { ValueBenefits } from '../value-benefits/value-benefits';
 import type { NodeStatus } from '../../data/models';
 
 const STATUS_VARIANT: Record<string, UiTagVariant> = {
@@ -40,7 +39,7 @@ const NAV_STATUS: Record<NodeStatus, UiNavStatus> = {
   imports: [
     UiNavPanel, UiNavPanelHeader, UiNavGroup, UiNavSubItem, UiCard,
     UiButton, UiIcon, UiIconButton, UiTabs, UiStatusTag, UiSectionHeader,
-    UiTable, UiTableRow, UiColumnHeader, ValueBenefits
+    UiTable, UiTableRow, UiColumnHeader
   ],
   templateUrl: './workstream-detail.html',
   styleUrl: './workstream-detail.scss'
@@ -91,7 +90,6 @@ export class WorkstreamDetail {
     { key: 'approvers', label: 'Approvers' },
     { key: 'financials', label: 'Financials' },
     { key: 'work-allocation', label: 'Work Allocation' },
-    { key: 'value-benefits', label: 'Benefits Tracking' },
     { key: 'others', label: 'Others' }
   ];
 

@@ -52,14 +52,23 @@ const STATUS_DOT: Record<string, UiPillColor> = {
 })
 export class ValueBenefits {
   readonly seeded = input.required<Benefit[]>({ alias: 'benefits' });
-  readonly workstreamId = input.required<string>();
+  /** The ATS request these benefits belong to. */
+  readonly atsId = input.required<string>();
+
+  /**
+   * Set while the ATS request is itself awaiting approval. The request travels
+   * as one package, so nothing inside it can be raised or changed until it is
+   * approved or sent back for rework — a benefit that stayed editable under a
+   * pending ATS would let the approver's package change beneath them.
+   */
+  readonly locked = input(false);
 
   /** The benefit the URL names, if any — the page's own back/forward state. */
   readonly openBenefitRef = input<string | null>(null);
 
 
   /** The session store's list for this workstream, so edits persist. */
-  protected readonly benefits = computed(() => benefitsFor(this.workstreamId())());
+  protected readonly benefits = computed(() => benefitsFor(this.atsId())());
 
   protected readonly persona = currentPersona;
 
@@ -161,7 +170,8 @@ export class ValueBenefits {
    * is for.
    */
   protected actionDisabled(b: Benefit) {
-    return !this.persona().canRequest
+    return this.locked()
+      || !this.persona().canRequest
       || b.status === 'Closure Pending Approval'
       || b.pendingUpdate?.status === 'Pending Approval';
   }
@@ -390,7 +400,7 @@ export class ValueBenefits {
     // Navigating rather than opening: the URL is what the page reads back.
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { tab: 'value-benefits', benefit: b.benefitRef },
+      queryParams: { tab: 'benefits', benefit: b.benefitRef },
       queryParamsHandling: 'merge'
     });
     this.summaryEdit.set(false);
@@ -1047,7 +1057,7 @@ export class ValueBenefits {
     const requestKind = this.requestKind(b);
     if (!kind || !requestKind || !this.decisionValid()) return;
 
-    benefitsFor(this.workstreamId()).update((rows) =>
+    benefitsFor(this.atsId()).update((rows) =>
       rows.map((r) => (r.id === b.id
         ? decide(r, requestKind, {
             kind,
@@ -1232,7 +1242,7 @@ export class ValueBenefits {
       return;
     }
 
-    benefitsFor(this.workstreamId()).update((rows) =>
+    benefitsFor(this.atsId()).update((rows) =>
       rows.map((r) => {
         if (r.id !== b.id) return r;
         const parts: string[] = [];
@@ -1318,7 +1328,7 @@ export class ValueBenefits {
       this.closingDetail.set(false);
       this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { tab: 'value-benefits', benefit: null },
+        queryParams: { tab: 'benefits', benefit: null },
         queryParamsHandling: 'merge'
       });
     }, ValueBenefits.EXIT_MS);
@@ -1455,7 +1465,7 @@ export class ValueBenefits {
   private num(v: string) { return Number(String(v).replace(/[^0-9.-]/g, '')) || 0; }
 
   private patch(id: string, fn: (b: Benefit) => Benefit) {
-    benefitsFor(this.workstreamId()).update((rows) => rows.map((b) => (b.id === id ? fn(b) : b)));
+    benefitsFor(this.atsId()).update((rows) => rows.map((b) => (b.id === id ? fn(b) : b)));
   }
 
   /** Reporting update — appends to history, never overwrites. */
@@ -1781,7 +1791,7 @@ export class ValueBenefits {
       }]
     };
 
-    benefitsFor(this.workstreamId()).update((rows) => [...rows, benefit]);
+    benefitsFor(this.atsId()).update((rows) => [...rows, benefit]);
     this.closeCreate();
     this.toastBenefitId.set(benefit.id);
     this.toast.set('Benefit created and tracking is now active');

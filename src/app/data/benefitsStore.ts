@@ -1,29 +1,32 @@
 import { signal, type WritableSignal } from '@angular/core';
 import { defaultBenefits } from './benefitsData';
-import { workstreams } from './workstreams';
+import { ATS_RECORDS, atsById } from './ats';
 import type { Benefit } from './models';
 
 /**
- * Session store for benefit records, keyed by workstream. Held here rather than
- * derived per screen so an edit survives navigation, and so the approvals queue
- * can see every workstream's benefits at once.
+ * Session store for benefit records, keyed by ATS request. Held here rather
+ * than derived per screen so an edit survives navigation, and so the approvals
+ * queue can see every request's benefits at once.
+ *
+ * Benefits moved from the workstream to the ATS: they are logged and tracked
+ * against the request that funds them, and travel with it through approval.
  */
 const store = new Map<string, WritableSignal<Benefit[]>>();
 
-export function benefitsFor(workstreamId: string): WritableSignal<Benefit[]> {
-  let entry = store.get(workstreamId);
+export function benefitsFor(atsId: string): WritableSignal<Benefit[]> {
+  let entry = store.get(atsId);
   if (!entry) {
-    const ws = workstreams.find((w) => w.id === workstreamId);
-    entry = signal<Benefit[]>(ws ? defaultBenefits(ws) : []);
-    store.set(workstreamId, entry);
+    const ats = atsById(atsId);
+    entry = signal<Benefit[]>(ats ? defaultBenefits(ats) : []);
+    store.set(atsId, entry);
   }
   return entry;
 }
 
 export interface ApprovalItem {
   benefit: Benefit;
-  workstreamId: string;
-  workstreamName: string;
+  atsId: string;
+  atsName: string;
   /** What is being decided. */
   kind: 'Baseline Change' | 'Benefit Closure' | 'Benefit Update';
   reference: string;
@@ -35,8 +38,7 @@ export interface ApprovalItem {
   detail: string;
 }
 
-/** Only workstreams a user could plausibly have open are seeded, to keep it quick. */
-const SCOPE = 24;
+
 
 /**
  * Every live request across the portfolio — the queue behind the approvals
@@ -45,8 +47,8 @@ const SCOPE = 24;
 export function approvalQueue(): ApprovalItem[] {
   const items: ApprovalItem[] = [];
 
-  for (const ws of workstreams.slice(0, SCOPE)) {
-    for (const b of benefitsFor(ws.id)()) {
+  for (const ats of ATS_RECORDS) {
+    for (const b of benefitsFor(ats.id)()) {
       const latestBaseline = b.baselineHistory[b.baselineHistory.length - 1];
 
       // A baseline moved through Update benefit is part of THAT package and is
@@ -58,8 +60,8 @@ export function approvalQueue(): ApprovalItem[] {
           (b.approvalStatus === 'Pending Approval' || b.approvalStatus === 'Rework')) {
         items.push({
           benefit: b,
-          workstreamId: ws.id,
-          workstreamName: ws.name,
+          atsId: ats.id,
+          atsName: ats.name,
           kind: 'Baseline Change',
           reference: b.baselineId,
           requestedBy: latestBaseline?.requestedBy ?? '-',
@@ -74,8 +76,8 @@ export function approvalQueue(): ApprovalItem[] {
       if (upd && (upd.status === 'Pending Approval' || upd.status === 'Rework')) {
         items.push({
           benefit: b,
-          workstreamId: ws.id,
-          workstreamName: ws.name,
+          atsId: ats.id,
+          atsName: ats.name,
           kind: 'Benefit Update',
           reference: b.benefitRef,
           requestedBy: upd.requestedBy,
@@ -97,8 +99,8 @@ export function approvalQueue(): ApprovalItem[] {
         const submitted = [...b.auditLog].reverse().find((a) => a.action.includes('Closure Submitted'));
         items.push({
           benefit: b,
-          workstreamId: ws.id,
-          workstreamName: ws.name,
+          atsId: ats.id,
+          atsName: ats.name,
           kind: 'Benefit Closure',
           reference: b.benefitRef,
           requestedBy: submitted?.user ?? '-',

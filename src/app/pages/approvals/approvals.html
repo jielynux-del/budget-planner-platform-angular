@@ -1,9 +1,9 @@
 <div class="page">
-  @if (!workstreamId()) { <h1 class="page-title">Benefit Approvals</h1> }
+  @if (!atsId()) { <h1 class="page-title">Benefit Approvals</h1> }
 
   <!-- No banner here when embedded: the page above the tabs already carries
        the one, and two of them say the same thing twice. -->
-  @if (!workstreamId() && (mine().length || myRework().length)) {
+  @if (!atsId() && (mine().length || myRework().length)) {
     <ui-info-banner
       tone="warning"
       [title]="(mine().length + myRework().length) + ' item' + ((mine().length + myRework().length) === 1 ? '' : 's') + ' need your attention'"
@@ -44,8 +44,8 @@
             <th><ui-column-header label="Request Type" size="sm" [first]="true" /></th>
             <th><ui-column-header label="Reference" size="sm" /></th>
             <th style="min-width: 220px"><ui-column-header label="Benefit" size="sm" /></th>
-            @if (!workstreamId()) {
-              <th style="min-width: 200px"><ui-column-header label="Workstream" size="sm" /></th>
+            @if (!atsId()) {
+              <th style="min-width: 200px"><ui-column-header label="ATS Request" size="sm" /></th>
             }
             <th><ui-column-header label="Requested By" size="sm" /></th>
             <th><ui-column-header label="Requested On" size="sm" /></th>
@@ -63,7 +63,7 @@
                 <div class="cell-name">{{ item.benefit.name }}</div>
                 <div class="cell-meta">{{ item.detail }}</div>
               </td>
-              @if (!workstreamId()) { <td class="cell-meta">{{ item.workstreamName }}</td> }
+              @if (!atsId()) { <td class="cell-meta">{{ item.atsName }}</td> }
               <td>{{ item.requestedBy }}</td>
               <td>{{ item.requestedOn }}</td>
               <td>{{ item.pendingWith }}</td>
@@ -87,7 +87,7 @@
           }
           @if (!queue().length) {
             <tr ui-table-row>
-              <td [attr.colspan]="workstreamId() ? 8 : 9" class="empty">No live requests match these filters.</td>
+              <td [attr.colspan]="atsId() ? 8 : 9" class="empty">No live requests match these filters.</td>
             </tr>
           }
         </tbody>

@@ -1,5 +1,5 @@
 import type { BaselineLine, Benefit, BenefitSnapshot, BenefitType, BenefitUpdate } from './models';
-import type { Workstream } from './models';
+import type { Ats } from './ats';
 import { businessUnitsFor } from './people';
 
 /** Signed-in user for the prototype — stamped on anything the user submits. */
@@ -301,12 +301,13 @@ export const financialTotal = (rows: Benefit['financialRows']) =>
   rows.reduce((sum, r) => sum + Object.values(r.values).reduce((s, v) => s + (v ?? 0), 0), 0);
 
 /**
- * Seeded benefit lifecycle state. Deterministic so figures don't shift between
- * reloads. Cancelled workstreams open with no benefits defined.
+ * Seeded benefit lifecycle state for an ATS request. Deterministic so figures
+ * don't shift between reloads.
+ *
+ * Benefits are populated before an ATS is sent for approval, so a Draft ATS
+ * carries them too — there is no status that opens with none.
  */
-export function defaultBenefits(ws: Workstream): Benefit[] {
-  if (ws.workStatus === 'Cancelled') return [];
-
+export function defaultBenefits(_ats: Ats): Benefit[] {
   return seedBenefits().map(realignFinancialYears).map(withBaselines).map(withSeedSnapshots);
 }
 

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -7,6 +7,8 @@ import {
   type UiNavStatus, type UiSelectOption, type UiTab
 } from 'ai-dls-kit';
 import { atsById, amountTotal, ATS_CURRENCIES, type Ats, type AtsMonth } from '../../data/ats';
+import { benefitsFor } from '../../data/benefitsStore';
+import { ValueBenefits } from '../value-benefits/value-benefits';
 
 type Period = 'monthly' | 'quarterly' | 'yearly';
 
@@ -22,7 +24,7 @@ const QUARTERS: Array<[number, number, number]> = [[1, 2, 3], [4, 5, 6], [7, 8, 
   selector: 'app-ats-detail',
   imports: [
     RouterLink, UiNavPanel, UiNavGroup, UiNavSubItem, UiCard, UiButton, UiIcon,
-    UiInfoBanner, UiTabs, UiSelect, UiTable, UiTableRow, UiColumnHeader
+    UiInfoBanner, UiTabs, UiSelect, UiTable, UiTableRow, UiColumnHeader, ValueBenefits
   ],
   templateUrl: './ats-detail.html',
   styleUrl: './ats-detail.scss'
@@ -37,15 +39,47 @@ export class AtsDetail {
   /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
   protected readonly panelExpanded = signal(true);
 
-  protected readonly activeTab = signal('details');
+  private readonly query = toSignal(this.route.queryParamMap);
+
+  /**
+   * Derived from the URL rather than held, so a link into a benefit opens the
+   * right tab — the approvals queue navigates straight to one.
+   */
+  protected readonly activeTab = linkedSignal<string>(() => this.query()?.get('tab') || 'details');
+
+  protected readonly openBenefitRef = computed(() => this.query()?.get('benefit') ?? null);
+
+  /** The benefits logged against this request. */
+  protected readonly benefits = computed(() => {
+    const id = this.record()?.id;
+    return id ? benefitsFor(id)() : [];
+  });
+
+  /**
+   * A request under approval travels as one package, so its benefits are
+   * locked with it: nothing in an ATS can change while the ATS is pending.
+   */
+  protected readonly benefitsLocked = computed(() => this.record()?.status === 'Pending Approval');
   protected readonly tabs = computed<UiTab[]>(() => {
     const alerts = this.record()?.alerts ?? 0;
     return [
       { key: 'details', label: 'ATS Details' },
       { key: 'alerts', label: 'Drawdown Alerts', count: alerts > 0 ? alerts : undefined },
+      { key: 'benefits', label: 'Benefits Tracking' },
       { key: 'owners', label: 'ATS Owners' }
     ];
   });
+
+  protected onTab(key: string | undefined) {
+    if (!key) return;
+    this.activeTab.set(key);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: key === 'details' ? null : key, benefit: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
 
   protected readonly bannerDismissed = signal(false);
 

@@ -27,7 +27,7 @@
 
   @if (pageTab() === 'approvals') {
     <app-approvals
-    [workstreamId]="workstreamId()"
+    [atsId]="atsId()"
     (decided)="onDecision($event)"
     (viewAudit)="openAuditById($event)" />
   } @else {
@@ -84,7 +84,7 @@
         <button uiPopoverActions ui-button variant="primary" size="small" type="button" (click)="filtersOpen.set(false)">Apply</button>
       </ui-popover>
 
-      <button uiTableActions ui-button variant="primary" size="small" type="button" (click)="openCreate()">
+      <button uiTableActions ui-button variant="primary" size="small" type="button" [disabled]="locked()" (click)="openCreate()">
         <ui-icon name="plus" />
         Add New Benefit
       </button>
@@ -223,7 +223,9 @@
             <ui-icon name="download" />
             Download
           </button>
-          @if (persona().canRequest && !pendingReview(b)) {
+          <!-- `locked` is the ATS's own pending state: the whole request is
+               with its approver, so nothing inside it can be raised. -->
+          @if (persona().canRequest && !pendingReview(b) && !locked()) {
             @if (b.status === 'Closed') {
               <button ui-button variant="secondary" size="small" type="button" (click)="askReopen(b)">
                 <ui-icon name="history" />
