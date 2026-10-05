@@ -286,7 +286,11 @@
   margin-left: 0;
 }
 
+/* The benefit page's header bleeds to its container's edges with a negative
+   margin of exactly these tokens, so the container has to carry them: at
+   padding 0 the header overshot by 40px on each side, pulling the back chevron
+   under the nav rail and the actions off the right edge. */
 .detail-body--bare {
-  padding: 0;
+  padding: var(--padding-panel-v-lg) var(--padding-panel-h-xl);
   gap: 0;
 }
