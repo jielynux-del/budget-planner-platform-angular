@@ -73,6 +73,26 @@ export interface Ats {
   months: AtsMonth[];
   /** Unread drawdown alerts, shown as a dot on that tab. */
   alerts: number;
+
+  /* ---- Approval. A request is the unit that gets approved; everything in it,
+     benefits included, is approved with it. ---- */
+
+  /** Who sent it for approval, and when. Absent on a request never submitted. */
+  submittedBy?: string;
+  submittedOn?: string;
+  /** What the approver asked to be changed. Survives until it is resubmitted. */
+  reworkNote?: string;
+  /** Append-only. Every submission and decision, with who and when. */
+  auditLog: AtsAuditEntry[];
+}
+
+/** One entry in a request's approval trail. Appended, never edited. */
+export interface AtsAuditEntry {
+  id: string;
+  date: string;
+  user: string;
+  action: string;
+  comments: string;
 }
 
 export const ATS_STATUSES: AtsStatus[] = [
@@ -304,9 +324,51 @@ export const ATS_RECORDS: Ats[] = SEED.map((s, i) => {
     lastEditedBy: 'SYSTEM',
     totalInvestment: investment,
     totalPnl: pnl,
-    months: phase(total(investment), total(pnl))
+    months: phase(total(investment), total(pnl)),
+    // A request that is past Draft was submitted by someone; a seeded one is
+    // given a trail so the approval tab is not empty before anything happens.
+    submittedBy: s.status === 'Draft' ? undefined : pick(i, 1),
+    submittedOn: s.status === 'Draft' ? undefined : (s.createdOn ?? '-'),
+    reworkNote: s.status === 'Sent for Rework'
+      ? 'Funding split between CAPEX and OPEX does not match the business case. Restate it and resubmit.'
+      : undefined,
+    auditLog: seedTrail(s, i)
   } as Ats;
 });
+
+/** The approval trail a seeded request opens with. */
+function seedTrail(s: Partial<Ats> & { id: string; status: AtsStatus }, i: number): AtsAuditEntry[] {
+  const created = s.createdOn ?? '-';
+  const entries: AtsAuditEntry[] = [
+    { id: `${s.id}-t1`, date: created, user: pick(i, 6), action: 'Request Created', comments: `${s.id} opened as a draft.` }
+  ];
+  if (s.status === 'Draft') return entries;
+
+  entries.push({
+    id: `${s.id}-t2`, date: created, user: pick(i, 1),
+    action: 'Submitted for Approval', comments: 'Sent to the DOA approver.'
+  });
+
+  if (s.status === 'Sent for Rework') {
+    entries.push({
+      id: `${s.id}-t3`, date: s.lastEditedOn ?? created, user: pick(i, 3),
+      action: 'Sent for Rework',
+      comments: 'Funding split between CAPEX and OPEX does not match the business case. Restate it and resubmit.'
+    });
+  } else if (s.status === 'Approved' || s.status === 'Closed') {
+    entries.push({
+      id: `${s.id}-t3`, date: s.approvedDate ?? created, user: pick(i, 3),
+      action: 'Approved', comments: 'Approved within delegated authority.'
+    });
+  }
+  if (s.status === 'Closed') {
+    entries.push({
+      id: `${s.id}-t4`, date: s.lastEditedOn ?? created, user: pick(i, 2),
+      action: 'Request Closed', comments: 'Closed on completion, with all benefits closed.'
+    });
+  }
+  return entries;
+}
 
 export const atsById = (id: string) => ATS_RECORDS.find((a) => a.id === id) ?? null;
 

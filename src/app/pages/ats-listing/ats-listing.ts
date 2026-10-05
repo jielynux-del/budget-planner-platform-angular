@@ -8,9 +8,10 @@ import {
   type UiPillColor, type UiTagVariant
 } from 'ai-dls-kit';
 import {
-  ATS_COST_TYPES, ATS_CURRENCIES, ATS_RECORDS, ATS_STATUSES, ATS_SUB_TYPES, ATS_WORK_TYPES,
+  ATS_COST_TYPES, ATS_CURRENCIES, ATS_STATUSES, ATS_SUB_TYPES, ATS_WORK_TYPES,
   amountTotal, type Ats
 } from '../../data/ats';
+import { allAts } from '../../data/atsStore';
 import { LOCATIONS, PLATFORMS, TECH_UNITS } from '../../data/lookups';
 
 const ALL = 'All';
@@ -83,7 +84,10 @@ export class AtsListing {
   protected readonly subTypeChoices = [...ATS_SUB_TYPES];
   protected readonly statusChoices = [...ATS_STATUSES];
   protected readonly platformChoices = PLATFORMS.slice(1);
-  protected readonly subPlatformChoices = [...new Set(ATS_RECORDS.map((a) => a.subPlatform))];
+  // Computed, not a field: the records are live now, so a plain field would
+  // capture the list at construction and never see a new sub-platform.
+  protected readonly subPlatformChoices = computed(() =>
+    [...new Set(allAts().map((a) => a.subPlatform))]);
 
   /**
    * The summary card above the table. Each figure filters, and the counts are
@@ -112,7 +116,7 @@ export class AtsListing {
    */
   private readonly beforeStatus = computed(() => {
     const like = (v: string, q: string) => !q || v.toLowerCase().includes(q.trim().toLowerCase());
-    return ATS_RECORDS.filter((a) =>
+    return allAts().filter((a) =>
       (this.platform() === PLATFORMS[0] || a.platform === this.platform()) &&
       (!this.colWorkType().length || this.colWorkType().includes(a.workType)) &&
       (!this.colPlatform().length || this.colPlatform().includes(a.platform)) &&

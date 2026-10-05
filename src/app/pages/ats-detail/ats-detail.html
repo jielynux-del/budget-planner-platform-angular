@@ -57,6 +57,16 @@
             (closed)="bannerDismissed.set(true)" />
         }
 
+        <!-- Where the request stands and who has it. A returned request shows
+             the approver's note here, which is what the requester has to act on. -->
+        @if (stateNote(); as note) {
+          <ui-info-banner
+            [tone]="stateTone()"
+            [title]="r.status === 'Sent for Rework' ? 'Sent back for rework' : r.status"
+            [message]="note"
+            [dismissible]="false" />
+        }
+
         @if (activeTab() === 'details') {
           <div class="scenario-row">
             <ui-select [options]="scenarioOptions" [(value)]="scenario" />
@@ -143,8 +153,62 @@
           <ui-card><p class="empty">ATS Owners is not built yet.</p></ui-card>
         }
       </div>
+
+      <!-- One request, one decision. Whoever holds it sees their own action and
+           nobody sees both — the requester sends, the approver decides. -->
+      @if (showSubmit() || showDecide()) {
+        <div class="ats-footer">
+          @if (showSubmit()) {
+            <button ui-button variant="primary" size="small" type="button" (click)="submit()">
+              Submit for approval
+            </button>
+          }
+          @if (showDecide()) {
+            <button ui-button variant="secondary" size="small" type="button" (click)="openDecision('rework')">
+              Send for rework
+            </button>
+            <button ui-button variant="primary" size="small" type="button" (click)="openDecision('approve')">
+              Approve
+            </button>
+          }
+        </div>
+      }
     </div>
   </div>
 } @else {
   <ui-card><p class="empty">ATS not found.</p></ui-card>
+}
+
+<!-- ── Decide the request ──────────────────────────────────────────────
+     A rework must say what to change: the requester cannot act on "no". -->
+@if (decisionKind(); as kind) {
+  <div class="ats-scrim" (click)="closeDecision()"></div>
+  <div class="ats-dialog" role="dialog" aria-modal="true" [attr.aria-label]="kind === 'approve' ? 'Approve request' : 'Send back for rework'">
+    <h2 class="ats-dialog-title">{{ kind === 'approve' ? 'Approve this request' : 'Send back for rework' }}</h2>
+    <div class="ats-dialog-body">
+      <p class="ats-dialog-note">
+        {{ kind === 'approve'
+          ? 'Approving covers the whole request, including the benefits logged against it.'
+          : 'The request goes back to the requestor to amend and resubmit. Nothing is discarded, and these comments stay on the request until it is sent again.' }}
+      </p>
+      <div class="filter-field">
+        <span class="filter-label">{{ kind === 'approve' ? 'Comments (optional)' : 'What needs to change' }}</span>
+        <ui-textarea
+          [(value)]="decisionNote"
+          [placeholder]="kind === 'approve' ? 'Anything worth recording on the approval' : 'Required — the requestor acts on this'" />
+      </div>
+    </div>
+    <div class="ats-dialog-actions">
+      <button ui-button variant="secondary" size="small" type="button" (click)="closeDecision()">Cancel</button>
+      <button ui-button variant="primary" size="small" type="button" [disabled]="!decisionValid()" (click)="confirmDecision()">
+        {{ kind === 'approve' ? 'Approve' : 'Send back' }}
+      </button>
+    </div>
+  </div>
+}
+
+@if (toast(); as message) {
+  <div class="ats-snackbar">
+    <ui-snackbar [message]="message" (closed)="dismissToast()" />
+  </div>
 }

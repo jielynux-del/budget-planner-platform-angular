@@ -1,6 +1,6 @@
 import { signal, type WritableSignal } from '@angular/core';
 import { defaultBenefits } from './benefitsData';
-import { atsById } from './ats';
+import { atsRecord } from './atsStore';
 import type { Benefit } from './models';
 
 /**
@@ -16,7 +16,7 @@ const store = new Map<string, WritableSignal<Benefit[]>>();
 export function benefitsFor(atsId: string): WritableSignal<Benefit[]> {
   let entry = store.get(atsId);
   if (!entry) {
-    const ats = atsById(atsId);
+    const ats = atsRecord(atsId)();
     entry = signal<Benefit[]>(ats ? defaultBenefits(ats) : []);
     store.set(atsId, entry);
   }

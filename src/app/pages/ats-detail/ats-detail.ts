@@ -3,10 +3,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   UiButton, UiCard, UiColumnHeader, UiIcon, UiInfoBanner, UiNavGroup, UiNavPanel,
-  UiNavSubItem, UiSelect, UiTable, UiTableRow, UiTabs,
+  UiNavSubItem, UiSelect, UiSnackbar, UiTable, UiTableRow, UiTabs, UiTextarea,
   type UiNavStatus, type UiSelectOption, type UiTab
 } from 'ai-dls-kit';
-import { atsById, amountTotal, ATS_CURRENCIES, type Ats, type AtsMonth } from '../../data/ats';
+import { amountTotal, ATS_CURRENCIES, type Ats, type AtsMonth } from '../../data/ats';
+import {
+  approveAts, atsRecord, canDecide, canSubmit, reworkAts, submitAts
+} from '../../data/atsStore';
+import { currentPersona } from '../../data/personas';
 import { benefitsFor } from '../../data/benefitsStore';
 import { ValueBenefits } from '../value-benefits/value-benefits';
 
@@ -24,7 +28,8 @@ const QUARTERS: Array<[number, number, number]> = [[1, 2, 3], [4, 5, 6], [7, 8, 
   selector: 'app-ats-detail',
   imports: [
     RouterLink, UiNavPanel, UiNavGroup, UiNavSubItem, UiCard, UiButton, UiIcon,
-    UiInfoBanner, UiTabs, UiSelect, UiTable, UiTableRow, UiColumnHeader, ValueBenefits
+    UiInfoBanner, UiTabs, UiSelect, UiTable, UiTableRow, UiColumnHeader, ValueBenefits,
+    UiTextarea, UiSnackbar
   ],
   templateUrl: './ats-detail.html',
   styleUrl: './ats-detail.scss'
@@ -34,7 +39,7 @@ export class AtsDetail {
   private readonly router = inject(Router);
   private readonly params = toSignal(this.route.paramMap);
 
-  protected readonly record = computed<Ats | null>(() => atsById(this.params()?.get('id') ?? ''));
+  protected readonly record = computed<Ats | null>(() => atsRecord(this.params()?.get('id') ?? '')());
 
   /** ui-nav-panel is absolutely positioned, so the main column reserves its width. */
   protected readonly panelExpanded = signal(true);
@@ -60,6 +65,26 @@ export class AtsDetail {
    * locked with it: nothing in an ATS can change while the ATS is pending.
    */
   protected readonly benefitsLocked = computed(() => this.record()?.status === 'Pending Approval');
+
+  /**
+   * Who the request is with, said plainly. Null once it is approved or closed,
+   * because there is then nothing outstanding to say.
+   */
+  protected readonly stateNote = computed(() => {
+    const r = this.record();
+    if (!r) return null;
+    if (r.status === 'Pending Approval') {
+      return `Pending approval with ${r.doaApprovers[0] ?? 'the DOA approver'}. Nothing in this request can be changed until it is approved or sent back.`;
+    }
+    if (r.status === 'Sent for Rework') return r.reworkNote ?? 'Sent back for rework.';
+    if (r.status === 'Draft') return 'Draft. Populate its benefits, then send it for approval.';
+    return null;
+  });
+
+  protected readonly stateTone = computed(() =>
+    this.record()?.status === 'Sent for Rework' ? 'warning' as const
+      : this.record()?.status === 'Pending Approval' ? 'warning' as const
+      : 'info' as const);
   protected readonly tabs = computed<UiTab[]>(() => {
     const alerts = this.record()?.alerts ?? 0;
     return [
@@ -80,6 +105,56 @@ export class AtsDetail {
       replaceUrl: true
     });
   }
+
+  /* ---------------- Approval ---------------- */
+
+  protected readonly persona = currentPersona;
+
+  /** The requester's action: available while the request is theirs to change. */
+  protected readonly showSubmit = computed(() =>
+    this.persona().canRequest && canSubmit(this.record()));
+
+  /** The approver's: available only while it is sitting with them. */
+  protected readonly showDecide = computed(() =>
+    this.persona().canApprove && canDecide(this.record()));
+
+  /** 'approve' | 'rework' while the decision dialog is open. */
+  protected readonly decisionKind = signal<'approve' | 'rework' | null>(null);
+  protected readonly decisionNote = signal('');
+
+  /**
+   * A rework must say what to change — the requester cannot act on "no". An
+   * approval may carry a note but does not need one.
+   */
+  protected readonly decisionValid = computed(() =>
+    this.decisionKind() === 'approve' || this.decisionNote().trim() !== '');
+
+  protected openDecision(kind: 'approve' | 'rework') {
+    this.decisionNote.set('');
+    this.decisionKind.set(kind);
+  }
+
+  protected closeDecision() { this.decisionKind.set(null); }
+
+  protected confirmDecision() {
+    const r = this.record();
+    const kind = this.decisionKind();
+    if (!r || !kind || !this.decisionValid()) return;
+    if (kind === 'approve') approveAts(r.id, this.persona().name, this.decisionNote());
+    else reworkAts(r.id, this.persona().name, this.decisionNote());
+    this.decisionKind.set(null);
+    this.toast.set(kind === 'approve' ? 'Request approved' : 'Request sent back for rework');
+  }
+
+  protected submit() {
+    const r = this.record();
+    if (!r) return;
+    submitAts(r.id, this.persona().name);
+    this.toast.set('Request submitted for approval');
+  }
+
+  protected readonly toast = signal<string | null>(null);
+  protected dismissToast() { this.toast.set(null); }
 
   protected readonly bannerDismissed = signal(false);
 

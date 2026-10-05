@@ -74,7 +74,7 @@
             </th>
             <th>
               <ui-column-header label="WS Sub-Platform" size="sm" [filtered]="!!colSubPlatform().length">
-                <ui-multi-select class="col-filter" [items]="subPlatformChoices" [(selected)]="colSubPlatform" placeholder="All" display="count" />
+                <ui-multi-select class="col-filter" [items]="subPlatformChoices()" [(selected)]="colSubPlatform" placeholder="All" display="count" />
               </ui-column-header>
             </th>
             <th>
