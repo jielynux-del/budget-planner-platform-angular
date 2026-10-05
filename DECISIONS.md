@@ -8,6 +8,94 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-10-05 — Benefits move to the ATS request, and the approval moves with them
+
+The three questions parked on 28 September came back answered, and they
+settled more than the move.
+
+**Benefits belong to the ATS request that funds them.** The store is keyed by
+request id instead of workstream id, which is the whole of the move: `Benefit`
+never carried a reference to its parent, so nothing inside the record had to
+change. The workstream loses the tab entirely rather than keeping a read-only
+roll-up — one place to edit, nothing to drift.
+
+**A benefit has no approval of its own.** It is populated before a request is
+sent and approved with it, so the entire benefit-level cycle came out:
+`decisions.ts`, the approvals queue and its component, the staged-update
+request, the Sponsor's decision footer, the rework comments and the amber
+"Previously:" diff lines. An edit applies on save. What the old flow staged for
+an approver is recorded in the audit log instead — "what did this edit alter"
+is still worth answering with nobody to show a diff to.
+
+**Removing it left no maker-checker anywhere, which was not obvious until it
+was gone.** The ATS one had never existed: the statuses were on the record and
+the approvers were populated, but `ATS_RECORDS` was a static const, so nothing
+could move a request between them. `atsStore` makes them live and owns the
+transitions: a request is the requester's while Draft or Sent for Rework, the
+approver's while Pending Approval, and nobody's once Approved or Closed.
+
+That also makes the benefits lock mean something. It fired off seeded status
+before; now it fires because someone submitted, and clears when the request
+comes back.
+
+**Statuses reduce to Tracking Active and Closed.** The other two were
+waiting-rooms for an approval that no longer exists at this level. The BAs are
+reworking the set, so this is deliberately the smallest honest version rather
+than a guess at theirs. Closing a benefit is now a direct action: a request
+closes only once its benefits have, so this is the owner recording that it is
+done rather than asking permission.
+
+**Baseline history is a change log, not an approval trail** — what the baseline
+became, when, and why. The approval that covered it belongs to the request.
+
+**Each request has its own benefits.** Every one seeded the same six, inherited
+from the workstream days. Nobody noticed there, because you rarely open two
+workstreams side by side; with six requests one click apart it read as
+obviously fake, and a benefit about workflow digitisation under a payments
+resiliency uplift reads as wrong to anyone paying attention. Fourteen now,
+authored against what each request funds, held as a compact definition expanded
+by a builder rather than fourteen forty-line literals.
+
+**Personas follow the model.** Benefit Owner and Sponsor were named for an
+approval that no longer exists, so they are Requestor and Approver. 'DOA' is
+gone from the platform, including the field that carried it, so the term cannot
+resurface in a future label.
+
+**A benefit page takes the whole area.** Opening one is moving down a level, so
+the request's tree, header and tabs step aside, leaving the app's nav rail. The
+back chevron brings them back. Driven off `?benefit=` rather than a flag, so
+the two cannot fall out of step.
+
+### Known gaps
+- **No approvals queue at request level.** An approver finds work by opening a
+  request, not from a list. The listing's status pills partly cover it.
+- **The ATS statuses are the BAs' to finish.** Ours move correctly, but the set
+  itself is provisional.
+- Benefit value and ATS cost remain independent; nothing reconciles them, by
+  decision rather than omission.
+
+---
+
+## 2026-10-05 — Earlier versions are parked, not replaced
+
+Each deploy replaced the last, so "benefits used to live on the workstream"
+could only be described. Earlier builds are now frozen under `public/v/<date>/`
+and reachable from a floating button, with the date, what the round was about,
+and what changed since the version before it.
+
+Snapshots live in the repo rather than pointing at Vercel's own immutable
+deployment URLs: those exist, but they are not knowable from the project and
+would break if it ever moved. Each is built with its own `--base-href`, so it
+routes inside its own path and cannot collide with the live app. Roughly 1.8MB
+a version.
+
+The expected catch — that a hard refresh on a deep link inside a snapshot would
+404, since no such file exists — did not materialise: Vercel's SPA fallback
+covers the subpath too. Worth having tested rather than pre-emptively adding a
+rewrite that might have broken the live app's own routing.
+
+---
+
 ## 2026-09-29 — A baseline carries its own identity; financial ones are defined by file alone
 
 **A financial baseline has no single figure to type.** The template phases the money
@@ -73,6 +161,9 @@ named in the audit log, rather than quietly changing the numbers under a pending
 ---
 
 ## 2026-09-28 — Moving Value Benefits to ATS level: deferred, not rejected
+
+**Superseded 5 October — the three questions below were answered and the move
+is done. Kept because the reasoning still explains why it was cheap.**
 
 Raised as a direction, parked pending three answers. Recorded here so the current
 separation reads as a deliberate hold rather than an oversight.
@@ -954,8 +1045,6 @@ Stated rather than hidden, per RULES.md #8:
   the host to invent one; the transfer, the validation pass and the parsed rows are all staged
   on timers. Figures are derived from the baseline's name so a benefit shows the same numbers
   on every upload rather than jumping between demos.
-- **`Rejected` is unreachable.** It exists in `BaselineApprovalStatus`, but every decision path
-  yields Approved or Rework. Wire it or drop it from the type.
 - **Finance takes no actions.** `canRequest: false, canApprove: false` — a viewer only. If the
   role is meant to approve, that is unbuilt rather than decided.
 - **No reporting cadence.** Nothing tracks when an update is due, so no benefit can be overdue.
@@ -978,5 +1067,7 @@ Stated rather than hidden, per RULES.md #8:
   with a correct box, and nothing is visible. Raising it from outside loses a specificity
   contest that component styles win on load order, so this app's dialogs sit *below* 1100
   instead. Worth fixing in the kit — a dropdown should stack above its own invoker.
-- **ATS carries no link to benefits or workstreams**, deliberately — see the 28 Sep entry. The
-  three questions there have not been answered.
+- **`Rejected` was removed with the benefit approval cycle.** The ATS has its own
+  Sent for Rework instead.
+- **The version log is manual.** Adding a version means building the old commit with its own
+  `--base-href`, dropping it in `public/v/<date>/` and adding an entry to `versions.ts`.
