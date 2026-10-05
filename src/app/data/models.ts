@@ -181,30 +181,37 @@ export type BenefitType = 'Financial' | 'Non-Financial' | 'Mixed';
  * stays alive. 'Rejected' ends it. The Sponsor's queue only offers approve and
  * rework; Rejected remains in the type for records that already carry it.
  */
-export type BaselineApprovalStatus =
-  | 'Approved' | 'Pending Approval' | 'Rework' | 'Rejected';
+/**
+ * Retired. Benefits are populated as part of an ATS request and approved with
+ * it, so nothing at benefit level carries an approval state of its own.
+ * Baseline history keeps the record of WHAT changed and why; the approval that
+ * covered it belongs to the ATS.
+ */
 
-export type BenefitLifecycleStatus =
-  | 'Tracking Active'
-  | 'Closure Pending Approval'
-  | 'Closure Rework'
-  | 'Closed';
+/**
+ * Two states, not four: the other two were waiting-rooms for an approval that
+ * no longer exists at this level. The BAs are reworking the status set, so
+ * this is deliberately the smallest honest version rather than a guess at
+ * theirs.
+ */
+export type BenefitLifecycleStatus = 'Tracking Active' | 'Closed';
 
-/** One immutable entry in a benefit's baseline history. Never overwritten. */
+/**
+ * One immutable entry in a benefit's baseline history. Never overwritten.
+ *
+ * A change log, not an approval trail: the approval that covered a baseline
+ * belongs to the ATS request the benefit sits in, so what is worth keeping
+ * here is what the baseline became, when, and why.
+ */
 export interface BaselineRecord {
   baselineId: string;              // BL0001, BL0002, ...
   baselineValue: number | null;    // null for non-financial benefits
   startDate: string;
   endDate: string;
-  requestedBy: string;
-  /** When it was raised — a queue needs an age, not just an outcome date. */
-  requestedOn?: string;
-  approvedBy: string;
-  approvalDate: string;
+  /** Who made the change, and when. */
+  changedBy: string;
+  changedOn: string;
   changeReason: string;
-  status: BaselineApprovalStatus;
-  /** Why it was rejected or sent back. */
-  decisionNote?: string;
 }
 
 /** One periodic update. Appended, never edited in place. */
@@ -222,43 +229,17 @@ export interface BenefitUpdate {
 }
 
 /**
- * A requested change to a benefit's descriptive fields, awaiting approval.
- *
- * Held SEPARATELY from the benefit rather than written onto it: until an
- * approver accepts, the table must still show the approved values (the same
- * rule the baseline workflow follows). `fields` carries only what actually
- * changed, so an approver sees a diff rather than a full record.
- *
- * A baseline change made in the same edit raises its own BaselineRecord — the
- * two approvals are independent and can be decided by different people.
+ * One field that changed in an edit. Kept now only to describe the change in
+ * the audit log — there is no approver to show a diff to, but "what did this
+ * edit actually alter" is still the question the log has to answer.
  */
-export interface BenefitUpdateRequest {
-  id: string;
-  /** Only the changed fields, old and new, for the approver's diff. */
-  fields: BenefitFieldChange[];
-  /**
-   * Reporting lines staged in the same edit. They are part of the SAME review:
-   * a change anywhere in the benefit puts the whole benefit up for approval,
-   * so a line is not in the history until the request is approved.
-   */
-  reportingLines: BenefitUpdate[];
-  requestedBy: string;
-  requestedOn: string;
-  status: BaselineApprovalStatus;
-  decisionNote?: string;
-  approvedBy?: string;
-  approvalDate?: string;
-}
-
 export interface BenefitFieldChange {
   /** Property on Benefit that this change applies to. */
   key: string;
-  /** Human label for the approver's diff — e.g. 'Benefit Owner'. */
+  /** Human label — e.g. 'Benefit Owner'. */
   label: string;
   from: string;
   to: string;
-  /** The value to write on approval, typed as the field expects. */
-  value: unknown;
 }
 
 /**
@@ -283,7 +264,6 @@ export interface BenefitSnapshot {
   baselineId: string;
   baselineValue: number | null;
   originalBaseline: number | null;
-  approvalStatus: string;
   /** Reporting lines in the history at that point. */
   reportingLines: number;
   latestReported: string;
@@ -408,22 +388,8 @@ export interface Benefit {
    * can never contradict what the benefit actually contains.
    */
   baselineLines: BaselineLine[];
-  approvalStatus: BaselineApprovalStatus;
-  approvedBy: string;
-  approvalDate: string;
 
   status: BenefitLifecycleStatus;
-  /** Which approver role a live request is sitting with, if any. */
-  pendingWith?: string;
-
-  /**
-   * A live edit to the descriptive fields, awaiting the Sponsor.
-   * Absent when there is nothing outstanding.
-   */
-  pendingUpdate?: BenefitUpdateRequest;
-
-  /** Why a closure request was sent back, so the requester knows what to fix. */
-  closureNote?: string;
 
   /**
    * Year-phased financial lines. Read-only in the UI: they are written by

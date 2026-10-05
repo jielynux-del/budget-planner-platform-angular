@@ -58,7 +58,6 @@ export function snapshotOf(b: Benefit): BenefitSnapshot {
     baselineId: b.baselineId,
     baselineValue: b.currentApprovedBaseline,
     originalBaseline: b.originalApprovedBaseline,
-    approvalStatus: b.approvalStatus,
     reportingLines: b.reportingHistory.length,
     latestReported: last
       ? (b.type === 'Financial' ? String(last.actualValue ?? '-') : last.progressUpdate)
@@ -112,8 +111,10 @@ function withSeedSnapshots(b: Benefit): Benefit {
   return {
     ...b,
     auditLog: b.auditLog.map((entry) => {
+      // The baseline in force at this entry's date — the history is a change
+      // log now, so "in force" is simply the last change on or before it.
       const baseline = [...b.baselineHistory]
-        .filter((h) => h.status === 'Approved' && h.approvalDate !== '-' && h.approvalDate <= entry.date)
+        .filter((h) => h.changedOn <= entry.date)
         .pop();
       const reported = b.reportingHistory.filter((r) => r.updateDate <= entry.date);
       const last = reported[reported.length - 1];
@@ -125,7 +126,6 @@ function withSeedSnapshots(b: Benefit): Benefit {
           baselineValue: baseline?.baselineValue ?? b.originalApprovedBaseline,
           startDate: baseline?.startDate ?? b.startDate,
           endDate: baseline?.endDate ?? b.endDate,
-          approvalStatus: baseline?.status ?? b.approvalStatus,
           reportingLines: reported.length,
           latestReported: last
             ? (b.type === 'Financial' ? String(last.actualValue ?? '-') : last.progressUpdate)
@@ -285,12 +285,9 @@ function withBaselines(b: SeedBenefit): Benefit {
           name: `${b.benefitRef}-financial-impact.xlsx`,
           size: '3.2 MB',
           uploadedBy: b.owners[0] ?? 'tanhuiling',
-          // The LAST APPROVED baseline, not simply the last: a pending one
-          // carries '-' as its approval date, which showed up as "uploaded on -".
-          uploadedOn: [...b.baselineHistory]
-            .reverse()
-            .find((h) => h.status === 'Approved' && h.approvalDate !== '-')?.approvalDate
-            ?? b.startDate
+          // The most recent baseline change, which is when the workbook behind
+          // it would have been attached.
+          uploadedOn: b.baselineHistory[b.baselineHistory.length - 1]?.changedOn ?? b.startDate
         }
       : undefined
   };
@@ -334,9 +331,6 @@ function seedBenefits(): SeedBenefit[] {
       currentApprovedBaseline: 71000000,
       startDate: '2026-04-01',
       endDate: '2027-12-31',
-      approvalStatus: 'Approved',
-      approvedBy: 'kelvinlimws',
-      approvalDate: '2026-03-24',
       status: 'Tracking Active',
       financialRows: [
         {
@@ -347,9 +341,9 @@ function seedBenefits(): SeedBenefit[] {
         }
       ],
       baselineHistory: [
-        { baselineId: 'BL0001', baselineValue: 67000000, startDate: '2025-01-01', endDate: '2027-12-31', requestedBy: 'madhurimasengar', approvedBy: 'kelvinlimws', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
-        { baselineId: 'BL0002', baselineValue: 69000000, startDate: '2025-07-01', endDate: '2027-12-31', requestedBy: 'tanhuiling', approvedBy: 'kelvinlimws', approvalDate: '2025-06-22', changeReason: 'Two additional onboarding hubs brought into scope', status: 'Approved' },
-        { baselineId: 'BL0003', baselineValue: 71000000, startDate: '2026-04-01', endDate: '2027-12-31', requestedBy: 'tanhuiling', approvedBy: 'kelvinlimws', approvalDate: '2026-03-24', changeReason: 'FTE rate card refreshed following annual salary review', status: 'Approved' }
+        { baselineId: 'BL0001', baselineValue: 67000000, startDate: '2025-01-01', endDate: '2027-12-31', changedBy: 'madhurimasengar', changedOn: '2024-12-18', changeReason: 'Original approved business case baseline' },
+        { baselineId: 'BL0002', baselineValue: 69000000, startDate: '2025-07-01', endDate: '2027-12-31', changedBy: 'tanhuiling', changedOn: '2025-06-22', changeReason: 'Two additional onboarding hubs brought into scope' },
+        { baselineId: 'BL0003', baselineValue: 71000000, startDate: '2026-04-01', endDate: '2027-12-31', changedBy: 'tanhuiling', changedOn: '2026-03-24', changeReason: 'FTE rate card refreshed following annual salary review' }
       ],
       reportingHistory: [
         { id: 'ru-1', updateDate: '2025-07-14', actualValue: 29000000, progressUpdate: '', variancePct: -13.4, varianceExplanation: 'Realisation behind plan in the first half.', rootCause: 'Straight-through processing release slipped by six weeks.', correctiveAction: 'Release re-planned into H2; hypercare shortened to two weeks.', updatedBy: 'tanhuiling', evidence: 'H1-FY25_benefit_evidence.xlsx' },
@@ -379,9 +373,6 @@ function seedBenefits(): SeedBenefit[] {
       currentApprovedBaseline: 31800000,
       startDate: '2026-10-01',
       endDate: '2028-06-30',
-      approvalStatus: 'Pending Approval',
-      approvedBy: '-',
-      approvalDate: '-',
       status: 'Tracking Active',
       financialRows: [
         {
@@ -392,8 +383,8 @@ function seedBenefits(): SeedBenefit[] {
         }
       ],
       baselineHistory: [
-        { baselineId: 'BL0004', baselineValue: 31800000, startDate: '2025-01-01', endDate: '2028-06-30', requestedBy: 'madhurimasengar', approvedBy: 'kelvinlimws', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
-        { baselineId: 'BL0005', baselineValue: 27400000, startDate: '2026-10-01', endDate: '2028-06-30', requestedBy: 'arjunmehta', approvedBy: '-', approvalDate: '-', changeReason: 'Funded-account conversion running below the business case assumption', status: 'Pending Approval' }
+        { baselineId: 'BL0004', baselineValue: 31800000, startDate: '2025-01-01', endDate: '2028-06-30', changedBy: 'madhurimasengar', changedOn: '2024-12-18', changeReason: 'Original approved business case baseline' },
+        { baselineId: 'BL0005', baselineValue: 27400000, startDate: '2026-10-01', endDate: '2028-06-30', changedBy: 'arjunmehta', changedOn: '2026-10-01', changeReason: 'Funded-account conversion running below the business case assumption' }
       ],
       reportingHistory: [
         { id: 'ru-4', updateDate: '2026-01-22', actualValue: 12900000, progressUpdate: '', variancePct: -59.4, varianceExplanation: 'Uplift materially behind baseline.', rootCause: 'Campaign spend deferred to the following financial year.', correctiveAction: 'Marketing plan re-phased; baseline change requested.', updatedBy: 'arjunmehta', evidence: 'H2-FY25_revenue_uplift.pdf' },
@@ -420,13 +411,10 @@ function seedBenefits(): SeedBenefit[] {
       currentApprovedBaseline: null,
       startDate: '2025-01-01',
       endDate: '2027-06-30',
-      approvalStatus: 'Approved',
-      approvedBy: 'chanwaikit',
-      approvalDate: '2024-12-18',
       status: 'Tracking Active',
       financialRows: [],
       baselineHistory: [
-        { baselineId: 'BL0006', baselineValue: null, startDate: '2025-01-01', endDate: '2027-06-30', requestedBy: 'madhurimasengar', approvedBy: 'chanwaikit', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline — non-financial benefit', status: 'Approved' }
+        { baselineId: 'BL0006', baselineValue: null, startDate: '2025-01-01', endDate: '2027-06-30', changedBy: 'madhurimasengar', changedOn: '2024-12-18', changeReason: 'Original approved business case baseline — non-financial benefit' }
       ],
       reportingHistory: [
         { id: 'ru-6', updateDate: '2025-08-05', actualValue: null, progressUpdate: 'Customer onboarding journey redesigned and signed off by the design authority.', variancePct: null, varianceExplanation: '', rootCause: '', correctiveAction: '', updatedBy: 'priyankanair', evidence: 'journey_redesign_signoff.pdf' },
@@ -454,13 +442,10 @@ function seedBenefits(): SeedBenefit[] {
       currentApprovedBaseline: null,
       startDate: '2025-04-01',
       endDate: '2026-12-31',
-      approvalStatus: 'Approved',
-      approvedBy: 'yuriatantono',
-      approvalDate: '2025-03-19',
-      status: 'Closure Pending Approval',
+      status: 'Tracking Active',
       financialRows: [],
       baselineHistory: [
-        { baselineId: 'BL0007', baselineValue: null, startDate: '2025-04-01', endDate: '2026-12-31', requestedBy: 'yuriatantono', approvedBy: 'yuriatantono', approvalDate: '2025-03-19', changeReason: 'Original approved business case baseline — non-financial benefit', status: 'Approved' }
+        { baselineId: 'BL0007', baselineValue: null, startDate: '2025-04-01', endDate: '2026-12-31', changedBy: 'yuriatantono', changedOn: '2025-03-19', changeReason: 'Original approved business case baseline — non-financial benefit' }
       ],
       reportingHistory: [
         { id: 'ru-9', updateDate: '2026-03-04', actualValue: null, progressUpdate: 'Cross-border integration completed in 2 of 4 countries.', variancePct: null, varianceExplanation: '', rootCause: '', correctiveAction: '', updatedBy: 'lowsuetmin', evidence: 'corridor_status_mar26.pdf' },
@@ -487,9 +472,6 @@ function seedBenefits(): SeedBenefit[] {
       currentApprovedBaseline: 8900000,
       startDate: '2025-07-01',
       endDate: '2026-06-30',
-      approvalStatus: 'Approved',
-      approvedBy: 'yuriatantono',
-      approvalDate: '2025-06-11',
       status: 'Closed',
       financialRows: [
         {
@@ -500,8 +482,8 @@ function seedBenefits(): SeedBenefit[] {
         }
       ],
       baselineHistory: [
-        { baselineId: 'BL0008', baselineValue: 9800000, startDate: '2025-01-01', endDate: '2026-06-30', requestedBy: 'madhurimasengar', approvedBy: 'yuriatantono', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline', status: 'Approved' },
-        { baselineId: 'BL0009', baselineValue: 8900000, startDate: '2025-07-01', endDate: '2026-06-30', requestedBy: 'yuriatantono', approvedBy: 'yuriatantono', approvalDate: '2025-06-11', changeReason: 'One application retained for regulatory reporting', status: 'Approved' }
+        { baselineId: 'BL0008', baselineValue: 9800000, startDate: '2025-01-01', endDate: '2026-06-30', changedBy: 'madhurimasengar', changedOn: '2024-12-18', changeReason: 'Original approved business case baseline' },
+        { baselineId: 'BL0009', baselineValue: 8900000, startDate: '2025-07-01', endDate: '2026-06-30', changedBy: 'yuriatantono', changedOn: '2025-06-11', changeReason: 'One application retained for regulatory reporting' }
       ],
       reportingHistory: [
         { id: 'ru-11', updateDate: '2026-01-12', actualValue: 4300000, progressUpdate: '', variancePct: -51.7, varianceExplanation: 'Half-year realisation in line with the decommissioning schedule.', rootCause: 'Phased shutdown — remaining estate live until Q4.', correctiveAction: 'None required.', updatedBy: 'yuriatantono', evidence: 'H2-FY25_decom_saving.xlsx' },
@@ -529,13 +511,10 @@ function seedBenefits(): SeedBenefit[] {
       currentApprovedBaseline: null,
       startDate: '2025-01-01',
       endDate: '2026-03-31',
-      approvalStatus: 'Approved',
-      approvedBy: 'chanwaikit',
-      approvalDate: '2024-12-18',
       status: 'Closed',
       financialRows: [],
       baselineHistory: [
-        { baselineId: 'BL0010', baselineValue: null, startDate: '2025-01-01', endDate: '2026-03-31', requestedBy: 'madhurimasengar', approvedBy: 'chanwaikit', approvalDate: '2024-12-18', changeReason: 'Original approved business case baseline — non-financial benefit', status: 'Approved' }
+        { baselineId: 'BL0010', baselineValue: null, startDate: '2025-01-01', endDate: '2026-03-31', changedBy: 'madhurimasengar', changedOn: '2024-12-18', changeReason: 'Original approved business case baseline — non-financial benefit' }
       ],
       reportingHistory: [
         { id: 'ru-13', updateDate: '2025-11-28', actualValue: null, progressUpdate: 'Failover testing completed for the onboarding gateway.', variancePct: null, varianceExplanation: '', rootCause: '', correctiveAction: '', updatedBy: 'chanwaikit', evidence: 'failover_test_report.pdf' },

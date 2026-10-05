@@ -2,36 +2,6 @@
      moved DOWN a level, not opened something on top of where they were. -->
 @if (!detailId()) {
 
-  <!-- One banner, above the page tabs: whatever is waiting on this persona,
-       stated once. Two stacked banners made the same point twice and pushed the
-       tabs down the page. -->
-  @if (attention(); as note) {
-    <ui-info-banner tone="warning" [title]="note" [dismissible]="false">
-      <!-- No CTA once the reader is already looking at the queue: the banner is
-           then just the count, and a button that goes nowhere invites a click.
-           Visibility is BOUND rather than wrapped in @if — content nested in a
-           control-flow block is not projected into a named slot, so an @if here
-           would drop the button into the banner's default content instead. -->
-      <button
-        ui-info-banner-actions
-        ui-button
-        variant="secondary"
-        size="small"
-        type="button"
-        [style.display]="pageTab() === 'approvals' ? 'none' : null"
-        (click)="viewPending()">View</button>
-    </ui-info-banner>
-  }
-
-  <ui-filter-tabs [tabs]="pageTabs()" [(active)]="pageTab" />
-
-  @if (pageTab() === 'approvals') {
-    <app-approvals
-    [atsId]="atsId()"
-    (decided)="onDecision($event)"
-    (viewAudit)="openAuditById($event)" />
-  } @else {
-
   <!-- Status summary. Each figure filters the table.
        Stat filter needed because the kit is missing a clickable summary card. -->
   <ui-card>
@@ -188,8 +158,6 @@
 
     <ui-pagination [total]="filtered().length" [(page)]="page" [(pageSize)]="pageSize" />
   </ui-table-card>
-
-  }
 }
 
 
@@ -225,7 +193,7 @@
           </button>
           <!-- `locked` is the ATS's own pending state: the whole request is
                with its approver, so nothing inside it can be raised. -->
-          @if (persona().canRequest && !pendingReview(b) && !locked()) {
+          @if (persona().canRequest && !locked()) {
             @if (b.status === 'Closed') {
               <button ui-button variant="secondary" size="small" type="button" (click)="askReopen(b)">
                 <ui-icon name="history" />
@@ -243,22 +211,6 @@
     </header>
 
     <div class="benefit-page-body">
-      @if (b.pendingUpdate?.status === 'Pending Approval' && !canDecide(b)) {
-        <ui-info-banner
-          tone="warning"
-          [dismissible]="false"
-          title="Pending approval"
-          message="The values below are the ones requested. No further changes can be made until the Sponsor approves them or sends them back for rework." />
-      }
-      @if (reworkFor(b); as note) {
-        <!-- Labelled, so the sponsor's words read as a quoted instruction
-             rather than as the banner's own prose. -->
-        <ui-info-banner
-          tone="warning"
-          [dismissible]="false"
-          title="Sent back for rework"
-          [message]="'Comments: ' + note" />
-      }
     <ui-card>
       <div class="entity-section">
         <aside class="entity-section-head">
@@ -278,45 +230,38 @@
               <div class="span-2">
                 <dt>Benefit Name</dt>
                 <dd>{{ b.name }}
-                  @if (previously(record, 'name'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
               <div>
                 <dt>Benefit Category</dt>
                 <dd>{{ b.categories.join(', ') || emptyValue }}
-                  @if (previously(record, 'categories'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
               <div><dt>Benefit Status</dt><dd><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></dd></div>
               <div>
                 <dt>Benefit Owner</dt>
                 <dd>{{ b.owners.join(', ') || emptyValue }}
-                  @if (previously(record, 'owners'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
               <div><dt>BUs Involved</dt><dd>{{ businessUnits(b.owners) || emptyValue }}</dd></div>
               <div>
                 <dt>Benefit Description</dt>
                 <dd>{{ b.description || emptyValue }}
-                  @if (previously(record, 'description'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
               <div>
                 <dt>Validation Source</dt>
                 <dd>{{ b.validationSource || emptyValue }}
-                  @if (previously(record, 'validationSource'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
               <div>
                 <dt>Start date</dt>
                 <dd>{{ b.startDate }}
-                  @if (previously(record, 'startDate'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
               <div>
                 <dt>End date</dt>
                 <dd>{{ b.endDate }}
-                  @if (previously(record, 'endDate'); as was) { <span class="was">Previously: {{ was }}</span> }
                 </dd>
               </div>
             </dl>
@@ -517,10 +462,9 @@
                     <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
                     <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
                     <th><ui-column-header label="Start date" size="sm" /></th>
-                    <th><ui-column-header label="Requested By" size="sm" /></th>
-                    <th><ui-column-header label="Approved By" size="sm" /></th>
-                    <th><ui-column-header label="Approval Date" size="sm" /></th>
-                    <th><ui-column-header label="Status" size="sm" /></th>
+                    <th><ui-column-header label="Changed By" size="sm" /></th>
+                    <th><ui-column-header label="Changed On" size="sm" /></th>
+                    <th><ui-column-header label="" size="sm" /></th>
                     <th style="min-width: 240px"><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
                   </tr>
                 </thead>
@@ -530,11 +474,9 @@
                       <td class="cell-name cell-nowrap">{{ h.baselineId }}</td>
                       <td class="ui-cell-number cell-nowrap">{{ money(h.baselineValue) }}</td>
                       <td class="cell-nowrap">{{ h.startDate }}</td>
-                      <td>{{ h.requestedBy }}</td>
-                      <td>{{ h.approvedBy }}</td>
-                      <td class="cell-nowrap">{{ h.approvalDate }}</td>
+                      <td>{{ h.changedBy }}</td>
+                      <td class="cell-nowrap">{{ h.changedOn }}</td>
                       <td class="ui-cell-status">
-                        <ui-status-tag [status]="h.status" [variant]="approvalVariant(h.status)" />
                         @if (h.isCurrent) {
                           <ui-status-tag class="current-tag" status="Current" variant="neutral" />
                         }
@@ -547,30 +489,7 @@
             </div>
           </ui-accordion>
 
-          <ui-accordion title="Baseline Approval Trail" [count]="baselineAudit(b).length" [defaultOpen]="false">
-            <div class="vb-scroll">
-              <table ui-table size="sm">
-                <thead>
-                  <tr>
-                    <th><ui-column-header label="Date" size="sm" [first]="true" /></th>
-                    <th><ui-column-header label="User" size="sm" /></th>
-                    <th><ui-column-header label="Action" size="sm" /></th>
-                    <th style="min-width: 280px"><ui-column-header label="Comments" size="sm" [last]="true" /></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (a of baselineAudit(b); track a.id) {
-                    <tr ui-table-row>
-                      <td class="cell-nowrap">{{ a.date }}</td>
-                      <td>{{ a.user }}</td>
-                      <td class="cell-name">{{ a.action }}</td>
-                      <td>{{ a.comments }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </ui-accordion>
+
         </div>
       </div>
     </ui-card>
@@ -697,16 +616,7 @@
           size="small"
           type="button"
           [disabled]="!editDirty()"
-          (click)="saveSummaryEdit(b)">Submit for approval</button>
-      </div>
-    } @else if (canDecide(b)) {
-      <div class="benefit-page-footer">
-        <button ui-button variant="secondary" size="small" type="button" (click)="openDecision('rework')">
-          Send for rework
-        </button>
-        <button ui-button variant="primary" size="small" type="button" (click)="openDecision('approve')">
-          Approve
-        </button>
+          (click)="saveSummaryEdit(b)">Save changes</button>
       </div>
     }
   </section>
@@ -1157,43 +1067,6 @@
 }
 
 <!-- ── Decide on this benefit's request, from its own page ─────────────── -->
-@if (decisionKind(); as kind) {
-  @if (detail(); as b) {
-    <div class="rl-scrim" (click)="closeDecision()"></div>
-    <div class="rl-dialog" role="dialog" aria-modal="true" aria-label="Decide on request">
-      <h2 class="rl-title">{{ kind === 'approve' ? 'Approve request' : 'Send back for rework' }}</h2>
-      <p class="rl-subtitle">{{ b.benefitRef }} · {{ b.name }}</p>
-      <div class="rl-body">
-        <div class="filter-field">
-          <span class="filter-label">
-            {{ kind === 'approve' ? 'Approval note' : 'What needs to change' }}
-          </span>
-          <ui-textarea
-            [(value)]="decisionNote"
-            [placeholder]="kind === 'approve'
-              ? 'Optional note recorded against the approval'
-              : 'Required — the owner acts on this'" />
-        </div>
-        @if (kind === 'rework') {
-          <p class="empty">
-            The request goes back to the owner to amend and resubmit. Nothing is discarded, and
-            these comments stay on the benefit until it is sent back for approval.
-          </p>
-        }
-      </div>
-      <div class="rl-actions">
-        <button ui-button variant="secondary" size="small" type="button" (click)="closeDecision()">Cancel</button>
-        <button
-          ui-button
-          variant="primary"
-          size="small"
-          type="button"
-          [disabled]="!decisionValid()"
-          (click)="submitDecision(b)">{{ kind === 'approve' ? 'Approve' : 'Send back' }}</button>
-      </div>
-    </div>
-  }
-}
 
 <!-- ── Audit snapshot: read-only view of one version ──────────────────── -->
 @if (snapshotEntry(); as entry) {
@@ -1215,7 +1088,6 @@
           <div><dt>Baseline ID</dt><dd>{{ snap.baselineId }}</dd></div>
           <div><dt>Baseline Value</dt><dd>{{ snap.baselineValue === null ? emptyValue : money(snap.baselineValue) }}</dd></div>
           <div><dt>Original Approved Baseline</dt><dd>{{ snap.originalBaseline === null ? emptyValue : money(snap.originalBaseline) }}</dd></div>
-          <div><dt>Approval Status</dt><dd>{{ snap.approvalStatus }}</dd></div>
           <div><dt>Start date</dt><dd>{{ snap.startDate }}</dd></div>
           <div><dt>End date</dt><dd>{{ snap.endDate }}</dd></div>
           <div><dt>Reporting lines</dt><dd>{{ snap.reportingLines }}</dd></div>

@@ -10,9 +10,7 @@ import type { AuditEntry, BaselineKind, BaselineLine, Benefit, BenefitFieldChang
 import { PEOPLE_NAMES, businessUnitsFor } from '../../data/people';
 import { ActivatedRoute, Router } from '@angular/router';
 import { benefitsFor } from '../../data/benefitsStore';
-import { decide, reworkNote, type DecisionKind, type RequestKind } from '../../data/decisions';
 import { currentPersona } from '../../data/personas';
-import { Approvals } from '../approvals/approvals';
 
 const ALL = 'All';
 
@@ -23,17 +21,10 @@ const LIFECYCLE_VARIANT: Record<string, UiTagVariant> = {
   'Closed': 'green'
 };
 
-const APPROVAL_VARIANT: Record<string, UiTagVariant> = {
-  'Approved': 'green',
-  'Pending Approval': 'amber',
-  'Rejected': 'red'
-};
 
 /** Dot colour per lifecycle status, for the summary card. */
 const STATUS_DOT: Record<string, UiPillColor> = {
-  'Update Pending Approval': 'yellow',
   'Tracking Active': 'green',
-  'Closure Pending Approval': 'yellow',
   'Closed': 'grey'
 };
 
@@ -44,7 +35,6 @@ const STATUS_DOT: Record<string, UiPillColor> = {
     UiTableCard, UiTableHeader, UiTable, UiColumnHeader, UiTableRow, UiStatusTag, UiPill,
     UiFilterTabs, UiMultiSelect, UiDropdownMenu, UiDropdownItem, UiPagination, UiModalShell, UiSectionHeader, UiInfoBanner,
     UiTabs, UiTooltipDirective, UiSnackbar, UiRadio, UiLink,
-    Approvals,
     UiTextInput, UiTextarea, UiCheckbox, UiAmountInput, UiFileDrop, UiFileRow, UiUploadFile, UiCardButton
   ],
   templateUrl: './value-benefits.html',
@@ -77,39 +67,12 @@ export class ValueBenefits {
    * request now routes to the Sponsor, so this is simply "can I approve, and is
    * anything outstanding" rather than a per-kind routing table.
    */
-  protected readonly awaitingMe = computed(() => {
-    if (!this.persona().canApprove) return [];
-    return this.benefits().filter((b) =>
-      b.approvalStatus === 'Pending Approval' ||
-      b.status === 'Closure Pending Approval' ||
-      b.pendingUpdate?.status === 'Pending Approval');
-  });
-
-  /** Requests on this workstream that were sent back for the requester to amend. */
-  protected readonly needsRework = computed(() =>
-    this.benefits().filter((b) =>
-      b.approvalStatus === 'Rework' || b.status === 'Closure Rework'));
-
   protected readonly all = ALL;
   protected readonly ownerOptions = [ALL, ...PEOPLE_NAMES];
   /** The wizard picks real people, so it must not offer the filter's All sentinel. */
   protected readonly ownerChoices = PEOPLE_NAMES;
-  protected readonly statusOptions = [ALL, 'Tracking Active', 'Update Pending Approval',
-    'Closure Pending Approval', 'Closed'];
+  protected readonly statusOptions = [ALL, 'Tracking Active', 'Closed'];
   protected readonly typeOptions = [ALL, 'Financial', 'Non-Financial'];
-  protected readonly approvalOptions = [ALL, 'Approved', 'Pending Approval', 'Rejected'];
-
-  /** A benefit lives on a workstream, so its approvals do too. */
-  protected readonly pageTabs = computed<UiFilterTab[]>(() => [
-    { key: 'benefits', label: 'Benefits Tracking' },
-    { key: 'approvals', label: 'Approvals', count: this.outstanding().length || undefined }
-  ]);
-  protected readonly pageTab = signal('benefits');
-
-  /** Everything on this workstream still waiting on a decision, whoever owns it. */
-  protected readonly outstanding = computed(() =>
-    this.benefits().filter((b) =>
-      b.approvalStatus === 'Pending Approval' || b.status === 'Closure Pending Approval'));
 
   protected readonly filtersOpen = signal(false);
   protected readonly owner = signal(ALL);
@@ -122,7 +85,6 @@ export class ValueBenefits {
   protected readonly colType = signal<string[]>([]);
   protected readonly colOwner = signal<string[]>([]);
   protected readonly colStatus = signal<string[]>([]);
-  protected readonly colApproval = signal<string[]>([]);
 
   /** Summary tile filter — one lifecycle status, or the "all" sentinel. */
   protected readonly statusTile = signal(ALL);
@@ -169,11 +131,8 @@ export class ValueBenefits {
    * is NOT disabled here — its one action, Reopen, is exactly what that state
    * is for.
    */
-  protected actionDisabled(b: Benefit) {
-    return this.locked()
-      || !this.persona().canRequest
-      || b.status === 'Closure Pending Approval'
-      || b.pendingUpdate?.status === 'Pending Approval';
+  protected actionDisabled(_b: Benefit) {
+    return this.locked() || !this.persona().canRequest;
   }
 
   /**
@@ -220,8 +179,7 @@ export class ValueBenefits {
       (!this.colName().length || this.colName().includes(b.name)) &&
       (!this.colType().length || this.colType().includes(b.type)) &&
       (!this.colOwner().length || b.owners.some((o) => this.colOwner().includes(o))) &&
-      (!this.colStatus().length || this.colStatus().includes(this.displayStatus(b))) &&
-      (!this.colApproval().length || this.colApproval().includes(b.approvalStatus))
+      (!this.colStatus().length || this.colStatus().includes(this.displayStatus(b)))
     )
   );
 
@@ -241,15 +199,11 @@ export class ValueBenefits {
   });
 
   /**
-   * Counted on `displayStatus`, not on the stored one, so the tiles agree with
-   * the Benefit Status column — a benefit under review reads as pending in both.
+   * The two states a benefit can be in. The approval waiting-rooms are gone:
+   * a benefit is approved with the ATS request it sits in, so it is either
+   * being tracked or it is done.
    */
-  protected readonly summaryStatuses = [
-    'Tracking Active',
-    'Update Pending Approval',
-    'Closure Pending Approval',
-    'Closed'
-  ];
+  protected readonly summaryStatuses = ['Tracking Active', 'Closed'];
 
   protected readonly activeFilterCount = computed(() =>
     [this.owner() !== ALL, this.status() !== ALL, !!this.realisationFrom(), !!this.realisationTo()]
@@ -343,29 +297,6 @@ export class ValueBenefits {
   }
 
   protected lifecycleVariant(s: string): UiTagVariant { return LIFECYCLE_VARIANT[s] ?? 'neutral'; }
-  protected approvalVariant(s: string): UiTagVariant { return APPROVAL_VARIANT[s] ?? 'neutral'; }
-
-  /**
-   * The one line the banner shows, or null for nothing outstanding.
-   *
-   * Derived rather than stored so it falls away on its own the moment the last
-   * item is decided — a banner that has to be told to disappear eventually
-   * won't be.
-   */
-  protected readonly attention = computed(() => {
-    const waiting = this.awaitingMe().length;
-    const rework = this.needsRework().length;
-    const plural = (n: number) => `${n} item${n === 1 ? '' : 's'}`;
-    if (waiting && rework) return `${plural(waiting)} awaiting your approval and ${plural(rework)} sent back for rework`;
-    if (waiting) return `${plural(waiting)} awaiting your approval`;
-    if (rework) return `${plural(rework)} sent back for rework`;
-    return null;
-  });
-
-  /** Banner CTA — the approvals queue is where these are dealt with. */
-  protected viewPending() {
-    this.pageTab.set('approvals');
-  }
 
   protected toggleStatus(key: string) {
     this.statusTile.set(this.statusTile() === key ? ALL : key);
@@ -390,11 +321,6 @@ export class ValueBenefits {
 
   /** Row click opens the benefit; the audit icon opens just its history. */
   /** Opens the audit overlay for a benefit named by id, from the queue. */
-  protected openAuditById(id: string) {
-    const benefit = this.benefits().find((b) => b.id === id);
-    if (benefit) this.openAudit(benefit);
-  }
-
   protected openDetail(b: Benefit) {
     this.reportPage.set(1);
     // Navigating rather than opening: the URL is what the page reads back.
@@ -876,22 +802,11 @@ export class ValueBenefits {
   /**
    * Opens the edit form.
    *
-   * A benefit sent back for rework still carries the request that was
-   * returned: the field values the owner proposed, and any reporting lines
-   * staged in the same edit. Those have NOT been written onto the benefit —
-   * only an approval does that — so reading the benefit's own fields would
-   * silently discard the owner's work and ask them to type it again. The
-   * returned request is therefore what the form opens on, which is also what
-   * makes the Sponsor's comments actionable: the owner amends what was
-   * returned rather than rebuilding it.
+   * Opens on the benefit's own values. There is no staged request to recover
+   * from any more: an edit applies on save and the ATS it belongs to carries
+   * the approval.
    */
   protected startSummaryEdit(b: Benefit) {
-    const returned = b.pendingUpdate?.status === 'Rework' ? b.pendingUpdate : null;
-    const proposed = returned
-      ? returned.fields.reduce<Record<string, unknown>>((acc, f) => { acc[f.key] = f.value; return acc; }, {})
-      : {};
-    b = { ...b, ...proposed } as Benefit;
-
     this.editName.set(b.name);
     this.editOwners.set([...b.owners]);
     this.editCategories.set([...b.categories]);
@@ -907,9 +822,7 @@ export class ValueBenefits {
     this.editFile.set(b.financialFile ? { ...b.financialFile } : null);
     this.upload.set(null);
     this.editReason.set('');
-    // Staged lines come back with the request so they can still be amended or
-    // removed; they are not in reportingHistory because they were never approved.
-    this.draftUpdates.set((returned?.reportingLines ?? []).map((r) => ({ ...r })));
+    this.draftUpdates.set([]);
     this.summaryEdit.set(true);
   }
 
@@ -1003,102 +916,13 @@ export class ValueBenefits {
   }
 
   /**
-   * The benefit as it should be READ while a request is outstanding — the
-   * requested values, not the approved ones.
-   *
-   * A reader looking at a benefit under review wants to see what is being
-   * proposed; the superseded values are still recoverable from the audit log's
-   * snapshots, which is what makes showing the new ones safe.
+   * Was the benefit-as-proposed while a request was outstanding. An edit now
+   * applies on save, so what is stored IS what is shown. Kept as a single call
+   * site rather than inlined, so the template reads the same either way.
    */
-  protected shown(b: Benefit): Benefit {
-    const upd = b.pendingUpdate;
-    if (upd?.status !== 'Pending Approval') return b;
-    const applied = upd.fields.reduce<Record<string, unknown>>((acc, f) => {
-      acc[f.key] = f.value;
-      return acc;
-    }, {});
-    return {
-      ...b,
-      ...applied,
-      reportingHistory: [...b.reportingHistory, ...(upd.reportingLines ?? [])]
-    } as Benefit;
-  }
+  protected shown(b: Benefit): Benefit { return b; }
 
-  /* ---------------- Deciding from the benefit's own page ---------------- */
-
-  /** What kind of request is outstanding on this benefit, if any. */
-  protected requestKind(b: Benefit): RequestKind | null {
-    if (b.pendingUpdate?.status === 'Pending Approval') return 'Benefit Update';
-    if (b.status === 'Closure Pending Approval') return 'Benefit Closure';
-    if (b.approvalStatus === 'Pending Approval') return 'Baseline Change';
-    return null;
-  }
-
-  protected canDecide(b: Benefit) {
-    return this.persona().canApprove && !!this.requestKind(b);
-  }
-
-  protected readonly decisionKind = signal<DecisionKind | null>(null);
-  protected readonly decisionNote = signal('');
-
-  protected openDecision(kind: DecisionKind) {
-    this.decisionKind.set(kind);
-    this.decisionNote.set('');
-  }
-
-  protected closeDecision() { this.decisionKind.set(null); }
-
-  /** A rework must say why — the requester cannot act on a bare "no". */
-  protected readonly decisionValid = computed(() =>
-    this.decisionKind() !== 'rework' || this.decisionNote().trim() !== '');
-
-  protected submitDecision(b: Benefit) {
-    const kind = this.decisionKind();
-    const requestKind = this.requestKind(b);
-    if (!kind || !requestKind || !this.decisionValid()) return;
-
-    benefitsFor(this.atsId()).update((rows) =>
-      rows.map((r) => (r.id === b.id
-        ? decide(r, requestKind, {
-            kind,
-            note: this.decisionNote().trim(),
-            approver: this.persona().name,
-            reference: b.benefitRef
-          })
-        : r)));
-
-    this.closeDecision();
-    this.toastBenefitId.set(b.id);
-    this.toast.set(kind === 'approve'
-      ? (requestKind === 'Benefit Closure'
-          ? `${b.name} has been successfully closed`
-          : 'Request approved')
-      : 'Sent back for rework');
-  }
-
-  /** The note the requester still has to act on, if any. */
-  protected reworkFor(b: Benefit) { return reworkNote(b); }
-
-  /**
-   * The superseded value of a field under review, for the amber
-   * "Previously: …" line. Null when nothing about that field is changing.
-   */
-  protected previously(b: Benefit, key: string): string | null {
-    const upd = b.pendingUpdate;
-    if (upd?.status !== 'Pending Approval') return null;
-    const field = upd.fields.find((f) => f.key === key);
-    return field ? (field.from || this.emptyValue) : null;
-  }
-
-  /** A request is already outstanding, so the benefit cannot be submitted again. */
-  protected pendingReview(b: Benefit) {
-    return b.pendingUpdate?.status === 'Pending Approval';
-  }
-
-  /**
-   * Something has actually changed. Submit stays disabled until it has, so the
-   * button cannot raise an empty request for an approver to look at.
-   */
+  /** Something has actually changed. Save stays disabled until it has. */
   protected readonly editDirty = computed(() => {
     const b = this.detail();
     if (!b) return false;
@@ -1150,7 +974,6 @@ export class ValueBenefits {
       ['Baseline ID', snap.baselineId],
       ['Baseline Value', snap.baselineValue],
       ['Original Approved Baseline', snap.originalBaseline],
-      ['Approval Status', snap.approvalStatus],
       ['Reporting lines', snap.reportingLines],
       ['Latest reported', snap.latestReported]
     ];
@@ -1171,71 +994,53 @@ export class ValueBenefits {
   });
 
   /**
-   * Saves an edit as REQUESTS, not as changes: the benefit keeps its approved
-   * values until someone decides. Descriptive fields raise one request to the
-   * Sponsor; a changed baseline raises a separate BaselineRecord for
-   * Finance. The two are independent and can be decided by different people.
+   * Applies an edit to the benefit.
+   *
+   * Benefits are populated as part of an ATS request and approved with it, so
+   * there is nothing to submit here: the change is written on save, and the
+   * ATS's own approval covers it. What the old flow staged for an approver is
+   * now recorded in the audit log instead — "what did this edit alter" is
+   * still worth answering, even with nobody to show a diff to.
    */
   protected saveSummaryEdit(b: Benefit) {
     const today = new Date().toISOString().slice(0, 10);
     const changes: BenefitFieldChange[] = [];
-    const add = (key: string, label: string, from: string, to: string, value: unknown) => {
-      if (from !== to) changes.push({ key, label, from, to, value });
+    const add = (key: string, label: string, from: string, to: string) => {
+      if (from !== to) changes.push({ key, label, from, to });
     };
 
-    add('name', 'Benefit Name', b.name, this.editName().trim(), this.editName().trim());
-    add('owners', 'Benefit Owner', b.owners.join(', '), this.editOwners().join(', '), this.editOwners());
-    add('categories', 'Benefit Category', b.categories.join(', '), this.editCategories().join(', '), this.editCategories());
-    add('description', 'Benefit Description', b.description, this.editDescription().trim(), this.editDescription().trim());
-    add('validationSource', 'Validation Source', b.validationSource, this.editValidationSource().trim(), this.editValidationSource().trim());
-    add('startDate', 'Start date', b.startDate, this.editStart(), this.editStart());
-    add('endDate', 'End date', b.endDate, this.editEnd(), this.editEnd());
-    // Type is derived, so it is recorded as a consequence of the baselines
-    // changing rather than as something the owner chose.
-    add('type', 'Benefit Type', b.type, this.editTypeDerived(), this.editTypeDerived());
+    add('name', 'Benefit Name', b.name, this.editName().trim());
+    add('owners', 'Benefit Owner', b.owners.join(', '), this.editOwners().join(', '));
+    add('categories', 'Benefit Category', b.categories.join(', '), this.editCategories().join(', '));
+    add('description', 'Benefit Description', b.description, this.editDescription().trim());
+    add('validationSource', 'Validation Source', b.validationSource, this.editValidationSource().trim());
+    add('startDate', 'Start date', b.startDate, this.editStart());
+    add('endDate', 'End date', b.endDate, this.editEnd());
+    add('type', 'Benefit Type', b.type, this.editTypeDerived());
 
-    // The baseline travels in the SAME package: updating a baseline is now part
-    // of updating the benefit, not a separate request with its own approver.
     const proposed = this.editHasFinancial() ? this.editBaselineTotal() : null;
     const baselineMoved = this.baselineChanged();
     if (baselineMoved) {
-      changes.push({
-        key: 'currentApprovedBaseline',
-        label: 'Current Approved Baseline',
-        from: b.currentApprovedBaseline === null ? this.emptyValue : this.money(b.currentApprovedBaseline),
-        to: proposed === null ? this.emptyValue : this.money(proposed),
-        value: proposed
-      });
-    }
-    if (JSON.stringify(this.editBaselineLines()) !== JSON.stringify(b.baselineLines)) {
-      changes.push({
-        key: 'baselineLines',
-        label: 'Baseline definition',
-        from: this.baselineSummary(b.baselineLines),
-        to: this.baselineSummary(this.editBaselineLines()),
-        value: this.editBaselineLines()
-      });
+      add('currentApprovedBaseline', 'Current Approved Baseline',
+        b.currentApprovedBaseline === null ? this.emptyValue : this.money(b.currentApprovedBaseline),
+        proposed === null ? this.emptyValue : this.money(proposed));
     }
 
-    // A replaced workbook is a change to the numbers themselves, so it travels
-    // in the same package and is applied only on approval.
-    const file = this.editFile();
-    if (file?.name !== b.financialFile?.name || file?.uploadedOn !== b.financialFile?.uploadedOn) {
-      changes.push({
-        key: 'financialFile',
-        label: 'Financial impact file',
-        from: b.financialFile ? `${b.financialFile.name} (${b.financialFile.uploadedOn})` : this.emptyValue,
-        to: file ? `${file.name} (${file.uploadedOn})` : this.emptyValue,
-        value: file ?? undefined
-      });
-      changes.push({
-        key: 'financialRows',
-        label: 'Financial impact values',
-        from: `${b.financialRows.length} line${b.financialRows.length === 1 ? '' : 's'}`,
-        to: `${this.editLines().length} line${this.editLines().length === 1 ? '' : 's'}`,
-        value: this.editLines()
-      });
+    const baselinesMoved = JSON.stringify(this.editBaselineLines()) !== JSON.stringify(b.baselineLines);
+    if (baselinesMoved) {
+      add('baselineLines', 'Baseline definition',
+        this.baselineSummary(b.baselineLines), this.baselineSummary(this.editBaselineLines()));
     }
+
+    const file = this.editFile();
+    const fileChanged = file?.name !== b.financialFile?.name
+      || file?.uploadedOn !== b.financialFile?.uploadedOn;
+    if (fileChanged) {
+      add('financialFile', 'Financial impact file',
+        b.financialFile ? `${b.financialFile.name} (${b.financialFile.uploadedOn})` : this.emptyValue,
+        file ? `${file.name} (${file.uploadedOn})` : this.emptyValue);
+    }
+
     const staged = this.draftUpdates();
     if (!changes.length && !staged.length) {
       this.summaryEdit.set(false);
@@ -1248,56 +1053,58 @@ export class ValueBenefits {
         const parts: string[] = [];
         if (changes.length) parts.push(`${changes.length} field${changes.length > 1 ? 's' : ''} (${changes.map((c) => c.label).join(', ')})`);
         if (staged.length) parts.push(`${staged.length} reporting line${staged.length > 1 ? 's' : ''}`);
+
+        // Snapshot BEFORE the change, so the log shows what the edit replaced.
+        const before = snapshotOf(r);
+
         return {
           ...r,
-          // A moved baseline opens a pending BaselineRecord so the history shows
-          // the proposal; it is approved along with the rest of the package.
-          approvalStatus: baselineMoved ? ('Pending Approval' as const) : r.approvalStatus,
+          name: this.editName().trim(),
+          owners: [...this.editOwners()],
+          categories: [...this.editCategories()],
+          businessUnits: businessUnitsFor(this.editOwners()),
+          description: this.editDescription().trim(),
+          validationSource: this.editValidationSource().trim(),
+          startDate: this.editStart(),
+          endDate: this.editEnd(),
+          type: this.editTypeDerived(),
+          baselineLines: this.editBaselineLines().map((l) => ({ ...l })),
+          financialRows: this.editLines().map((row) => ({ ...row, values: { ...row.values } })),
+          financialFile: file ?? undefined,
+          currentApprovedBaseline: baselineMoved ? proposed : r.currentApprovedBaseline,
+          baselineId: baselineMoved ? nextBaselineId(this.benefits()) : r.baselineId,
+          // A moved baseline appends to the history, which is a change log now:
+          // what it became, when, and why.
           baselineHistory: baselineMoved
             ? [...r.baselineHistory, {
                 baselineId: nextBaselineId(this.benefits()),
                 baselineValue: proposed,
                 startDate: this.editStart(),
                 endDate: this.editEnd(),
-                requestedBy: CURRENT_USER,
-                requestedOn: today,
-                approvedBy: '-',
-                approvalDate: '-',
-                changeReason: this.editReason().trim() || 'Baseline revised as part of a benefit update',
-                status: 'Pending Approval' as const
+                changedBy: CURRENT_USER,
+                changedOn: today,
+                changeReason: this.editReason().trim() || 'Baseline revised as part of a benefit update'
               }]
             : r.baselineHistory,
-          // Nothing is written yet. A change anywhere in the benefit puts the
-          // WHOLE benefit up for review, so the reporting lines travel with the
-          // field changes and only reach the history on approval.
-          pendingUpdate: {
-            id: `up-${Date.now()}`,
-            fields: changes,
-            reportingLines: staged,
-            requestedBy: CURRENT_USER,
-            requestedOn: today,
-            status: 'Pending Approval' as const
-          },
+          // Reporting lines reach the history on save, with everything else.
+          reportingHistory: [...r.reportingHistory, ...staged],
           auditLog: [...r.auditLog, {
             id: `ba-${Date.now()}`,
             date: today,
             user: CURRENT_USER,
-            action: 'Benefit Update Requested',
-            comments: `Submitted for approval — ${parts.join(' and ')}.`,
-            snapshot: snapshotOf(r)
+            action: 'Benefit Updated',
+            comments: `Updated — ${parts.join(' and ')}.`,
+            snapshot: before
           }]
-        };
+        } as Benefit;
       }));
 
     this.summaryEdit.set(false);
     this.draftUpdates.set([]);
 
-    // The overlay closes first, then the confirmation appears against the
-    // table — so the snackbar is not sitting over the record it is about, and
-    // "View benefit" has somewhere to take the reader back to.
     this.toastBenefitId.set(b.id);
     this.closeDetail();
-    setTimeout(() => this.toast.set('Benefit has been submitted for approval'), ValueBenefits.EXIT_MS);
+    setTimeout(() => this.toast.set('Benefit has been updated'), ValueBenefits.EXIT_MS);
   }
   protected openAudit(b: Benefit) { this.auditId.set(b.id); }
 
@@ -1360,12 +1167,6 @@ export class ValueBenefits {
   }
 
   /** Audit entries that concern the baseline rather than reporting. */
-  protected baselineAudit(b: Benefit) {
-    return [...b.auditLog]
-      .filter((a) => a.action.toLowerCase().includes('baseline'))
-      .sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0));
-  }
-
   /* ---------------- row actions ---------------- */
 
   /** Which action form is open, and for which benefit. */
@@ -1514,21 +1315,24 @@ export class ValueBenefits {
     this.closeAction();
   }
 
-  /** Closure request — status moves, nothing else is rewritten. */
+  /**
+   * Closes the benefit. No approval of its own: an ATS closes only once its
+   * benefits have, so this is the owner recording that it is done, and the
+   * request's own closure is what gets approved.
+   */
   protected submitClosure() {
     const b = this.actionBenefit();
     if (!b) return;
     const outcome = this.formOutcome().trim();
     this.patch(b.id, (cur) => ({
       ...cur,
-      status: 'Closure Pending Approval',
-      pendingWith: 'Sponsor',
+      status: 'Closed',
       auditLog: [...cur.auditLog, {
         id: `ba-${Date.now()}`, date: this.today(), user: CURRENT_USER,
-        action: 'Closure Submitted',
+        action: 'Benefit Closed',
         comments: (hasFinancial(cur)
-          ? `Final realised value ${this.money(this.num(outcome))} submitted for approval.`
-          : `${outcome} submitted for approval.`) +
+          ? `Closed at a final realised value of ${this.money(this.num(outcome))}.`
+          : `Closed — ${outcome}.`) +
           (this.formComments().trim() ? ` ${this.formComments().trim()}` : ''),
         snapshot: snapshotOf(cur)
       }]
@@ -1759,11 +1563,6 @@ export class ValueBenefits {
       startDate: this.draftStart(),
       endDate: this.draftEnd(),
       baselineLines: this.draftBaselineLines().map((l) => ({ ...l })),
-      // Creation is not a change to anything, so there is nothing to approve:
-      // the benefit starts tracking and only later EDITS go to the Sponsor.
-      approvalStatus: 'Approved',
-      approvedBy: CURRENT_USER,
-      approvalDate: today,
       status: 'Tracking Active',
       // Financial figures only ever arrive by upload, so a new benefit starts
       // with none until its template has been attached.
@@ -1774,12 +1573,9 @@ export class ValueBenefits {
         baselineValue: baseline,
         startDate: this.draftStart(),
         endDate: this.draftEnd(),
-        requestedBy: CURRENT_USER,
-        requestedOn: today,
-        approvedBy: '-',
-        approvalDate: '-',
-        changeReason: this.draftBaselineReason().trim() || 'Original baseline captured at benefit creation',
-        status: 'Pending Approval'
+        changedBy: CURRENT_USER,
+        changedOn: today,
+        changeReason: this.draftBaselineReason().trim() || 'Original baseline captured at benefit creation'
       }],
       reportingHistory: [],
       auditLog: [{
@@ -1811,11 +1607,6 @@ export class ValueBenefits {
   private toastTimer?: ReturnType<typeof setTimeout>;
 
   /** A decision made in the embedded queue confirms through this page's snackbar. */
-  protected onDecision(event: { message: string; benefitId: string }) {
-    this.toastBenefitId.set(event.benefitId);
-    this.toast.set(event.message);
-  }
-
   protected dismissToast() { this.toast.set(null); this.toastBenefitId.set(null); }
 
   protected viewToastBenefit() {
@@ -1833,9 +1624,12 @@ export class ValueBenefits {
    * edit is a separate fact about it. Writing 'pending' over the lifecycle value
    * would lose what to restore once a decision is made.
    */
-  protected displayStatus(b: Benefit): string {
-    return b.pendingUpdate?.status === 'Pending Approval' ? 'Update Pending Approval' : b.status;
-  }
+  /**
+   * Was a derived state while an edit could be pending; an edit now applies on
+   * save, so the stored status is the whole truth. Kept as the one place
+   * status is read, so the tiles and the table can never disagree.
+   */
+  protected displayStatus(b: Benefit): string { return b.status; }
 
   /** Downloads the open benefit as CSV — summary, reporting history and audit log. */
   protected download(b: Benefit) {
