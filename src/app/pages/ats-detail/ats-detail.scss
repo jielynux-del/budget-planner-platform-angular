@@ -274,3 +274,19 @@
    do not cross files, and value-benefits.scss owns its own copy. */
 .filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .filter-label { @include type.label(xs); color: var(--color-text-subtle); }
+
+/* ── A benefit page takes the whole area ──────────────────────
+   The request's tree, header and tabs are gone while a benefit is open, so
+   the main column has no panel to sit beside and no padding of its own to
+   apply — the benefit page brings its own. */
+.detail-shell.benefit-open { height: 100%; }
+
+.detail-shell.benefit-open .detail-main,
+.detail-shell.benefit-open .detail-main.panel-collapsed {
+  margin-left: 0;
+}
+
+.detail-body--bare {
+  padding: 0;
+  gap: 0;
+}

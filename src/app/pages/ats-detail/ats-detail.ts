@@ -54,6 +54,15 @@ export class AtsDetail {
 
   protected readonly openBenefitRef = computed(() => this.query()?.get('benefit') ?? null);
 
+  /**
+   * A benefit opens as a page of its own, not a panel inside this one: the
+   * reader has moved DOWN a level. The request's own chrome — its tree, header
+   * and tabs — steps aside, leaving only the app's nav rail, and the benefit
+   * page's back chevron brings them back up.
+   */
+  protected readonly benefitOpen = computed(() =>
+    this.activeTab() === 'benefits' && !!this.openBenefitRef());
+
   /** The benefits logged against this request. */
   protected readonly benefits = computed(() => {
     const id = this.record()?.id;

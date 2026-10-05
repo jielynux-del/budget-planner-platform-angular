@@ -1,14 +1,19 @@
 <!-- Back link sits above the nav-panel/main shell, not inside either column —
-     it belongs to the page as a whole, same level as the shell itself. -->
-<div class="back-bar">
-  <a class="back-link" routerLink="/approval-to-spend">
-    <ui-icon name="arrow-left" />
-    Approval to Spend Listing
-  </a>
-</div>
+     it belongs to the page as a whole, same level as the shell itself. It goes
+     with the rest of the request's chrome once a benefit is open: that page
+     carries its own way back. -->
+@if (!benefitOpen()) {
+  <div class="back-bar">
+    <a class="back-link" routerLink="/approval-to-spend">
+      <ui-icon name="arrow-left" />
+      Approval to Spend Listing
+    </a>
+  </div>
+}
 
 @if (record(); as r) {
-  <div class="detail-shell">
+  <div class="detail-shell" [class.benefit-open]="benefitOpen()">
+    @if (!benefitOpen()) {
     <ui-nav-panel [(expanded)]="panelExpanded">
       <button class="guidelines-btn" ui-button variant="plain" size="small" type="button" (click)="openGuidelines()">
         <ui-icon name="circle-information" />
@@ -29,8 +34,10 @@
         }
       </ui-nav-group>
     </ui-nav-panel>
+    }
 
     <div class="detail-main" [class.panel-collapsed]="!panelExpanded()">
+      @if (!benefitOpen()) {
       <header class="benefit-page-header">
         <div class="benefit-page-identity">
           <h1 class="benefit-page-title">{{ r.name }}</h1>
@@ -48,9 +55,10 @@
              to a benefit on this request. -->
         <ui-tabs [tabs]="tabs()" [active]="activeTab()" (activeChange)="onTab($event)" />
       </div>
+      }
 
-      <div class="detail-body">
-        @if (!bannerDismissed()) {
+      <div class="detail-body" [class.detail-body--bare]="benefitOpen()">
+        @if (!benefitOpen() && !bannerDismissed()) {
           <ui-info-banner
             tone="info"
             message="You are at Master ATS section. The first Sub-ATS set-up represents the original ATS; any revision after its approval is counted as the next revision. The Master ATS sums the original plus its revisions."
@@ -59,7 +67,7 @@
 
         <!-- Where the request stands and who has it. A returned request shows
              the approver's note here, which is what the requester has to act on. -->
-        @if (stateNote(); as note) {
+        @if (!benefitOpen() && stateNote(); as note) {
           <ui-info-banner
             [tone]="stateTone()"
             [title]="r.status === 'Sent for Rework' ? 'Sent back for rework' : r.status"
