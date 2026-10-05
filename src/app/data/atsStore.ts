@@ -43,7 +43,7 @@ export const canSubmit = (a: Ats | null) =>
 
 export const canDecide = (a: Ats | null) => !!a && a.status === 'Pending Approval';
 
-/** Sends the request, and everything in it, to its DOA approver. */
+/** Sends the request, and everything in it, to its approver. */
 export function submitAts(id: string, user: string) {
   patch(id, (a) => ({
     ...a,
@@ -55,7 +55,7 @@ export function submitAts(id: string, user: string) {
     lastEditedBy: user,
     lastEditedOn: today(),
     auditLog: [...a.auditLog, entry(a, user, 'Submitted for Approval',
-      a.reworkNote ? 'Resubmitted after rework.' : 'Sent to the DOA approver.')]
+      a.reworkNote ? 'Resubmitted after rework.' : 'Sent to the approver.')]
   }));
 }
 

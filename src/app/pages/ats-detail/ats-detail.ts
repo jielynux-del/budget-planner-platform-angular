@@ -74,7 +74,7 @@ export class AtsDetail {
     const r = this.record();
     if (!r) return null;
     if (r.status === 'Pending Approval') {
-      return `Pending approval with ${r.doaApprovers[0] ?? 'the DOA approver'}. Nothing in this request can be changed until it is approved or sent back.`;
+      return `Pending approval with ${r.approvers[0] ?? 'the approver'}. Nothing in this request can be changed until it is approved or sent back.`;
     }
     if (r.status === 'Sent for Rework') return r.reworkNote ?? 'Sent back for rework.';
     if (r.status === 'Draft') return 'Draft. Populate its benefits, then send it for approval.';

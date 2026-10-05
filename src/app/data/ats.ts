@@ -57,7 +57,7 @@ export interface Ats {
   subWorkstreamCode: string;
   requestor: string;
   portfolioManagers: string[];
-  doaApprovers: string[];
+  approvers: string[];
   status: AtsStatus;
   masterType: string;
   approvedDate: string;
@@ -319,7 +319,7 @@ export const ATS_RECORDS: Ats[] = SEED.map((s, i) => {
     ...s,
     requestor: pick(i, 1),
     portfolioManagers: [pick(i, 2)],
-    doaApprovers: [pick(i, 3), pick(i, 4), pick(i, 5)],
+    approvers: [pick(i, 3), pick(i, 4), pick(i, 5)],
     createdBy: pick(i, 6),
     lastEditedBy: 'SYSTEM',
     totalInvestment: investment,
@@ -346,7 +346,7 @@ function seedTrail(s: Partial<Ats> & { id: string; status: AtsStatus }, i: numbe
 
   entries.push({
     id: `${s.id}-t2`, date: created, user: pick(i, 1),
-    action: 'Submitted for Approval', comments: 'Sent to the DOA approver.'
+    action: 'Submitted for Approval', comments: 'Sent to the approver.'
   });
 
   if (s.status === 'Sent for Rework') {

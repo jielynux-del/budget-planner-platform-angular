@@ -128,7 +128,7 @@ export class AtsListing {
       like(a.subWorkstreamName, this.colSubWorkstream()) &&
       like(a.requestor, this.colRequestor()) &&
       like(a.portfolioManagers.join(' '), this.colManager()) &&
-      like(a.doaApprovers.join(' '), this.colApprover()));
+      like(a.approvers.join(' '), this.colApprover()));
   });
 
   protected readonly filtered = computed(() => {

@@ -113,7 +113,7 @@
               </ui-column-header>
             </th>
             <th style="min-width: 160px">
-              <ui-column-header label="DOA Approver(s)" size="sm" [filtered]="!!colApprover()">
+              <ui-column-header label="Approver(s)" size="sm" [filtered]="!!colApprover()">
                 <ui-text-input class="col-filter" [(value)]="colApprover" placeholder="All" />
               </ui-column-header>
             </th>
@@ -152,7 +152,7 @@
               <td>{{ a.requestor }}</td>
               <td>{{ a.portfolioManagers.join(', ') }}</td>
               <td>
-                @for (p of a.doaApprovers; track p) {
+                @for (p of a.approvers; track p) {
                   <div>{{ p }}</div>
                 }
               </td>
