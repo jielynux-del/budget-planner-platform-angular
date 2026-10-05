@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
+import { VersionLog } from './shared/version-log/version-log';
 import {
   UiDropdownAccountItem, UiDropdownMenu, UiIcon, UiNavRail, UiNavRailFlyout, UiNavRailFooter,
   UiNavRailHeader, UiNavRailItem, UiNavRailRule, UiNavRailSubItem, type UiIconName
@@ -18,8 +19,7 @@ interface RailItem {
   selector: 'app-root',
   imports: [
     RouterOutlet, UiNavRail, UiNavRailItem, UiNavRailSubItem, UiNavRailFlyout, UiNavRailRule,
-    UiNavRailHeader, UiNavRailFooter, UiIcon, UiDropdownMenu, UiDropdownAccountItem
-  ],
+    UiNavRailHeader, UiNavRailFooter, UiIcon, UiDropdownMenu, UiDropdownAccountItem, VersionLog],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

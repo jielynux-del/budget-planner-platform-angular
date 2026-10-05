@@ -1,0 +1,49 @@
+<!-- Bottom right, above everything: it belongs to the prototype rather than to
+     any screen in it. -->
+<button
+  ui-fab
+  tone="dark"
+  type="button"
+  class="vl-fab"
+  [attr.aria-expanded]="open()"
+  aria-label="Prototype version history"
+  (click)="toggle()">
+  <ui-icon [name]="open() ? 'close' : 'history'" [size]="24" />
+</button>
+
+@if (open()) {
+  <div class="vl-scrim" (click)="close()"></div>
+
+  <aside class="vl-panel" role="dialog" aria-label="Prototype version history">
+    <header class="vl-head">
+      <div>
+        <h2 class="vl-title">Prototype versions</h2>
+        <p class="vl-note">Each dated build stays reachable, so you can see what a screen looked like before a change.</p>
+      </div>
+      <button ui-icon-button variant="ghost" size="small" type="button" aria-label="Close" (click)="close()">
+        <ui-icon name="close" [size]="16" />
+      </button>
+    </header>
+
+    <div class="vl-body">
+      @for (v of versions; track v.date) {
+        <article class="vl-version">
+          <div class="vl-version-head">
+            <span class="vl-date">{{ v.date }}</span>
+            @if (!v.path) { <span class="vl-live">Live now</span> }
+          </div>
+          <p class="vl-summary">{{ v.summary }}</p>
+          <ul class="vl-changes">
+            @for (c of v.changes; track c) { <li>{{ c }}</li> }
+          </ul>
+          @if (v.path) {
+            <a ui-button variant="secondary" size="small" [href]="v.path" target="_blank" rel="noopener">
+              <ui-icon name="external-link" [size]="16" />
+              Open this version
+            </a>
+          }
+        </article>
+      }
+    </div>
+  </aside>
+}

@@ -1,0 +1,88 @@
+@use 'ai-dls-kit/tokens/type';
+
+.vl-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1500;
+}
+
+/* Above the kit's own dropdown overlay (1100) and this app's dialogs: the
+   version log sits over the prototype, not inside it. */
+.vl-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-scrim, rgba(16, 24, 32, 0.48));
+  z-index: 1490;
+}
+
+.vl-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  z-index: 1495;
+  width: min(420px, calc(100vw - 48px));
+  max-height: min(620px, calc(100vh - 140px));
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-level1);
+  border: 1px solid var(--color-border-decorative);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-elevation-4, 0 12px 32px rgba(16, 24, 32, 0.22));
+}
+
+.vl-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--color-border-decorative);
+}
+
+.vl-title { @include type.heading(2xs); color: var(--color-text-strong); margin: 0 0 4px; }
+.vl-note { @include type.body(sm); color: var(--color-text-subtle); margin: 0; }
+
+.vl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+/* A rule between versions rather than a card each: the list is a timeline,
+   and boxing every entry would make each read as a separate object. */
+.vl-version + .vl-version {
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-decorative);
+}
+
+.vl-version { display: grid; gap: 8px; }
+
+.vl-version-head { display: flex; align-items: center; gap: 8px; }
+.vl-date { @include type.label(sm); color: var(--color-text-strong); }
+
+.vl-live {
+  @include type.label(2xs);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-success-bg, var(--color-bg-level2));
+  color: var(--color-success-strong, var(--color-text-strong));
+}
+
+.vl-summary { @include type.body(sm); color: var(--color-text); margin: 0; }
+
+.vl-changes {
+  @include type.body(sm);
+  color: var(--color-text-subtle);
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+@media (max-width: 520px) {
+  .vl-panel { right: 12px; left: 12px; width: auto; }
+  .vl-fab { right: 16px; bottom: 16px; }
+}
