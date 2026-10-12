@@ -79,14 +79,14 @@
                   <ui-multi-select class="col-filter" [items]="ownerChoices" [(selected)]="colOwner" placeholder="All" display="count" />
                 </ui-column-header>
               </th>
-              <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
-              <th style="min-width: 260px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
-              <th style="min-width: 180px"><ui-column-header label="Validation Source" size="sm" /></th>
               <th>
                 <ui-column-header label="Benefit Status" size="sm" [sortable]="true" [filtered]="!!colStatus().length">
                   <ui-multi-select class="col-filter" [items]="statusChoices" [(selected)]="colStatus" placeholder="All" display="count" />
                 </ui-column-header>
               </th>
+              <th><ui-column-header label="Current Approved Baseline" size="sm" align="end" [sortable]="true" /></th>
+              <th style="min-width: 260px"><ui-column-header label="Actual Value / Latest Update" size="sm" /></th>
+              <th style="min-width: 180px"><ui-column-header label="Validation Source" size="sm" /></th>
               <th><ui-column-header label="Start date" size="sm" [sortable]="true" /></th>
               <th><ui-column-header label="End date" size="sm" [sortable]="true" /></th>
               <th><ui-column-header label="Last Updated" size="sm" [sortable]="true" /></th>
@@ -110,6 +110,7 @@
                 <td>
                   <span [uiTooltip]="ownerTooltip(b.owners)" tabindex="0">{{ ownerLabel(b.owners) }}</span>
                 </td>
+                <td class="ui-cell-status"><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></td>
                 <td class="ui-cell-number">{{ money(b.currentApprovedBaseline) }}</td>
                 <td>
                   @if (latest(b); as u) {
@@ -125,7 +126,6 @@
                   }
                 </td>
                 <td>{{ b.validationSource || '-' }}</td>
-                <td class="ui-cell-status"><ui-status-tag [status]="displayStatus(b)" [variant]="lifecycleVariant(displayStatus(b))" /></td>
                 <td>{{ b.startDate }}</td>
                 <td>{{ b.endDate }}</td>
                 <td>{{ latest(b)?.updateDate ?? '-' }}</td>
@@ -453,43 +453,53 @@
           }
         </div>
 
-        <div class="entity-section-wide">
-          <ui-accordion title="Baseline History" [count]="b.baselineHistory.length" [defaultOpen]="false">
-            <div class="vb-scroll">
-              <table ui-table size="sm">
-                <thead>
-                  <tr>
-                    <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
-                    <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
-                    <th><ui-column-header label="Start date" size="sm" /></th>
-                    <th><ui-column-header label="Changed By" size="sm" /></th>
-                    <th><ui-column-header label="Changed On" size="sm" /></th>
-                    <th><ui-column-header label="" size="sm" /></th>
-                    <th style="min-width: 240px"><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
+      </div>
+    </ui-card>
+
+    <!-- Its own section rather than an accordion inside Baselines: it is a
+         record in its own right, read the same way the reporting history below
+         it is, and a collapsible nested inside a section was easy to miss.
+         Outside the accordion the table draws its own border again — the rule
+         that strips it exists for the full-bleed case. -->
+    <ui-card>
+      <div class="entity-section">
+        <aside class="entity-section-head">
+          <h3 class="entity-section-title">Baseline History</h3>
+          <p class="entity-section-note">Every baseline this benefit has had — what it became, when, and why. Appended, never edited.</p>
+        </aside>
+        <div class="entity-section-wide entity-section-body">
+          <div class="vb-scroll">
+            <table ui-table size="sm">
+              <thead>
+                <tr>
+                  <th><ui-column-header label="Baseline ID" size="sm" [first]="true" /></th>
+                  <th><ui-column-header label="Baseline Value" size="sm" align="end" /></th>
+                  <th><ui-column-header label="Start date" size="sm" /></th>
+                  <th><ui-column-header label="Changed By" size="sm" /></th>
+                  <th><ui-column-header label="Changed On" size="sm" /></th>
+                  <th><ui-column-header label="" size="sm" /></th>
+                  <th style="min-width: 240px"><ui-column-header label="Change Reason" size="sm" [last]="true" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (h of baselineChain(b); track h.baselineId) {
+                  <tr ui-table-row>
+                    <td class="cell-name cell-nowrap">{{ h.baselineId }}</td>
+                    <td class="ui-cell-number cell-nowrap">{{ money(h.baselineValue) }}</td>
+                    <td class="cell-nowrap">{{ h.startDate }}</td>
+                    <td>{{ h.changedBy }}</td>
+                    <td class="cell-nowrap">{{ h.changedOn }}</td>
+                    <td class="ui-cell-status">
+                      @if (h.isCurrent) {
+                        <ui-status-tag class="current-tag" status="Current" variant="neutral" />
+                      }
+                    </td>
+                    <td>{{ h.changeReason }}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (h of baselineChain(b); track h.baselineId) {
-                    <tr ui-table-row>
-                      <td class="cell-name cell-nowrap">{{ h.baselineId }}</td>
-                      <td class="ui-cell-number cell-nowrap">{{ money(h.baselineValue) }}</td>
-                      <td class="cell-nowrap">{{ h.startDate }}</td>
-                      <td>{{ h.changedBy }}</td>
-                      <td class="cell-nowrap">{{ h.changedOn }}</td>
-                      <td class="ui-cell-status">
-                        @if (h.isCurrent) {
-                          <ui-status-tag class="current-tag" status="Current" variant="neutral" />
-                        }
-                      </td>
-                      <td>{{ h.changeReason }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </ui-accordion>
-
-
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </ui-card>

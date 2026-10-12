@@ -93,6 +93,11 @@
               </ui-column-header>
             </th>
             <th>
+              <ui-column-header label="Status" size="sm" [filtered]="!!colStatus().length">
+                <ui-multi-select class="col-filter" [items]="statusChoices" [(selected)]="colStatus" placeholder="All" display="count" />
+              </ui-column-header>
+            </th>
+            <th>
               <ui-column-header label="LE-PC Code" size="sm" [filtered]="!!colLePc()">
                 <ui-text-input class="col-filter" [(value)]="colLePc" placeholder="All" />
               </ui-column-header>
@@ -118,12 +123,7 @@
               </ui-column-header>
             </th>
             <th><ui-column-header label="Total Investment" size="sm" align="end" /></th>
-            <th><ui-column-header label="Total P&amp;L" size="sm" align="end" /></th>
-            <th>
-              <ui-column-header label="Status" size="sm" [last]="true" [filtered]="!!colStatus().length">
-                <ui-multi-select class="col-filter" [items]="statusChoices" [(selected)]="colStatus" placeholder="All" display="count" />
-              </ui-column-header>
-            </th>
+            <th><ui-column-header label="Total P&amp;L" size="sm" align="end" [last]="true" /></th>
           </tr>
         </thead>
 
@@ -143,6 +143,9 @@
               <td>
                 <div class="cell-name">{{ a.name }}</div>
                 <div class="cell-meta">{{ a.id }}</div>
+              </td>
+              <td class="ui-cell-status">
+                <ui-status-tag [status]="a.status" [variant]="statusVariant(a.status)" />
               </td>
               <td class="cell-nowrap">{{ a.lePcCode }}</td>
               <td>
@@ -167,9 +170,6 @@
                 <div class="cell-name cell-nowrap">{{ money(total(a.totalPnl)) }}</div>
                 <div class="cell-meta cell-nowrap">DEPRE: {{ money(a.totalPnl.depreciation) }}</div>
                 <div class="cell-meta cell-nowrap">OWN: {{ money(a.totalPnl.ownCost) }}</div>
-              </td>
-              <td class="ui-cell-status">
-                <ui-status-tag [status]="a.status" [variant]="statusVariant(a.status)" />
               </td>
             </tr>
           }

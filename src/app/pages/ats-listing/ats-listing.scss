@@ -31,6 +31,11 @@
 // kit's own note: an unsized sibling takes the row and the others collapse.
 .ats-toolbar-select { width: 160px; }
 
+// Two toolbar selects sit side by side in the table header with no gap of their
+// own; the kit's header row does not space projected controls, so the second
+// one gets an 8px left margin here.
+.ats-toolbar-select + .ats-toolbar-select { margin-left: 8px; }
+
 // Matches value-benefits.scss, so a column filter is the same width on both.
 .col-filter { width: 132px; }
 

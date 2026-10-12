@@ -294,3 +294,13 @@
   padding: var(--padding-panel-v-lg) var(--padding-panel-h-xl);
   gap: 0;
 }
+
+/* ── hint: a small tooltip trigger beside a heading ─────────────── */
+.hint {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-icon-subtle);
+  cursor: help;
+  vertical-align: middle;
+  margin-left: 6px;
+}

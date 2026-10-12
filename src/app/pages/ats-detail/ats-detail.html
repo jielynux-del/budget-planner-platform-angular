@@ -58,19 +58,12 @@
       }
 
       <div class="detail-body" [class.detail-body--bare]="benefitOpen()">
-        @if (!benefitOpen() && !bannerDismissed()) {
-          <ui-info-banner
-            tone="info"
-            message="You are at Master ATS section. The first Sub-ATS set-up represents the original ATS; any revision after its approval is counted as the next revision. The Master ATS sums the original plus its revisions."
-            (closed)="bannerDismissed.set(true)" />
-        }
-
         <!-- Where the request stands and who has it. A returned request shows
              the approver's note here, which is what the requester has to act on. -->
         @if (!benefitOpen() && stateNote(); as note) {
           <ui-info-banner
             [tone]="stateTone()"
-            [title]="r.status === 'Sent for Rework' ? 'Sent back for rework' : r.status"
+            [title]="stateTitle()"
             [message]="note"
             [dismissible]="false" />
         }
@@ -84,7 +77,7 @@
           <ui-card>
             <div class="entity-section">
               <div class="entity-section-head">
-                <h2 class="entity-section-title">Master ATS Details</h2>
+                <h2 class="entity-section-title">Master ATS Details <span class="hint" [uiTooltip]="masterAtsTip" tabindex="0"><ui-icon name="circle-information" [size]="16" /></span></h2>
                 <p class="entity-section-note">The record's own identity and headline figures.</p>
               </div>
               <div class="entity-section-body">

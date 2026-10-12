@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   UiButton, UiCard, UiColumnHeader, UiIcon, UiInfoBanner, UiNavGroup, UiNavPanel,
-  UiNavSubItem, UiSelect, UiSnackbar, UiTable, UiTableRow, UiTabs, UiTextarea,
+  UiNavSubItem, UiSelect, UiSnackbar, UiTable, UiTableRow, UiTabs, UiTextarea, UiTooltipDirective,
   type UiNavStatus, type UiSelectOption, type UiTab
 } from 'ai-dls-kit';
 import { amountTotal, ATS_CURRENCIES, type Ats, type AtsMonth } from '../../data/ats';
@@ -29,7 +29,7 @@ const QUARTERS: Array<[number, number, number]> = [[1, 2, 3], [4, 5, 6], [7, 8, 
   imports: [
     RouterLink, UiNavPanel, UiNavGroup, UiNavSubItem, UiCard, UiButton, UiIcon,
     UiInfoBanner, UiTabs, UiSelect, UiTable, UiTableRow, UiColumnHeader, ValueBenefits,
-    UiTextarea, UiSnackbar
+    UiTextarea, UiSnackbar, UiTooltipDirective
   ],
   templateUrl: './ats-detail.html',
   styleUrl: './ats-detail.scss'
@@ -86,9 +86,22 @@ export class AtsDetail {
       return `Pending approval with ${r.approvers[0] ?? 'the approver'}. Nothing in this request can be changed until it is approved or sent back.`;
     }
     if (r.status === 'Sent for Rework') return r.reworkNote ?? 'Sent back for rework.';
-    if (r.status === 'Draft') return 'Draft. Populate its benefits, then send it for approval.';
+    if (r.status === 'Draft') return 'Once populated, the entire ATS request needs to be submitted for approval.';
     return null;
   });
+
+  /** The banner's primary line: a Draft says what it is; other states show their status. */
+  protected readonly stateTitle = computed(() => {
+    const r = this.record();
+    if (r?.status === 'Draft') return 'This ATS request is a Draft.';
+    return r?.status === 'Sent for Rework' ? 'Sent back for rework' : r?.status ?? '';
+  });
+
+  /** The guidance that used to occupy a banner above the whole record. */
+  protected readonly masterAtsTip = {
+    title: 'Master ATS',
+    lines: ['The first Sub-ATS set-up represents the original ATS; any revision after its approval is counted as the next revision. The Master ATS sums the original plus its revisions.']
+  };
 
   protected readonly stateTone = computed(() =>
     this.record()?.status === 'Sent for Rework' ? 'warning' as const
@@ -164,8 +177,6 @@ export class AtsDetail {
 
   protected readonly toast = signal<string | null>(null);
   protected dismissToast() { this.toast.set(null); }
-
-  protected readonly bannerDismissed = signal(false);
 
   protected readonly scenarioOptions: UiSelectOption[] = [
     { value: 'forecast', label: 'Forecast' },
