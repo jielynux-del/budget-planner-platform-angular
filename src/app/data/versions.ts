@@ -22,9 +22,22 @@ export interface PrototypeVersion {
 
 export const VERSIONS: PrototypeVersion[] = [
   {
+    date: '2026-10-12',
+    summary: 'Columns, sections and guidance put where the reader expects them',
+    path: null,
+    changes: [
+      'ATS listing: Status moves from the far right to sit beside LE-PC Code, and the cost-type and currency selects no longer touch.',
+      'The Master ATS explanation moves from a banner above the whole record into a tooltip on the section it describes.',
+      'A Draft request now says what the state means and what to do about it.',
+      'Benefits table: Benefit Status sits next to Benefit Owner, rather than six columns away.',
+      'Baseline History leaves its accordion for a section of its own, beside its title like every other section.',
+      'Reporting History moves beside its title too.'
+    ]
+  },
+  {
     date: '2026-10-05',
     summary: 'Benefits move onto the ATS request, and approval moves with them',
-    path: null,
+    path: '/v/2026-10-05/',
     changes: [
       'Benefits Tracking is now a tab on the ATS request, between Drawdown Alerts and ATS Owners. The workstream no longer carries it.',
       'Benefits have no approval of their own. They are populated before a request is sent, and approved with it.',

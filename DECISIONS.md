@@ -8,6 +8,44 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-10-12 — Guidance and columns move to where the reader is looking
+
+A round of corrections rather than new behaviour, but two of them are worth
+recording because they are the same mistake in different places.
+
+**The Master ATS explanation was a banner above the whole record**, describing
+a section the reader had not reached yet, and dismissible — so it was both in
+the way and easy to lose. It is now a tooltip on the Master ATS Details
+heading, which is where the thing it explains actually is. Guidance belongs
+next to what it is about, not above everything.
+
+**Baseline History was an accordion inside the Baselines section.** A
+collapsible nested inside a section reads as a detail of that section, when it
+is a record in its own right — the same kind of thing as Reporting History
+below it. It becomes its own section. Outside the accordion the table draws its
+own border again: the rule that strips borders is meant for the full-bleed
+case, so nothing doubles.
+
+**Both history tables were stacked below their titles**, because they carried
+`entity-section-wide`, which spans the section grid's two columns. Every other
+section on the page puts its title and note left and its content right. They
+now do the same.
+
+**Column order follows how the columns are read.** Status moves beside LE-PC
+Code in the ATS listing, and Benefit Status next to Benefit Owner in the
+benefits table — who owns a thing and where it stands belong together. Moving
+a column means moving the `[last]` marker with it, or two columns claim the
+table's edge and a stray border appears.
+
+### Checked, not changed
+The Draft banner's typography was queried. It measures to the kit's own spec —
+14px/600 title, 14px/400 message — matches the other banner states exactly, and
+Public Sans 600 is genuinely loaded rather than synthesised by the browser.
+Nothing was changed on the strength of a guess; left open pending a clearer
+description of what reads wrong.
+
+---
+
 ## 2026-10-05 — Benefits move to the ATS request, and the approval moves with them
 
 The three questions parked on 28 September came back answered, and they
