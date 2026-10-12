@@ -465,9 +465,9 @@
       <div class="entity-section">
         <aside class="entity-section-head">
           <h3 class="entity-section-title">Baseline History</h3>
-          <p class="entity-section-note">Every baseline this benefit has had — what it became, when, and why. Appended, never edited.</p>
+          <p class="entity-section-note">Every baseline this benefit has had and its reasons for changing. This is automatically recorded and cannot be edited.</p>
         </aside>
-        <div class="entity-section-wide entity-section-body">
+        <div class="entity-section-body">
           <div class="vb-scroll">
             <table ui-table size="sm">
               <thead>
@@ -510,7 +510,7 @@
           <h3 class="entity-section-title">Reporting History</h3>
           <p class="entity-section-note">Every update reported against this benefit. Appended, never edited.</p>
         </aside>
-        <div class="entity-section-wide entity-section-body">
+        <div class="entity-section-body">
       @if (!b.reportingHistory.length && !draftUpdates().length && !summaryEdit()) {
         <p class="empty">Nothing has been reported for this benefit yet.</p>
       } @else {
