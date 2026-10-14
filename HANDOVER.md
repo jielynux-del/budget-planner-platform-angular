@@ -4,7 +4,7 @@ For a designer or engineer joining this prototype to build alongside the
 original author.
 
 The deliverable here is **copy-paste prompts**. Paste one as the first message
-of a fresh Claude Code session opened at the project root, then replace the
+of a fresh coding-agent session opened at the project root, then replace the
 last line with the feature you want. The rules are inside the prompt on
 purpose: handing someone documentation and hoping they read it does not work.
 
@@ -47,7 +47,7 @@ more than one.
 
 ## 0 — First session: set up and get oriented (zip recipients)
 
-Run this on its own, in a Claude Code session opened in the folder where the
+Run this on its own, in a coding-agent session opened in the folder where the
 zip was saved (e.g. `~/Downloads`). It deliberately ends without writing code.
 
 ```
@@ -89,7 +89,7 @@ looking at the running app, so do that too: open localhost:4200 and click
 through both record types.
 
 Step 3 — read these, in this order, and take notes:
-1. CLAUDE.md at the project root — hard rules that override your defaults.
+1. AGENTS.md at the project root — hard rules that override your defaults.
 2. DECISIONS.md — why the build looks the way it does, newest entry first.
    It records deliberate choices and known gaps. Do not "fix" things listed
    there as open on your own.
@@ -136,7 +136,7 @@ that list whenever you finish a chunk of work — without git history, that list
 is the only record of what changed.
 
 Before writing ANY code, do these in order and summarise what you found:
-1. Read CLAUDE.md at the project root. It contains hard rules that override
+1. Read AGENTS.md at the project root. It contains hard rules that override
    your default behaviour.
 2. Read DECISIONS.md, newest entry first. It explains why things are the way
    they are and lists known gaps — do not "fix" those on your own.
@@ -242,7 +242,7 @@ tarball committed at .kit-versions/, referenced as a file: dependency. It comes
 with the clone; if npm install cannot find it, stop and tell me.
 
 Before writing ANY code, do these in order and summarise what you found:
-1. Read CLAUDE.md at the project root. It contains hard rules that override
+1. Read AGENTS.md at the project root. It contains hard rules that override
    your default behaviour.
 2. Read DECISIONS.md, newest entry first. It explains why things are the way
    they are and lists known gaps — do not "fix" those on your own.

@@ -26,7 +26,7 @@ ai-dls-kit-pack/
 ├── MIGRATE-PROMPT.md       paste this instead when restyling an existing project
 ├── RULES.md                the kit's rules, for you or your AI tool
 ├── RECIPES.md              start here: a filterable table page, end to end
-├── CLAUDE.md               pointer file — drop into a Claude Code project
+├── AGENTS.md               pointer file — drop into an agent project
 ├── GEMINI.md                pointer file — drop into a Gemini project
 ├── AGENTS.md                 pointer file — drop into any agent-based tool
 ├── KIT.md                  index of every component
@@ -108,11 +108,11 @@ The lint checks the two-layer rule: your feature code should use only
 
 ## Building with an AI tool
 
-Paste the contents of `AGENT-PROMPT.md` into Claude Code, Gemini, Codex, or
+Paste the contents of `AGENT-PROMPT.md` into your coding agent, or
 whatever you're using — it tells the agent how to use this kit correctly
 before it writes any UI. Restyling a project that already exists? Paste
 `MIGRATE-PROMPT.md` instead: it makes the agent inventory the current UI,
 map every raw control and colour to the kit, and migrate screen by screen
-without touching behaviour. The `CLAUDE.md` / `GEMINI.md` / `AGENTS.md` pointer
+without touching behaviour. The `AGENTS.md` / `GEMINI.md` pointer
 files do the same job passively: drop the one matching your tool into your
 project root and a well-behaved agent will read it on its own.

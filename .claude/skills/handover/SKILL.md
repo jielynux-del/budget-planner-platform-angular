@@ -42,10 +42,25 @@ correct — this project has no end-to-end suite, only one near-empty unit spec.
 From the project root:
 
 ```bash
-rm -f ~/Desktop/budget-planner-source.zip && \
-zip -rq ~/Desktop/budget-planner-source.zip . \
-  -x "node_modules/*" ".git/*" "dist/*" ".angular/*" ".DS_Store" "*/.DS_Store"
+rm -f ~/Desktop/<date>_budget-planner-source.zip && \
+zip -rq ~/Desktop/<date>_budget-planner-source.zip . \
+  -x "node_modules/*" ".git/*" "dist/*" ".angular/*" ".claude/*" \
+     "ai-dls-kit-pack_ver2.zip" ".DS_Store" "*/.DS_Store"
 ```
+
+`.claude/` and the nested `ai-dls-kit-pack_ver2.zip` are excluded deliberately:
+the recipient has no use for either, and both name the agent that built this.
+The project's own rules live in `AGENTS.md`, which is vendor-neutral and stays
+in. After building, prove it:
+
+```bash
+rm -rf /tmp/zipcheck && mkdir /tmp/zipcheck && cd /tmp/zipcheck && \
+unzip -q ~/Desktop/<date>_budget-planner-source.zip && \
+grep -ril claude . ; find . -iname "*claude*"
+```
+
+Both must print nothing. Name the zip with the date, so the user can tell which
+copy a developer is holding.
 
 Add `"public/v/*"` to that exclude list when the recipient is reading the code
 rather than demoing it: the parked build snapshots are most of the zip's size
