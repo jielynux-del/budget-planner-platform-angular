@@ -10,10 +10,12 @@ purpose: handing someone documentation and hoping they read it does not work.
 
 Pick the version that matches how you sent the code.
 
-- **A — working from a zip** (no git). Simplest to send; work comes back as a
-  zip plus a written list of what changed.
-- **B — working from the GitHub repo.** Use this if the work is meant to be
-  merged back, since it gives branches, PRs and preview URLs.
+- **A — working from a zip** (no git). **This is the normal case.** The
+  developers cannot reach GitHub from the company network, so a zip is the
+  only channel; work comes back as a zip plus a written list of what changed.
+- **B — working from a git clone.** Only usable by someone who can actually
+  reach the repository — in practice, the author on a personal machine. Keep
+  it for that case; do not send it to anyone inside the company network.
 
 **If they are starting from a zip, send prompt 0 first.** It gets the project
 installed, running and understood before any feature work begins.
@@ -229,8 +231,9 @@ management demo — and building a new feature on it. I did not write this
 codebase. Treat the existing code as the source of truth and match its
 conventions rather than introducing your own.
 
-Clone and set up:
-    git clone https://github.com/jielynux-del/budget-planner-platform-angular.git
+Clone and set up (only if you can actually reach the repository — if you were
+sent a zip instead, stop and use prompt A):
+    git clone <repository URL>
     cd budget-planner-platform-angular
     npm install
     npm start          # dev server on http://localhost:4200
@@ -324,16 +327,21 @@ longer published to a public address.
 
 ## Notes for whoever sends this
 
-- **Prefer GitHub over a zip** if the work is meant to be kept. A zip is a
-  one-way snapshot: they cannot receive your updates, you cannot review theirs,
-  and within days you are reconciling two diverging copies by hand.
+- **A zip is the only channel to the company's developers** — GitHub is not
+  reachable from their network. Accept what that costs: a zip is a one-way
+  snapshot, so they cannot receive your updates and you cannot review theirs.
+  Date every zip you send and keep a note of which commit it was built from,
+  or within a fortnight nobody knows which copy is current.
+- **Corporate mail often blocks `.zip` attachments** and caps attachment size.
+  Check how the file will actually travel before writing the covering note.
 - **Never zip `node_modules`.** Excluding it, along with `dist/`, `.angular/`
   and `.git/`, keeps the whole project small.
 - **Always keep `.kit-versions/`.** The design system is not published to npm;
   it is a local tarball, and `npm install` fails outright without it. This is
   the single most likely reason a handover does not start.
 - `public/v/` holds frozen snapshots of earlier builds, served behind the
-  version-log button in the bottom-right of the app. They are several MB
-  and are safe for a recipient to delete — nothing but that button uses them.
+  version-log button in the bottom-right of the app. They are several MB and
+  nothing but that button uses them, so drop the folder when the recipient is
+  reading the code rather than demoing it — it is most of the zip's size.
 - The root `README.md` is the stock Angular CLI one and is not a guide to this
   project. It mentions commands, such as `ng e2e`, that do not apply here.

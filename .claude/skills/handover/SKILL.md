@@ -47,6 +47,10 @@ zip -rq ~/Desktop/budget-planner-source.zip . \
   -x "node_modules/*" ".git/*" "dist/*" ".angular/*" ".DS_Store" "*/.DS_Store"
 ```
 
+Add `"public/v/*"` to that exclude list when the recipient is reading the code
+rather than demoing it: the parked build snapshots are most of the zip's size
+and only the version-log button uses them. Say that you dropped them.
+
 **`.kit-versions/` must stay in.** The `ai-dls-kit` design system is not on
 npm — it is a local tarball referenced from package.json as a `file:`
 dependency, and `npm install` fails outright without it. This is the single
@@ -67,10 +71,15 @@ Then deliver the file with SendUserFile.
 - **Prompt A** — zip recipients, for the feature work itself. No git at all.
 - **Prompt B** — GitHub recipients. Use when the work is meant to be merged.
 
-Recommend **B** whenever the work is meant to come back. A zip is a one-way
-snapshot: they cannot receive updates, the user cannot review theirs, and
-within days it is two diverging copies merged by hand. Say this once; if the
-user wants the zip anyway, package it and move on.
+**Default to the zip.** The company's developers cannot reach GitHub from their
+network, so prompt B is only usable by someone on a personal machine. Do not
+suggest the repository as a handover route; say which commit the zip was built
+from instead, so the user can tell later which copy is current.
+
+When the recipient is reading the code rather than changing the prototype, a
+covering note beats a prompt: what the app is, the record types and routes, the
+personas, where the mock data lives, and that DECISIONS.md and
+src/app/data/models.ts carry the decisions. Offer to draft it.
 
 ## Things to flag in the reply
 
