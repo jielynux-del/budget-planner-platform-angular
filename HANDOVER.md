@@ -191,9 +191,10 @@ backend. If your feature needs a field or a value that isn't there, add it to
 the mock data — but do NOT invent business rules, field specs, option lists or
 approval thresholds that a real user would have to sign off. Ask me instead.
 
-One more thing: this prototype is published to a public URL, so keep the
-content de-identified. No real staff names, no internal system names, no
-in-house acronyms.
+One more thing: the code for this prototype lives in a PUBLIC GitHub
+repository, so keep the content de-identified. No real staff names, no internal
+system names, no in-house acronyms — in the UI, in the mock data and in code
+comments alike.
 
 As your last action, add a short dated entry at the TOP of DECISIONS.md
 describing what you changed, why, and anything you left unfinished. Newest
@@ -289,16 +290,23 @@ backend. If your feature needs a field or a value that isn't there, add it to
 the mock data — but do NOT invent business rules, field specs, option lists or
 approval thresholds that a real user would have to sign off. Ask me instead.
 
-DEPLOYMENT — read this twice. Pushing to `main` publishes immediately to a
-public URL the author demos from. NEVER commit or push to `main`, and never
-merge your own PR. Create a branch off `main` before your first change, commit
-there as you go, and open a pull request when the feature is ready. Pull `main`
-before you start and again before you open the PR, so you are building on the
-latest work rather than a stale copy. The author decides when anything goes
-live.
+BRANCHING — read this twice. NEVER commit or push to `main`, and never merge
+your own PR. `main` is the shared record this whole team clones from, and it is
+what gets promoted to the hosted environment, so a push straight to it lands in
+everyone's work at once. Create a branch off `main` before your first change,
+commit there as you go, and open a pull request when the feature is ready. Pull
+`main` before you start and again before you open the PR, so you are building on
+the latest work rather than a stale copy.
 
-Also: the prototype is published publicly, so keep the content de-identified.
-No real staff names, no internal system names, no in-house acronyms.
+HOSTING is handled by the team, not from this session. Do not deploy, do not add
+a hosting provider's config and do not wire up a pipeline. If you think a change
+needs something from the hosting environment, say so in the PR and leave it.
+To show your work, run it locally with `npm start` and share your screen or a
+screenshot.
+
+Also: this repository is PUBLIC, so keep the content de-identified. No real
+staff names, no internal system names, no in-house acronyms — in the UI, in the
+mock data and in code comments alike.
 
 As your last action, add a short dated entry at the TOP of DECISIONS.md
 describing what you changed, why, and anything you left unfinished. Newest
@@ -308,8 +316,9 @@ on a cold start.
 The feature I want to build is: <describe it here>
 ```
 
-Every branch and PR gets its own Vercel preview URL — the easiest way to review
-the work without pulling it.
+Review the work from the PR's diff, or by checking the branch out and running
+`npm start` locally. There is no preview URL to click — the prototype is no
+longer published to a public address.
 
 ---
 
@@ -323,8 +332,8 @@ the work without pulling it.
 - **Always keep `.kit-versions/`.** The design system is not published to npm;
   it is a local tarball, and `npm install` fails outright without it. This is
   the single most likely reason a handover does not start.
-- `public/v/` holds frozen snapshots of earlier deployed builds, served behind
-  the version-log button in the bottom-right of the app. They are several MB
+- `public/v/` holds frozen snapshots of earlier builds, served behind the
+  version-log button in the bottom-right of the app. They are several MB
   and are safe for a recipient to delete — nothing but that button uses them.
 - The root `README.md` is the stock Angular CLI one and is not a guide to this
   project. It mentions commands, such as `ng e2e`, that do not apply here.

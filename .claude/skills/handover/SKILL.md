@@ -75,19 +75,20 @@ user wants the zip anyway, package it and move on.
 ## Things to flag in the reply
 
 - Size, and what is inflating it. `public/v/` holds frozen snapshots of earlier
-  deployed builds for the version-log button — several MB, and safe for the
-  recipient to delete.
+  builds for the version-log button — several MB, and safe for the recipient to
+  delete.
 - Node 20+ is required; the author builds on Node 24.
 - The root `README.md` is stock Angular CLI boilerplate, not a guide to this
   project, and mentions commands such as `ng e2e` that do not apply.
-- If handing over the repo rather than a zip: `main` auto-deploys to the public
-  URL, so the collaborator must branch and open a PR, never push to `main` or
-  merge their own work.
+- If handing over the repo rather than a zip: the collaborator must branch and
+  open a PR, never push to `main` or merge their own work. `main` is the shared
+  record the team clones from and what gets promoted to the hosted environment.
 
 ## What not to do
 
-- Do not deploy as part of a handover. Packaging and publishing are separate
-  decisions, and publishing is always the user's call.
+- Do not deploy, and do not offer to. Hosting moved to the team's own
+  environment in October 2026; there is no public URL to publish to, and
+  previewing is `npm start` on port 4200.
 - Do not rewrite `HANDOVER.md` on the fly. If its facts have drifted from the
   codebase — new pages, changed commands, a new dependency trap — say so and
   offer to update it as its own task.
