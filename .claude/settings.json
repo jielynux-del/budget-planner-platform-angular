@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e 'const fs=require(\"fs\"),p=require(\"path\");const d=process.env.CLAUDE_PROJECT_DIR||process.cwd();const f=p.join(d,\"AGENTS.md\");if(!fs.existsSync(f))process.exit(0);process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:\"Binding project rules from AGENTS.md (this project has no CLAUDE.md by design — the agent name is kept out of everything that ships):\\n\\n\"+fs.readFileSync(f,\"utf8\")},suppressOutput:true}))'",
+            "timeout": 10,
+            "statusMessage": "Loading project UI-kit rules"
+          }
+        ]
+      }
+    ]
+  }
+}
