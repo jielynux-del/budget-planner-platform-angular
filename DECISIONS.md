@@ -23,9 +23,12 @@ so there is no second list to drift. The doc references to the skill file were
 reworded at the same time, since naming its path put the word back into
 `AGENTS.md`, `HANDOVER.md` and this log.
 
-One mention remains, in `scripts/handover.mjs`, as the literal `.claude/*`
-exclusion pattern. It cannot be removed without breaking the exclusion, and a
-glob in a build script is a different thing from a file named for a vendor.
+One mention remains, in `scripts/handover.mjs`: the exclusion pattern itself
+names the directory it excludes. It cannot be removed without breaking the
+exclusion, and a glob in a build script is a different thing from a file named
+for a vendor. Spelling it indirectly to dodge a text search was considered and
+rejected — obfuscating a build script to defeat a grep is worse than the grep
+hit it prevents.
 
 **Checked, not changed:** `npm ci`, the boundary lint and `ng build` all pass on
 the pinned 22.0.0 set, and `npm run handover` completes its own unzip-and-build
