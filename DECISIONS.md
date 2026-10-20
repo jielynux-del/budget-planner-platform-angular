@@ -8,6 +8,88 @@ later without reconstructing the argument.
 
 ---
 
+## 2026-10-20 — The handover script inherits the export exclusions
+
+`npm run handover` arrived from the sister prototype excluding only
+`node_modules`, `dist`, `.angular` and `.git`. That reinstated three things
+this project had deliberately stopped shipping on 14 October: the agent config
+directory, `ai-dls-kit-pack_ver2.zip` (a nested copy of the kit carrying its
+own vendor pointer files), and `public/v/` — 3.5MB of parked demo builds that
+only the version-log button reads.
+
+Nobody wrote a worse rule; the script simply predates the constraint. Both
+exclusion lists now live in the script, which is the only place a zip is built,
+so there is no second list to drift. The doc references to the skill file were
+reworded at the same time, since naming its path put the word back into
+`AGENTS.md`, `HANDOVER.md` and this log.
+
+One mention remains, in `scripts/handover.mjs`, as the literal `.claude/*`
+exclusion pattern. It cannot be removed without breaking the exclusion, and a
+glob in a build script is a different thing from a file named for a vendor.
+
+**Checked, not changed:** `npm ci`, the boundary lint and `ng build` all pass on
+the pinned 22.0.0 set, and `npm run handover` completes its own unzip-and-build
+proof. The resulting zip is 3.1MB / 216 entries, against 5.4MB / 282 before.
+
+---
+
+## 2026-10-20 — Dependencies pinned to what the company npm mirror serves
+
+`npm install` failed on the company laptop with a 404 for
+`@inquirer/number@4.2.2` (pulled in by `@angular/cli`). The lockfile had been
+resolved against public npm on a personal machine, and the company's internal
+npm mirror lags public npm and does not serve every recent version. Nothing in
+the code was at fault.
+
+A sister prototype had already met this and settled on a set of versions that
+installs on the company laptop. This project now uses that set: Angular 22.0.0
+(was 22.1.7), TypeScript 6.0.3, Vitest 4.1.7, Prettier 3.8.3, jsdom 28.1.0,
+exact pins instead of ranges, and the same `overrides` block. The lockfile was
+regenerated *from that prototype's lockfile*, so every registry package in it
+is a version already installed there — a fresh resolve would have drifted
+back to newer versions within the ranges. `ai-dls-kit` asks for `^22.0.0`,
+so 22.0.0 satisfies it.
+
+**Every handover zip is now checked, not just this one.** Fixing the lockfile
+once does not stop the next `npm install` on a personal machine from drifting
+again, and the mirror cannot be reached from outside to test against.
+`scripts/mirror-known-good.txt` lists every version the company laptop has
+installed (seeded from the sister prototype's lockfile, 555 versions).
+`npm run handover` refuses to zip a lockfile with anything not on it, then
+unzips the result into a clean folder and runs `npm ci` and a build there,
+deleting the zip if either fails. The rule is in AGENTS.md, in the HANDOVER.md
+prompts and in the agent handover skill, so an agent asked to "zip this up"
+takes the same path. The list grows by itself: when `npm run check:registry`
+passes against the company mirror, it adds the lockfile's versions.
+
+Also from the sister prototype:
+
+- `npm run check:registry` probes every pinned tarball against the configured
+  registry before installing and lists all gaps at once, instead of one 404
+  per round trip. Changed here to skip `file:` packages (the kit).
+- `scripts/allow-node-24-14.mjs` runs as `postinstall`. The company laptop has
+  Node 24.14.0 and Angular CLI 22 refuses to run below 24.15.0; the script
+  bypasses that check. It does nothing on Node ≥24.15. Remove it and the
+  `postinstall` entry once the laptop is upgraded.
+- `.nvmrc` says 24. HANDOVER.md said "Node 20 or newer", which was wrong for
+  Angular 22.
+
+### Checked, not changed
+
+Build and boundary lint pass on 22.0.0. `src/app/app.spec.ts` fails with
+`Cannot access 'UiRadioChiclet' before initialization` inside the kit — the
+same failure on the old 22.1.7 setup, so it predates this change.
+
+`npm audit` reports 39 advisories against these pinned versions (9 before).
+Upgrading would mean versions the mirror may not have, so it waits until the
+mirror catches up.
+
+Platform-specific packages for other operating systems sit in the known-good
+list unproven — the laptop never downloads them — which is harmless while the
+laptop's platform stays the same.
+
+---
+
 ## 2026-10-12 — Guidance and columns move to where the reader is looking
 
 A round of corrections rather than new behaviour, but two of them are worth

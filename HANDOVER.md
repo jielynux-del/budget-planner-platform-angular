@@ -65,10 +65,14 @@ run any git commands: no pull, push, commit, branch, checkout or stash. If
 something seems to need git, stop and tell me.
 
 Step 1 — set it up. From the project root:
+    npm run check:registry
     npm install
     npm start
-That starts a dev server on http://localhost:4200. It needs Node 20 or newer;
-tell me your Node version (the author builds on Node 24).
+`check:registry` confirms every pinned package can be downloaded from your npm
+registry before installing; if it lists anything missing, stop and show me the
+list. `npm start` runs a dev server on http://localhost:4200. It needs Node 24
+(see .nvmrc); tell me your Node version. On Node 24.14, a postinstall step
+works around Angular CLI's 24.15 version check automatically.
 
 The design system this project uses, `ai-dls-kit`, is NOT on npm. It is a local
 tarball in `.kit-versions/`, referenced from package.json as a file: dependency.
@@ -145,9 +149,10 @@ Before writing ANY code, do these in order and summarise what you found:
    an existing page is put together.
 
 Setup, from the project root:
+    npm run check:registry   # every pinned package downloadable? stop if not
     npm install
     npm start          # dev server on http://localhost:4200
-Node 20 or newer. The `ai-dls-kit` design system is NOT on npm — it is a local
+Node 24 (see .nvmrc). The `ai-dls-kit` design system is NOT on npm — it is a local
 tarball in .kit-versions/, referenced as a file: dependency. If that folder is
 missing, stop and tell me.
 
@@ -193,6 +198,11 @@ backend. If your feature needs a field or a value that isn't there, add it to
 the mock data — but do NOT invent business rules, field specs, option lists or
 approval thresholds that a real user would have to sign off. Ask me instead.
 
+DEPENDENCIES: the company laptop installs from an npm mirror that lacks many
+recent versions. Do not add or upgrade npm packages unless I ask; if you must,
+use a version listed in scripts/mirror-known-good.txt. Never delete
+package-lock.json. To zip the project, run `npm run handover` — never by hand.
+
 One more thing: the code for this prototype lives in a PUBLIC GitHub
 repository, so keep the content de-identified. No real staff names, no internal
 system names, no in-house acronyms — in the UI, in the mock data and in code
@@ -208,15 +218,15 @@ The feature I want to build is: <describe it here>
 
 ### Sending the work back
 
-From the folder *above* the project:
+From the project root:
 
 ```bash
-zip -r budget-planner-from-<name>.zip budget-planner-angular \
-  -x "*/node_modules/*" "*/dist/*" "*/.angular/*" "*/.git/*" "*/.DS_Store"
+npm run handover
 ```
 
-Keep `.kit-versions/` in — the kit is a local dependency and `npm install`
-fails without it.
+It writes `budget-planner-source-YYYYMMDD.zip` to the Desktop, leaving out
+`node_modules`, `dist`, `.angular` and `.git` and keeping `.kit-versions/`. It
+only produces a zip that has installed and built from a clean unzip.
 
 Ask for the modified-file list alongside the zip. Without git history that list
 is the only record of what changed, and merging is done by hand.
@@ -235,9 +245,10 @@ Clone and set up (only if you can actually reach the repository — if you were
 sent a zip instead, stop and use prompt A):
     git clone <repository URL>
     cd budget-planner-platform-angular
+    npm run check:registry   # every pinned package downloadable? stop if not
     npm install
     npm start          # dev server on http://localhost:4200
-Node 20 or newer. The `ai-dls-kit` design system is NOT on npm — it is a local
+Node 24 (see .nvmrc). The `ai-dls-kit` design system is NOT on npm — it is a local
 tarball committed at .kit-versions/, referenced as a file: dependency. It comes
 with the clone; if npm install cannot find it, stop and tell me.
 
@@ -293,6 +304,11 @@ backend. If your feature needs a field or a value that isn't there, add it to
 the mock data — but do NOT invent business rules, field specs, option lists or
 approval thresholds that a real user would have to sign off. Ask me instead.
 
+DEPENDENCIES: the company laptop installs from an npm mirror that lacks many
+recent versions. Do not add or upgrade npm packages unless I ask; if you must,
+use a version listed in scripts/mirror-known-good.txt. Never delete
+package-lock.json. To zip the project, run `npm run handover` — never by hand.
+
 BRANCHING — read this twice. NEVER commit or push to `main`, and never merge
 your own PR. `main` is the shared record this whole team clones from, and it is
 what gets promoted to the hosted environment, so a push straight to it lands in
@@ -327,6 +343,13 @@ longer published to a public address.
 
 ## Notes for whoever sends this
 
+- **Make every zip with `npm run handover`.** The company laptop installs
+  from an internal npm mirror that lags public npm and 404s versions it has
+  not picked up, so a lockfile resolved on a personal machine fails there.
+  The script refuses to zip any package version not in
+  `scripts/mirror-known-good.txt` (versions the laptop has installed), then
+  proves the zip installs and builds. If it stops, pin the listed packages to
+  a known-good version; the handover skill has the details.
 - **A zip is the only channel to the company's developers** — GitHub is not
   reachable from their network. Accept what that costs: a zip is a one-way
   snapshot, so they cannot receive your updates and you cannot review theirs.
@@ -334,11 +357,9 @@ longer published to a public address.
   or within a fortnight nobody knows which copy is current.
 - **Corporate mail often blocks `.zip` attachments** and caps attachment size.
   Check how the file will actually travel before writing the covering note.
-- **Never zip `node_modules`.** Excluding it, along with `dist/`, `.angular/`
-  and `.git/`, keeps the whole project small.
-- **Always keep `.kit-versions/`.** The design system is not published to npm;
-  it is a local tarball, and `npm install` fails outright without it. This is
-  the single most likely reason a handover does not start.
+- **Never zip `node_modules`; always keep `.kit-versions/`.** The handover
+  script does both. The design system is not published to npm; it is a local
+  tarball, and `npm install` fails outright without it.
 - `public/v/` holds frozen snapshots of earlier builds, served behind the
   version-log button in the bottom-right of the app. They are several MB and
   nothing but that button uses them, so drop the folder when the recipient is

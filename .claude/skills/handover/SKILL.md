@@ -1,118 +1,54 @@
 ---
 name: handover
-description: Package this prototype for a developer or designer to pick up — verify the gates, build a clean source zip at HEAD, and hand over the right onboarding prompt from HANDOVER.md. Use when the user says /handover, or asks to hand over, send, share or package the source for someone else to work on.
+description: Build the handover zip of this Budget Planner prototype for the company laptop, which installs npm packages from an internal mirror that lacks many recent versions. Use whenever asked to zip, hand over, package, export or send this project — never zip it by hand.
 ---
 
-# Handover
-
-Package the prototype so someone who did not write it can get it running and
-build on it. `HANDOVER.md` at the project root holds the onboarding prompts;
-this skill produces the artifact that goes with them.
-
-## Before anything else
-
-Check the working tree is clean and HEAD is pushed:
+Build the handover zip with the project's own script, from the project root:
 
 ```bash
-git status -sb && git log --oneline -1
+npm run handover
 ```
 
-If there are uncommitted changes, say what they are and ask whether to commit
-them first. Handing over a zip that does not match the repo is how two copies
-start diverging on day one.
+It does four things and stops at the first failure:
 
-## Step 1 — verify before packaging
+1. **Known-good check.** Every registry package in `package-lock.json` must be
+   listed in `scripts/mirror-known-good.txt` — the versions the company laptop
+   has already installed. The laptop installs from an internal mirror that
+   lags public npm and returns 404 for versions it has not picked up, so a
+   lockfile resolved on a personal machine fails there (DECISIONS.md,
+   2026-10-20). The mirror cannot be reached from outside, which is why this
+   is a list and not a live check.
+2. Kit boundary lint.
+3. Zips the project (without `node_modules`, `dist`, `.angular`, `.git`) to
+   `~/Desktop/budget-planner-source-YYYYMMDD.zip`.
+4. Unzips it into a clean temp folder and runs `npm ci` and `npm run build`
+   there. If either fails, the zip is deleted.
 
-Never package something unverified. Run both gates and capture the real exit
-codes:
+## When the known-good check fails
 
-```bash
-node kit-pack/lint/lint-boundaries.mjs src && npm run build
-```
+The script lists each unproven `name@version` with the known-good versions of
+that package. Fix it at the source:
 
-If either fails, STOP and report the output. Do not package a broken build and
-do not describe it as working.
+- A direct dependency: set the exact known-good version in `package.json`.
+- An indirect one: add an `"overrides"` entry pinning it to a known-good
+  version (the block already has many — follow the pattern).
+- Then `npm install` and run `npm run handover` again.
 
-Be straight with the user about what this proves: the lint proves the design
-system rules hold, and the build proves it compiles. Neither proves the UI is
-correct — this project has no end-to-end suite, only one near-empty unit spec.
+Do NOT:
+- add lines to `scripts/mirror-known-good.txt` by hand — only
+  `npm run check:registry`, passing on the company laptop, may add to it;
+- delete `package-lock.json` or re-resolve it from scratch — that drifts every
+  package back to the newest version and undoes the pinning;
+- use `--allow-unverified` without the user's explicit OK.
 
-## Step 2 — build the zip
+A package with no known-good version at all is new to the company laptop. Tell
+the user, and only with their OK run `npm run handover -- --allow-unverified`.
+The recipient must then run `npm run check:registry` before `npm install`; when
+it passes there, it records the new versions in the list, and that updated
+file should come back with the next zip.
 
-From the project root:
+## Report
 
-```bash
-rm -f ~/Desktop/<date>_budget-planner-source.zip && \
-zip -rq ~/Desktop/<date>_budget-planner-source.zip . \
-  -x "node_modules/*" ".git/*" "dist/*" ".angular/*" ".claude/*" \
-     "ai-dls-kit-pack_ver2.zip" ".DS_Store" "*/.DS_Store"
-```
-
-`.claude/` and the nested `ai-dls-kit-pack_ver2.zip` are excluded deliberately:
-the recipient has no use for either, and both name the agent that built this.
-The project's own rules live in `AGENTS.md`, which is vendor-neutral and stays
-in. After building, prove it:
-
-```bash
-rm -rf /tmp/zipcheck && mkdir /tmp/zipcheck && cd /tmp/zipcheck && \
-unzip -q ~/Desktop/<date>_budget-planner-source.zip && \
-grep -ril claude . ; find . -iname "*claude*"
-```
-
-Both must print nothing. Name the zip with the date, so the user can tell which
-copy a developer is holding.
-
-Add `"public/v/*"` to that exclude list when the recipient is reading the code
-rather than demoing it: the parked build snapshots are most of the zip's size
-and only the version-log button uses them. Say that you dropped them.
-
-**`.kit-versions/` must stay in.** The `ai-dls-kit` design system is not on
-npm — it is a local tarball referenced from package.json as a `file:`
-dependency, and `npm install` fails outright without it. This is the single
-most common reason a handover never starts. Confirm it is present:
-
-```bash
-unzip -l ~/Desktop/budget-planner-source.zip | grep -E "kit-versions|package.json"
-```
-
-Then deliver the file with SendUserFile.
-
-## Step 3 — tell them which prompt to send
-
-`HANDOVER.md` contains three prompts. Say plainly which applies:
-
-- **Prompt 0** — send first to anyone receiving a zip. Sets up, reads, explores
-  and reports back without writing code.
-- **Prompt A** — zip recipients, for the feature work itself. No git at all.
-- **Prompt B** — GitHub recipients. Use when the work is meant to be merged.
-
-**Default to the zip.** The company's developers cannot reach GitHub from their
-network, so prompt B is only usable by someone on a personal machine. Do not
-suggest the repository as a handover route; say which commit the zip was built
-from instead, so the user can tell later which copy is current.
-
-When the recipient is reading the code rather than changing the prototype, a
-covering note beats a prompt: what the app is, the record types and routes, the
-personas, where the mock data lives, and that DECISIONS.md and
-src/app/data/models.ts carry the decisions. Offer to draft it.
-
-## Things to flag in the reply
-
-- Size, and what is inflating it. `public/v/` holds frozen snapshots of earlier
-  builds for the version-log button — several MB, and safe for the recipient to
-  delete.
-- Node 20+ is required; the author builds on Node 24.
-- The root `README.md` is stock Angular CLI boilerplate, not a guide to this
-  project, and mentions commands such as `ng e2e` that do not apply.
-- If handing over the repo rather than a zip: the collaborator must branch and
-  open a PR, never push to `main` or merge their own work. `main` is the shared
-  record the team clones from and what gets promoted to the hosted environment.
-
-## What not to do
-
-- Do not deploy, and do not offer to. Hosting moved to the team's own
-  environment in October 2026; there is no public URL to publish to, and
-  previewing is `npm start` on port 4200.
-- Do not rewrite `HANDOVER.md` on the fly. If its facts have drifted from the
-  codebase — new pages, changed commands, a new dependency trap — say so and
-  offer to update it as its own task.
+Give the user the zip path and size, and say whether the check passed or the
+zip is UNVERIFIED. If any step failed, show its output and say what it means —
+never weaken a check to get a zip out.
